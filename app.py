@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from dotenv import load_dotenv
 import os
 import google.generativeai as genai
@@ -74,8 +74,11 @@ def generate():
 
 @app.route('/', methods=['GET'])
 def home():
-    """صفحة رئيسية بسيطة للتحقق من أن الخدمة تعمل."""
-    return 'API is running'
+    import os
+    from flask import send_from_directory
+    directory = os.path.dirname(os.path.abspath(__file__))
+    return send_from_directory(directory, 'index.html')
+```'
 
 
 if __name__ == '__main__':
