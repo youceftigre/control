@@ -198,11 +198,13 @@
 
                 const rawText = data.result || JSON.stringify(data);
                 // تنظيف النص: إزالة علامات ```html التي قد يضيفها النموذج
+// تنظيف النص: إزالة أي بقايا Markdown
 let cleanHtml = rawText
     .replace(/```html\s*/g, '')
     .replace(/```\s*/g, '');
 
-renderResult(`<div style="white-space: normal;">${cleanHtml}</div>`);
+// حقن HTML المنظف مباشرة في الصفحة
+renderResult(cleanHtml);
                 if (statusEl) statusEl.textContent = '✅ تم الإنشاء بنجاح';
 
             } catch (error) {
