@@ -1,42 +1,34 @@
-    # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 from flask import Flask, request, jsonify, send_from_directory
 from dotenv import load_dotenv
 import os
+import traceback
 import google.generativeai as genai
 
 load_dotenv()
 api_key = os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
 
+# طباعة أول 6 أحرف من المفتاح للتأكد من أنه محمل (آمن)
 if api_key:
+    print(f"✅ تم تحميل المفتاح: {api_key[:6]}...")
     genai.configure(api_key=api_key)
 else:
-    print("WARNING: GEMINI_API_KEY not set.")
+    print("❌ لم يتم العثور على GEMINI_API_KEY في متغيرات البيئة")
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 
-def get_model():
-    """اختيار أفضل نموذج متاح تلقائياً"""
+# اختيار النموذج بشكل آمن
+def load_model():
     try:
-        models = genai.list_models()
-        for m in models:
-            if 'generateContent' in m.supported_generation_methods:
-                # اختيار أول نموذج متاح يدعم التوليد وليس قديماً جداً
-                name = m.name  # مثلاً models/gemini-2.5-flash
-                print(f"Using model: {name}")
-                return genai.GenerativeModel(name)
-        # fallback
-        return genai.GenerativeModel('gemini-2.5-flash')
+        # استخدام اسم النموذج الكامل من الصورة السابقة
+        model = genai.GenerativeModel('models/gemini-2.5-flash')
+        print("✅ تم تحميل النموذج بنجاح")
+        return model
     except Exception as e:
-        print(f"Error listing models: {e}, using gemini-2.5-flash")
-        return genai.GenerativeModel('gemini-2.5-flash')
+        print(f"❌ فشل تحميل النموذج: {e}")
+        return None
 
-# تحميل النموذج مرة واحدة عند بدء التشغيل
-try:
-    model = get_model()
-    print("Model loaded successfully.")
-except Exception as e:
-    print(f"FATAL: Could not load model: {e}")
-    model = None
+model = load_model()
 
 def build_prompt(body: dict) -> str:
     return f"""أنت خبير تربوي في المنهاج الجزائري.
@@ -63,19 +55,34 @@ def build_prompt(body: dict) -> str:
 def generate():
     if not request.is_json:
         return jsonify({'error': 'يجب إرسال البيانات بصيغة JSON'}), 400
+
     if not api_key:
-        return jsonify({'error': 'مفتاح API غير متوفر'}), 500
+        return jsonify({'error': '🔑 مفتاح API غير موجود. أضف GEMINI_API_KEY في إعدادات Render.'}), 500
+
     if model is None:
-        return jsonify({'error': 'النموذج غير جاهز، راجع السجلات'}), 500
+        return jsonify({'error': '🧠 فشل تحميل نموذج الذكاء الاصطناعي. راجع السجلات.'}), 500
+
     try:
         body = request.get_json()
         prompt = build_prompt(body)
+
+        print("🚀 إرسال الطلب إلى Gemini...")
         response = model.generate_content(prompt)
+        print("✅ تم استلام الرد من Gemini")
+
         return jsonify({'result': response.text})
+
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': f'خطأ: {str(e)}'}), 500
+        # تجميع تفاصيل الخطأ لعرضها للمستخدم
+        error_details = traceback.format_exc()
+        print("❌❌❌ خطأ في /api/generate:")
+        print(error_details)
+
+        # إرسال الخطأ للمتصفح ليساعد في التشخيص
+        return jsonify({
+            'error': f'فشل التوليد: {str(e)}',
+            'details': error_details.split('\n')[-2]  # آخر سطر مفيد
+        }), 500
 
 @app.route('/')
 def home():
