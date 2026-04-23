@@ -781,74 +781,89 @@ ${extra ? '- تعليمات إضافية: ' + extra : ''}
                     .fraction .den { padding: 0 4px; }
                     .edit-hint { display: none !important; }
                     .strong-sep { border: none; height: 3px; background: #0b3b5c; margin: 24px 0; }
-                    .page-break { page-break-before: always; border: none; height: 2px; background: #2a9d8f; margin: 30px 0; }
-                </style>
-            </head>
-            <body>${content}</body>
-            </html>
-        `);
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => {
-            printWindow.print();
-            printWindow.close();
-            document.title = originalTitle;
-        }, 500);
-    };
+<script>
+(function() {
+    "use strict";
 
-    // ─── Main Function ───
+    const API_URL = '/api/generate';
+
+    const generateBtn = document.getElementById('generateBtn');
+    const statusEl = document.getElementById('status');
+    const outputEl = document.getElementById('output');
+
+    function getField(id) {
+        return document.getElementById(id)?.value.trim() || '';
+    }
+
+    function buildPayload() {
+        return {
+            subject: getField('subject'),
+            grade: getField('grade'),
+            examType: getField('examType'),
+            schoolYear: getField('schoolYear'),
+            duration: getField('duration'),
+            mark: getField('mark'),
+            topic: getField('topic'),
+            types: getField('types'),
+            difficulty: getField('difficulty'),
+            extra: getField('extra'),
+            prompt: `أنشئ اختبار في مادة ${getField('subject')} للمستوى ${getField('grade')}`
+        };
+    }
+
+    function showError(msg) {
+        outputEl.innerHTML = `<div style="color:red">${msg}</div>`;
+        statusEl.textContent = "❌ خطأ";
+    }
+
     async function generateExam() {
         const payload = buildPayload();
 
-        if (generateBtn) generateBtn.disabled = true;
-        if (statusEl) statusEl.textContent = '⏳ جاري الاتصال بـ Gemini...';
-        if (actionButtonsArea) actionButtonsArea.style.display = 'none';
-        renderResult('<div style="text-align:center; padding:40px; color:#4a6572;">⏳ يرجى الانتظار...</div>');
+        if (!payload.subject || !payload.grade) {
+            alert("❗ املأ الحقول");
+            return;
+        }
+
+        generateBtn.disabled = true;
+        statusEl.textContent = "⏳ جاري التوليد...";
 
         try {
             const response = await fetch(API_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(payload)
             });
+
+            if (!response.headers.get("content-type")?.includes("application/json")) {
+                throw new Error("⚠️ الرد ليس JSON");
+            }
 
             const data = await response.json();
 
             if (!response.ok) {
-                const serverError = data.error || data.details || `خطأ HTTP: ${response.status}`;
-                throw new Error(serverError);
+                throw new Error(data.error || `HTTP ${response.status}`);
             }
 
-            const rawText = data.result || JSON.stringify(data);
-            let cleanHtml = cleanMarkdown(rawText);
+            const rawText =
+                data.choices?.[0]?.message?.content ||
+                data.result ||
+                "❌ لا يوجد رد";
 
-            cleanHtml = cleanHtml
-                .replace(/<hr\s*\/?>/gi, '<hr class="strong-sep">')
-                .replace(/<hr\s+class="page-break"\s*\/?>/gi, '<hr class="page-break">');
+            outputEl.innerHTML = rawText;
+            statusEl.textContent = "✅ تم بنجاح";
 
-            cleanHtml = convertFractions(cleanHtml);
-
-            renderResult(cleanHtml);
-            if (statusEl) statusEl.textContent = '✅ تم الإنشاء بنجاح';
-
-        } catch (error) {
-            console.error('❌ فشل:', error);
-            showError(error.message, error.stack);
+        } catch (err) {
+            console.error(err);
+            showError(err.message);
         } finally {
-            if (generateBtn) generateBtn.disabled = false;
+            generateBtn.disabled = false;
         }
     }
 
-    // ─── Event Listeners ───
-    document.addEventListener('DOMContentLoaded', () => {
-        if (generateBtn) {
-            generateBtn.addEventListener('click', generateExam);
-        }
-        console.log('🚀 التطبيق جاهز');
-    });
+    // حل مشكلة الضغط مرتين
+    generateBtn.onclick = generateExam;
 
 })();
 </script>
-
 </body>
 </html>
