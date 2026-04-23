@@ -368,17 +368,61 @@
     }
 
     function buildPayload() {
+        const subject = getField('subject');
+        const grade = getField('grade');
+        const examType = getField('examType');
+        const schoolYear = getField('schoolYear');
+        const duration = getField('duration');
+        const mark = getField('mark');
+        const topic = getField('topic');
+        const types = getField('types');
+        const difficulty = getField('difficulty');
+        const extra = getField('extra');
+
+        // بناء التعليمات المحددة للـ AI
+        const instructions = `
+أنشئ ${examType} في مادة ${subject} للمستوى ${grade} للسنة الدراسية ${schoolYear}.
+
+المعلومات:
+- المدة: ${duration}
+- العلامة الكاملة: ${mark}
+- الموضوع/المحور: ${topic || 'غير محدد'}
+- أنواع الأسئلة: ${types}
+- مستوى الصعوبة: ${difficulty}
+${extra ? '- تعليمات إضافية: ' + extra : ''}
+
+⚠️ هام جداً: يجب أن يكون التنسيق بالشكل التالي (بصيغة HTML):
+
+## الصفحة الأولى: ورقة الأسئلة
+يجب أن تحتوي فقط على:
+1. عنوان الاختبار في الأعلى (المادة - المستوى - نوع الفرض - السنة الدراسية - المدة - العلامة الكاملة)
+2. الأسئلة فقط (بدون حلول) مع ذكر نقاط كل سؤال بين قوسين مثل: (03 نقاط)
+3. لا تضع الإجابات النموذجية في هذه الصفحة
+
+## الصفحة الثانية: الإجابة النموذجية
+بعد الانتهاء من جميع الأسئلة، أضف فاصلاً واضحاً ثم صفحة جديدة بعنوان:
+"الإجابة النموذجية وسلم التنقيط"
+
+في هذه الصفحة:
+1. اكتب حل كل سؤال بالتفصيل
+2. اذكر نقاط كل جزء من الحل
+3. اذكر الإجابة الصحيحة النهائية لكل سؤال
+
+استخدم HTML للتنسيق مع فصول واضحة.
+        `.trim();
+
         return {
-            subject: getField('subject'),
-            grade: getField('grade'),
-            examType: getField('examType'),
-            schoolYear: getField('schoolYear'),
-            duration: getField('duration'),
-            mark: getField('mark'),
-            topic: getField('topic'),
-            types: getField('types'),
-            difficulty: getField('difficulty'),
-            extra: getField('extra')
+            subject: subject,
+            grade: grade,
+            examType: examType,
+            schoolYear: schoolYear,
+            duration: duration,
+            mark: mark,
+            topic: topic,
+            types: types,
+            difficulty: difficulty,
+            extra: extra,
+            prompt: instructions
         };
     }
 
