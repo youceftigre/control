@@ -210,6 +210,80 @@
             font-size: 0.85rem;
         }
 
+        /* ─── Fraction Styling ─── */
+        .fraction {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            vertical-align: middle;
+            margin: 0 4px;
+            font-size: 0.9em;
+        }
+        .fraction .num {
+            border-bottom: 2px solid var(--text);
+            padding: 0 4px;
+            text-align: center;
+        }
+        .fraction .den {
+            padding: 0 4px;
+            text-align: center;
+        }
+
+        /* ─── Edit Question Box ─── */
+        .edit-box {
+            background: #f8fafc;
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            margin: 16px 0;
+        }
+        .edit-box textarea {
+            width: 100%;
+            min-height: 80px;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            padding: 10px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            resize: vertical;
+        }
+        .edit-box .edit-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            justify-content: flex-end;
+        }
+        .edit-box .btn-save {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .edit-box .btn-cancel {
+            background: #e2e8f0;
+            color: var(--text);
+            border: none;
+            padding: 8px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .edit-box .btn-edit {
+            background: var(--primary-light);
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            margin-top: 8px;
+        }
+
         /* ─── Responsive ─── */
         @media (max-width: 600px) {
             .container { padding: 16px; }
@@ -395,9 +469,12 @@ ${extra ? '- تعليمات إضافية: ' + extra : ''}
 
 ## الصفحة الأولى: ورقة الأسئلة
 يجب أن تحتوي فقط على:
-1. عنوان الاختبار في الأعلى (المادة - المستوى - نوع الفرض - السنة الدراسية - المدة - العلامة الكاملة)
+1. عنوان الاختبار في الأعلى يحتوي على: الجمهورية الجزائرية الديمقراطية الشعبية، وزارة التربية الوطنية، المستوى، المادة، المدة، العلامة الكاملة
+   - لا تذكر "الموضوع" أو "أنواع الأسئلة" أو "مستوى الصعوبة" في عنوان الاختبار
 2. الأسئلة فقط (بدون حلول) مع ذكر نقاط كل سؤال بين قوسين مثل: (03 نقاط)
 3. لا تضع الإجابات النموذجية في هذه الصفحة
+4. عند كتابة الكسور، استخدم تنسيق HTML بخط أفقي: <span class="fraction"><span class="num">البسط</span><span class="den">المقام</span></span>
+   - مثال: 3/4 يصبح: <span class="fraction"><span class="num">3</span><span class="den">4</span></span>
 
 ## الصفحة الثانية: الإجابة النموذجية
 بعد الانتهاء من جميع الأسئلة، أضف فاصلاً واضحاً ثم صفحة جديدة بعنوان:
@@ -407,6 +484,7 @@ ${extra ? '- تعليمات إضافية: ' + extra : ''}
 1. اكتب حل كل سؤال بالتفصيل
 2. اذكر نقاط كل جزء من الحل
 3. اذكر الإجابة الصحيحة النهائية لكل سؤال
+4. استخدم نفس تنسيق الكسور (خط أفقي)
 
 استخدم HTML للتنسيق مع فصول واضحة.
         `.trim();
@@ -428,12 +506,13 @@ ${extra ? '- تعليمات إضافية: ' + extra : ''}
 
     function renderResult(htmlContent) {
         if (outputEl) outputEl.innerHTML = htmlContent;
+        addEditButtons();
     }
 
     function cleanMarkdown(rawText) {
         return rawText
-            .replace(/```html\s*/gi, '')
-            .replace(/```\s*/g, '')
+            .replace(/\`\`\`html\s*/gi, '')
+            .replace(/\`\`\`\s*/g, '')
             .trim();
     }
 
@@ -446,6 +525,65 @@ ${extra ? '- تعليمات إضافية: ' + extra : ''}
             </div>
         `);
         if (statusEl) statusEl.textContent = `⚠️ خطأ: ${message}`;
+    }
+
+    // ─── Add Edit Buttons to Questions ───
+    function addEditButtons() {
+        const questions = outputEl.querySelectorAll('.q, div[class*="question"], div[class*="exercise"], div[class*="تمري"]');
+        questions.forEach((q, index) => {
+            const editBtn = document.createElement('button');
+            editBtn.className = 'btn-edit';
+            editBtn.textContent = '✏️ تعديل السؤال';
+            editBtn.onclick = () => openEditBox(q, index);
+            q.appendChild(editBtn);
+        });
+    }
+
+    function openEditBox(questionEl, index) {
+        const existingEdit = questionEl.querySelector('.edit-box');
+        if (existingEdit) return;
+
+        const originalHTML = questionEl.innerHTML;
+        const editBox = document.createElement('div');
+        editBox.className = 'edit-box';
+        editBox.innerHTML = `
+            <textarea id="edit-text-${index}">${questionEl.innerText.replace('✏️ تعديل السؤال', '').trim()}</textarea>
+            <div class="edit-actions">
+                <button class="btn-cancel" onclick="cancelEdit(this, \`${encodeURIComponent(originalHTML)}\`)">إلغاء</button>
+                <button class="btn-save" onclick="saveEdit(this, ${index})">حفظ التعديل</button>
+            </div>
+        `;
+        questionEl.appendChild(editBox);
+    }
+
+    window.cancelEdit = function(btn, originalHTML) {
+        const editBox = btn.closest('.edit-box');
+        const questionEl = editBox.parentElement;
+        questionEl.innerHTML = decodeURIComponent(originalHTML);
+    };
+
+    window.saveEdit = function(btn, index) {
+        const editBox = btn.closest('.edit-box');
+        const questionEl = editBox.parentElement;
+        const newText = document.getElementById(`edit-text-${index}`).value;
+
+        // Convert fractions in text to HTML format
+        const formattedText = convertFractions(newText);
+
+        questionEl.innerHTML = formattedText;
+
+        // Re-add edit button
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn-edit';
+        editBtn.textContent = '✏️ تعديل السؤال';
+        editBtn.onclick = () => openEditBox(questionEl, index);
+        questionEl.appendChild(editBtn);
+    };
+
+    // ─── Convert Fractions to HTML Format ───
+    function convertFractions(text) {
+        // Convert patterns like "3/4" or "12/5" to HTML fraction format
+        return text.replace(/(\d+)\/(\d+)/g, '<span class="fraction"><span class="num">$1</span><span class="den">$2</span></span>');
     }
 
     // ─── Main Function ───
@@ -472,7 +610,10 @@ ${extra ? '- تعليمات إضافية: ' + extra : ''}
             }
 
             const rawText = data.result || JSON.stringify(data);
-            const cleanHtml = cleanMarkdown(rawText);
+            let cleanHtml = cleanMarkdown(rawText);
+
+            // Convert any remaining fraction patterns to HTML
+            cleanHtml = convertFractions(cleanHtml);
 
             renderResult(cleanHtml);
             if (statusEl) statusEl.textContent = '✅ تم الإنشاء بنجاح';
