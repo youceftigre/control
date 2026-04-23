@@ -189,41 +189,78 @@ def home():
         </div>
         <footer>⚡ يستخدم Gemini API · Benhamida Youcef</footer>
     </div>
-    <script>
+<script>
+    (function() {
         const API_URL = '/api/generate';
-        function getField(id) { return document.getElementById(id).value; }
+        
+        function getField(id) {
+            var el = document.getElementById(id);
+            return el ? el.value : '';
+        }
+        
         function buildPayload() {
             return {
-                subject: getField('subject'), grade: getField('grade'), examType: getField('examType'),
-                schoolYear: getField('schoolYear'), duration: getField('duration'), mark: getField('mark'),
-                topic: getField('topic'), types: getField('types'), difficulty: getField('difficulty'),
+                subject: getField('subject'),
+                grade: getField('grade'),
+                examType: getField('examType'),
+                schoolYear: getField('schoolYear'),
+                duration: getField('duration'),
+                mark: getField('mark'),
+                topic: getField('topic'),
+                types: getField('types'),
+                difficulty: getField('difficulty'),
                 extra: getField('extra')
             };
         }
-        function renderResult(html) { document.getElementById('output').innerHTML = html; }
-        async function generateExam() {
-            const statusEl = document.getElementById('status');
-            const btn = document.querySelector('.btn-green');
-            const payload = buildPayload();
-            btn.disabled = true;
-            statusEl.textContent = '⏳ جاري الاتصال بـ Gemini...';
-            renderResult('<p>⏳ يُرجى الانتظار...</p>');
-            try {
-                const res = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
-                if (!res.ok) throw new Error('خطأ في الخادم');
-                const data = await res.json();
-                const safeHtml = (data.result || '').replace(/</g,'&lt;').replace(/\n/g,'<br>');
-                renderResult('<div>'+safeHtml+'</div>');
-                statusEl.textContent = '✅ تم بنجاح';
-            } catch(e) {
-                statusEl.textContent = '⚠️ خطأ: '+e.message;
-                renderResult('<div style="color:red;">تعذر توليد الاختبار</div>');
-            } finally { btn.disabled = false; }
+        
+        function renderResult(html) {
+            var out = document.getElementById('output');
+            if (out) out.innerHTML = html;
         }
-        document.addEventListener('DOMContentLoaded', () => {
-            document.querySelector('.btn-green').addEventListener('click', generateExam);
-        });
-    </script>
-    </body>
-    </html>
-    """
+        
+        async function generateExam() {
+            console.log("🟢 زر التوليد تم الضغط عليه");
+            var statusEl = document.getElementById('status');
+            var btn = document.querySelector('.btn-green');
+            var payload = buildPayload();
+            
+            if (btn) btn.disabled = true;
+            if (statusEl) statusEl.textContent = '⏳ جاري الاتصال بـ Gemini...';
+            renderResult('<p>⏳ يُرجى الانتظار...</p>');
+            
+            try {
+                var res = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!res.ok) throw new Error('خطأ في الخادم (' + res.status + ')');
+                
+                var data = await res.json();
+                var rawText = data.result || JSON.stringify(data);
+                var safeHtml = rawText.replace(/</g, '&lt;').replace(/\n/g, '<br>');
+                
+                renderResult('<div>' + safeHtml + '</div>');
+                if (statusEl) statusEl.textContent = '✅ تم بنجاح';
+            } catch(e) {
+                console.error('❌ خطأ:', e);
+                if (statusEl) statusEl.textContent = '⚠️ خطأ: ' + e.message;
+                renderResult('<div style="color:red; padding:20px;">تعذر توليد الاختبار<br>' + e.message + '</div>');
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+        
+        // ربط الزر بعد تحميل الصفحة
+        window.onload = function() {
+            var btn = document.querySelector('.btn-green');
+            if (btn) {
+                btn.addEventListener('click', generateExam);
+                console.log('✅ تم ربط الزر بنجاح');
+            } else {
+                console.error('❌ الزر غير موجود');
+            }
+        };
+    })();
+</script>
