@@ -197,12 +197,12 @@
                 }
 
                 const rawText = data.result || JSON.stringify(data);
-                const safeHtml = rawText
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/\n/g, '<br>');
+                // تنظيف النص: إزالة علامات ```html التي قد يضيفها النموذج
+let cleanHtml = rawText
+    .replace(/```html\s*/g, '')
+    .replace(/```\s*/g, '');
 
-                renderResult(`<div style="white-space: normal;">${safeHtml}</div>`);
+renderResult(`<div style="white-space: normal;">${cleanHtml}</div>`);
                 if (statusEl) statusEl.textContent = '✅ تم الإنشاء بنجاح';
 
             } catch (error) {
