@@ -212,6 +212,28 @@
             line-height: 1.8;
             color: #1a1a1a;
         }
+        /* Editable mode styling */
+        .a4-paper.editable {
+            border: 2px dashed var(--accent);
+            background: #fafefe;
+        }
+        .a4-paper.editable .paper-content {
+            outline: none;
+            min-height: 250mm;
+        }
+        .edit-hint {
+            display: none;
+            background: var(--accent);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .a4-paper.editable .edit-hint {
+            display: block;
+        }
 
         /* ─── Output Card ─── */
         .output-card {
@@ -282,68 +304,6 @@
             text-align: center;
         }
 
-        /* ─── Global Edit Box ─── */
-        .global-edit-area {
-            background: #f8fafc;
-            border: 2px dashed var(--border);
-            border-radius: var(--radius-sm);
-            padding: 20px;
-            margin: 20px 0;
-        }
-        .global-edit-area h3 {
-            color: var(--primary);
-            margin-bottom: 12px;
-            font-size: 1.1rem;
-        }
-        .global-edit-area textarea {
-            width: 100%;
-            min-height: 200px;
-            border: 1.5px solid var(--border);
-            border-radius: 10px;
-            padding: 12px;
-            font-family: inherit;
-            font-size: 0.95rem;
-            resize: vertical;
-            line-height: 1.8;
-        }
-        .global-edit-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 12px;
-            justify-content: flex-end;
-        }
-        .btn-save-global {
-            background: var(--accent);
-            color: white;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-        .btn-cancel-global {
-            background: #e2e8f0;
-            color: var(--text);
-            border: none;
-            padding: 10px 24px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.95rem;
-        }
-        .btn-toggle-edit {
-            background: var(--primary-light);
-            color: white;
-            border: none;
-            padding: 10px 24px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 0.95rem;
-            margin: 10px 0;
-        }
-
         /* ─── Download Buttons ─── */
         .download-area {
             display: flex;
@@ -412,7 +372,7 @@
                 padding: 15mm;
                 margin: 0;
             }
-            .font-size-bar, .download-area, .global-edit-area, .btn-toggle-edit,
+            .font-size-bar, .download-area, .edit-hint,
             .developer-signature, .form-grid, .btn-green, .status-area {
                 display: none !important;
             }
@@ -549,19 +509,9 @@
     <!-- ─── Action Buttons Area ─── -->
     <div id="actionButtonsArea" style="display: none; margin: 20px 0;">
         <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px;">
-            <button class="btn-toggle-edit" id="btnToggleEdit" onclick="toggleGlobalEdit()">
-                ✏️ تعديل الاختبار
+            <button class="btn-toggle-edit" id="btnToggleEdit" onclick="toggleEditMode()">
+                ✏️ تعديل مباشر
             </button>
-        </div>
-
-        <!-- Global Edit Box -->
-        <div class="global-edit-area" id="globalEditArea" style="display: none;">
-            <h3>✏️ تعديل الاختبار</h3>
-            <textarea id="globalEditText" placeholder="يمكنك هنا تعديل نص الاختبار بالكامل..."></textarea>
-            <div class="global-edit-actions">
-                <button class="btn-cancel-global" onclick="cancelGlobalEdit()">إلغاء</button>
-                <button class="btn-save-global" onclick="saveGlobalEdit()">💾 حفظ التعديلات</button>
-            </div>
         </div>
 
         <!-- Font Size Slider -->
@@ -587,6 +537,7 @@
     <!-- ─── Output (A4 Paper) ─── -->
     <div class="output-card">
         <div class="a4-paper" id="a4Paper">
+            <div class="edit-hint">✏️ وضع التعديل مفعل – يمكنك النقر على النص والتعديل مباشرة</div>
             <div class="paper-content" id="output">
                 <h2 style="text-align: center; color: var(--primary);">📄 ورقة الاختبار</h2>
                 <div style="text-align: center; margin: 20px 0;">
@@ -620,12 +571,11 @@
     const outputEl = document.getElementById('output');
     const a4Paper = document.getElementById('a4Paper');
     const actionButtonsArea = document.getElementById('actionButtonsArea');
-    const globalEditArea = document.getElementById('globalEditArea');
-    const globalEditText = document.getElementById('globalEditText');
     const btnToggleEdit = document.getElementById('btnToggleEdit');
     const fontSizeSlider = document.getElementById('fontSizeSlider');
     const fontSizeValue = document.getElementById('fontSizeValue');
 
+    let isEditMode = false;
     let currentExamHTML = '';
 
     // ─── Helpers ───
@@ -661,8 +611,8 @@ ${extra ? '- تعليمات إضافية: ' + extra : ''}
 
 ## الصفحة الأولى: ورقة الأسئلة
 يجب أن تحتوي فقط على:
-1. عنوان الاختبار في الأعلى يحتوي على: الجمهورية الجزائرية الديمقراطية الشعبية، وزارة التربية الوطنية، المستوى، المادة، المدة، العلامة الكاملة
-   - لا تذكر "الموضوع" أو "أنواع الأسئلة" أو "مستوى الصعوبة" في عنوان الاختبار
+1. عنوان الاختبار في الأعلى يحتوي على: الجمهورية الجزائرية الديمقراطية الشعبية، وزارة التربية الوطنية، المستوى، المادة، المدة
+   - لا تذكر "العلامة الكاملة" أو "الموضوع" أو "أنواع الأسئلة" أو "مستوى الصعوبة" في عنوان الاختبار
 2. خط فاصل واضح (hr class="strong-sep") بعد المعلومات العلوية وبداية الأسئلة
 3. الأسئلة فقط (بدون حلول) مع ذكر نقاط كل سؤال بين قوسين مثل: (03 نقاط)
 4. لا تضع الإجابات النموذجية في هذه الصفحة
@@ -701,15 +651,16 @@ ${extra ? '- تعليمات إضافية: ' + extra : ''}
         // Show action buttons area
         if (actionButtonsArea) {
             actionButtonsArea.style.display = 'block';
-            console.log('✅ Action buttons area shown');
         }
         // Reset font size to default
         if (outputEl) outputEl.style.fontSize = '14pt';
         if (fontSizeSlider) fontSizeSlider.value = 14;
         if (fontSizeValue) fontSizeValue.textContent = '14pt';
-        // Hide edit area by default
-        if (globalEditArea) globalEditArea.style.display = 'none';
-        if (btnToggleEdit) btnToggleEdit.textContent = '✏️ تعديل الاختبار';
+        // Disable edit mode
+        isEditMode = false;
+        if (a4Paper) a4Paper.classList.remove('editable');
+        if (outputEl) outputEl.contentEditable = 'false';
+        if (btnToggleEdit) btnToggleEdit.textContent = '✏️ تعديل مباشر';
     }
 
     function cleanMarkdown(rawText) {
@@ -731,6 +682,28 @@ ${extra ? '- تعليمات إضافية: ' + extra : ''}
         if (actionButtonsArea) actionButtonsArea.style.display = 'none';
     }
 
+    // ─── Edit Mode (Direct on A4 Paper) ───
+    window.toggleEditMode = function() {
+        isEditMode = !isEditMode;
+
+        if (isEditMode) {
+            // Enable editing
+            a4Paper.classList.add('editable');
+            outputEl.contentEditable = 'true';
+            btnToggleEdit.textContent = '❌ إيقاف التعديل';
+            statusEl.textContent = '✏️ وضع التعديل مفعل';
+            outputEl.focus();
+        } else {
+            // Disable editing
+            a4Paper.classList.remove('editable');
+            outputEl.contentEditable = 'false';
+            btnToggleEdit.textContent = '✏️ تعديل مباشر';
+            statusEl.textContent = '✅ تم حفظ التعديلات';
+            // Save current content
+            currentExamHTML = outputEl.innerHTML;
+        }
+    };
+
     // ─── Font Size Control ───
     window.changeFontSize = function(size) {
         if (outputEl) {
@@ -741,43 +714,6 @@ ${extra ? '- تعليمات إضافية: ' + extra : ''}
         }
     };
 
-    // ─── Global Edit Functions ───
-    window.toggleGlobalEdit = function() {
-        if (globalEditArea.style.display === 'none') {
-            globalEditText.value = outputEl.innerText;
-            globalEditArea.style.display = 'block';
-            btnToggleEdit.textContent = '❌ إغلاق التعديل';
-        } else {
-            globalEditArea.style.display = 'none';
-            btnToggleEdit.textContent = '✏️ تعديل الاختبار';
-        }
-    };
-
-    window.cancelGlobalEdit = function() {
-        globalEditArea.style.display = 'none';
-        btnToggleEdit.textContent = '✏️ تعديل الاختبار';
-    };
-
-    window.saveGlobalEdit = function() {
-        const newText = globalEditText.value;
-        let formattedHTML = convertFractions(newText);
-
-        formattedHTML = formattedHTML
-            .split('\n').join('<br>')
-            .replace(/الإجابة النموذجية وسلم التنقيط/g, '<hr class="page-break"><h2 style="color: var(--primary); text-align: center; margin: 20px 0;">الإجابة النموذجية وسلم التنقيط</h2>')
-            .replace(/التمرين الأول/g, '<h3 style="color: var(--primary-light); margin-top: 20px;">التمرين الأول</h3>')
-            .replace(/التمرين الثاني/g, '<h3 style="color: var(--primary-light); margin-top: 20px;">التمرين الثاني</h3>')
-            .replace(/الوضعية الإدماجية/g, '<h3 style="color: var(--primary-light); margin-top: 20px;">الوضعية الإدماجية</h3>');
-
-        outputEl.innerHTML = formattedHTML;
-        currentExamHTML = formattedHTML;
-
-        globalEditArea.style.display = 'none';
-        btnToggleEdit.textContent = '✏️ تعديل الاختبار';
-
-        if (statusEl) statusEl.textContent = '✅ تم حفظ التعديلات';
-    };
-
     // ─── Convert Fractions to HTML Format ───
     function convertFractions(text) {
         return text.replace(/(\d+)\/(\d+)/g, '<span class="fraction"><span class="num">$1</span><span class="den">$2</span></span>');
@@ -785,6 +721,9 @@ ${extra ? '- تعليمات إضافية: ' + extra : ''}
 
     // ─── Download Functions ───
     window.downloadWord = function() {
+        // Disable edit mode before download
+        if (isEditMode) toggleEditMode();
+
         const content = outputEl.innerHTML;
         const subject = getField('subject');
         const grade = getField('grade');
@@ -819,6 +758,9 @@ ${extra ? '- تعليمات إضافية: ' + extra : ''}
     };
 
     window.downloadPDF = function() {
+        // Disable edit mode before download
+        if (isEditMode) toggleEditMode();
+
         const content = outputEl.innerHTML;
         const subject = getField('subject');
         const grade = getField('grade');
@@ -837,7 +779,7 @@ ${extra ? '- تعليمات إضافية: ' + extra : ''}
                     .fraction { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; margin: 0 4px; }
                     .fraction .num { border-bottom: 2px solid black; padding: 0 4px; }
                     .fraction .den { padding: 0 4px; }
-                    .global-edit-area, .btn-toggle-edit, .font-size-bar { display: none !important; }
+                    .edit-hint { display: none !important; }
                     .strong-sep { border: none; height: 3px; background: #0b3b5c; margin: 24px 0; }
                     .page-break { page-break-before: always; border: none; height: 2px; background: #2a9d8f; margin: 30px 0; }
                 </style>
