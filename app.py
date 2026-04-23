@@ -1,75 +1,56 @@
+# -*- coding: utf-8 -*-
 from flask import Flask, request, jsonify, send_from_directory
 from dotenv import load_dotenv
 import os
-import traceback
-from google import genai
+import google.generativeai as genai      # ✅ هذا هو الصحيح
 
 load_dotenv()
-
-api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-client = genai.Client(api_key=api_key) if api_key else None
+api_key = os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
+if api_key:
+    genai.configure(api_key=api_key)
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 
-def build_prompt(body=None):
-    body = body or {}
-    exam_type = body.get('examType', 'اختبار')
+def build_prompt(body: dict) -> str:
     return f"""أنت خبير تربوي في المنهاج الجزائري.
-أنشئ {exam_type}اً كاملاً باللغة العربية مع الإجابة النموذجية.
+أنشئ {body.get('examType', 'اختبار')}اً كاملاً باللغة العربية مع الإجابة النموذجية.
 
-المادة: {body.get('subject', 'غير محدد')}
-المستوى: {body.get('grade', 'غير محدد')}
-السنة الدراسية: {body.get('schoolYear', 'غير محدد')}
-المدة: {body.get('duration', 'غير محدد')}
-العلامة: {body.get('mark', 'غير محدد')}
-الموضوع: {body.get('topic', 'غير محدد')}
-أنواع الأسئلة: {body.get('types', 'غير محدد')}
-مستوى الصعوبة: {body.get('difficulty', 'غير محدد')}
-تعليمات إضافية: {body.get('extra', 'لا توجد')}
+المادة: {body.get('subject')}
+المستوى: {body.get('grade')}
+السنة الدراسية: {body.get('schoolYear')}
+المدة: {body.get('duration')}
+العلامة: {body.get('mark')}
+الموضوع: {body.get('topic') or 'غير محدد'}
+أنواع الأسئلة: {body.get('types')}
+مستوى الصعوبة: {body.get('difficulty')}
+تعليمات إضافية: {body.get('extra') or 'لا توجد'}
 
 الشروط:
 - التزم بمعايير وزارة التربية الوطنية الجزائرية.
-- نسق الاختبار بشكل احترافي.
-- أضف الإجابة النموذجية وسلم التنقيط في النهاية.
-- استخدم HTML بسيط.
+- نسق الاختبار بشكل احترافي (تمرين أول, تمرين ثاني, وضعية إدماجية).
+- أضف الإجابة النموذجية وسلم التنقيط في نهاية الملف.
+- استخدم تنسيق HTML بسيط (مثل <h3> للعناوين و <br> للسطر الجديد) لضمان العرض الجميل.
 """
 
 @app.route('/api/generate', methods=['POST'])
 def generate():
+    if not request.is_json:
+        return jsonify({'error': 'يجب إرسال البيانات بصيغة JSON'}), 400
+    if not api_key:
+        return jsonify({'error': 'مفتاح API غير متوفر'}), 500
     try:
-        if not request.is_json:
-            return jsonify({'error': 'يجب إرسال البيانات بصيغة JSON'}), 400
-
-        body = request.get_json(silent=True) or {}
-
-        if not client:
-            return jsonify({'error': 'مفتاح API غير متوفر'}), 500
-
+        body = request.get_json()
         prompt = build_prompt(body)
-
-        resp = client.models.generate_content(
-            model='gemini-2.0-flash',
-            contents=prompt,
-        )
-
-        text = getattr(resp, 'text', None)
-        if not text:
-            return jsonify({'error': 'لم يتم استلام نص من Gemini'}), 500
-
-        return jsonify({'result': text})
-
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content(prompt)
+        return jsonify({'result': response.text})
     except Exception as e:
-        print('GEN_ERROR:', str(e))
-        print(traceback.format_exc())
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/health')
-def health():
-    return jsonify({'status': 'ok', 'api_key_loaded': bool(api_key)})
+        print(f"Error: {e}")
+        return jsonify({'error': 'خطأ في الخادم'}), 500
 
 @app.route('/')
 def home():
     return send_from_directory('.', 'index.html')
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
