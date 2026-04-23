@@ -1,15 +1,42 @@
-# -*- coding: utf-8 -*-
+    # -*- coding: utf-8 -*-
 from flask import Flask, request, jsonify, send_from_directory
 from dotenv import load_dotenv
 import os
-import google.generativeai as genai      # ✅ هذا هو الصحيح
+import google.generativeai as genai
 
 load_dotenv()
 api_key = os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
+
 if api_key:
     genai.configure(api_key=api_key)
+else:
+    print("WARNING: GEMINI_API_KEY not set.")
 
 app = Flask(__name__, static_folder='.', static_url_path='')
+
+def get_model():
+    """اختيار أفضل نموذج متاح تلقائياً"""
+    try:
+        models = genai.list_models()
+        for m in models:
+            if 'generateContent' in m.supported_generation_methods:
+                # اختيار أول نموذج متاح يدعم التوليد وليس قديماً جداً
+                name = m.name  # مثلاً models/gemini-2.5-flash
+                print(f"Using model: {name}")
+                return genai.GenerativeModel(name)
+        # fallback
+        return genai.GenerativeModel('gemini-2.5-flash')
+    except Exception as e:
+        print(f"Error listing models: {e}, using gemini-2.5-flash")
+        return genai.GenerativeModel('gemini-2.5-flash')
+
+# تحميل النموذج مرة واحدة عند بدء التشغيل
+try:
+    model = get_model()
+    print("Model loaded successfully.")
+except Exception as e:
+    print(f"FATAL: Could not load model: {e}")
+    model = None
 
 def build_prompt(body: dict) -> str:
     return f"""أنت خبير تربوي في المنهاج الجزائري.
@@ -37,17 +64,16 @@ def generate():
     if not request.is_json:
         return jsonify({'error': 'يجب إرسال البيانات بصيغة JSON'}), 400
     if not api_key:
-        return jsonify({'error': 'مفتاح API غير متوفر. تأكد من إعداده في Render'}), 500
+        return jsonify({'error': 'مفتاح API غير متوفر'}), 500
+    if model is None:
+        return jsonify({'error': 'النموذج غير جاهز، راجع السجلات'}), 500
     try:
         body = request.get_json()
         prompt = build_prompt(body)
-        model = genai.GenerativeModel('gemini-2.5-flash')
         response = model.generate_content(prompt)
         return jsonify({'result': response.text})
     except Exception as e:
-        # طباعة الخطأ بالتفصيل في سجلات Render
         import traceback
-        print("❌❌❌ خطأ في /api/generate:")
         traceback.print_exc()
         return jsonify({'error': f'خطأ: {str(e)}'}), 500
 
