@@ -1,31 +1,30 @@
 # -*- coding: utf-8 -*-
 from flask import Flask, request, jsonify, send_from_directory
+from openai import OpenAI
 from dotenv import load_dotenv
 import os
 import traceback
-import google.generativeai as genai
 
+# تحميل متغيرات البيئة
 load_dotenv()
-api_key = os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
+api_key = os.getenv('DEEPSEEK_API_KEY') # استخدم اسم متغير جديد
 
-print(f"🔑 API Key loaded: {bool(api_key)}")
+# إعداد عميل OpenAI للعمل مع DeepSeek
 if api_key:
-    genai.configure(api_key=api_key)
+    client = OpenAI(
+        api_key=api_key,
+        base_url="https://api.deepseek.com" # نقطة نهاية DeepSeek
+    )
+    print("✅ تم إعداد عميل DeepSeek بنجاح.")
+else:
+    client = None
+    print("❌ لم يتم العثور على DEEPSEEK_API_KEY في متغيرات البيئة.")
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 
-def load_model():
-    try:
-        model = genai.GenerativeModel('models/gemini-2.0-flash')
-        print("✅ Model loaded")
-        return model
-    except Exception as e:
-        print(f"❌ Model load failed: {e}")
-        return None
-
-model = load_model()
-
 def build_prompt(body: dict) -> str:
+    # دالة بناء النص الموجه (prompt) تبقى كما هي تماماً
+    """Build the prompt for DeepSeek."""
     return f"""أنت خبير تربوي في المنهاج الجزائري.
 أنشئ {body.get('examType', 'اختبار')}اً كاملاً باللغة العربية مع الإجابة النموذجية.
 
@@ -50,37 +49,54 @@ def build_prompt(body: dict) -> str:
 def generate():
     if not request.is_json:
         return jsonify({'error': 'يجب إرسال البيانات بصيغة JSON'}), 400
-    if not api_key:
-        return jsonify({'error': 'مفتاح API غير موجود'}), 500
-    if model is None:
-        return jsonify({'error': 'فشل تحميل النموذج'}), 500
+    if client is None:
+        return jsonify({'error': 'لم يتم إعداد عميل DeepSeek. تأكد من مفتاح API.'}), 500
     try:
         body = request.get_json()
         prompt = build_prompt(body)
-        response = model.generate_content(prompt)
-        return jsonify({'result': response.text})
+        
+        print("🚀 إرسال الطلب إلى DeepSeek...")
+        # استخدام واجهة OpenAI البرمجية مع نموذج DeepSeek
+        response = client.chat.completions.create(
+            model="deepseek-chat", # أو "deepseek-reasoner" للمهام المعقدة
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7,
+            max_tokens=4096 # حد أقصى مناسب للاختبارات الطويلة
+        )
+        print("✅ تم استلام الرد من DeepSeek")
+        
+        generated_text = response.choices[0].message.content
+        return jsonify({'result': generated_text})
+
     except Exception as e:
         error_details = traceback.format_exc()
+        print("❌❌❌ خطأ في /api/generate:")
         print(error_details)
         return jsonify({'error': f'فشل التوليد: {str(e)}', 'details': error_details.split('\n')[-2]}), 500
 
-@app.route('/')
+@app.route('/', methods=['GET'])
 def home():
+    """عرض صفحة الواجهة الرئيسية."""
     return send_from_directory('.', 'index.html')
 
-# 🩺 نقطة الفحص الجديدة
 @app.route('/test')
 def test():
-    """مسار تشخيصي يعرض سبب فشل Gemini API في نص مباشر"""
+    """مسار تشخيصي لاختبار اتصال DeepSeek"""
     if not api_key:
-        return "❌ مفتاح API غير موجود (GEMINI_API_KEY غير مضبوط في Render)", 500
-    if model is None:
-        return "❌ فشل تحميل نموذج Gemini (model is None)", 500
+        return "❌ مفتاح API غير موجود (DEEPSEEK_API_KEY غير مضبوط في Render)", 500
     try:
-        response = model.generate_content("قل مرحبا بالعربية")
-        return f"✅ النموذج يعمل بنجاح! الرد: {response.text}"
+        response = client.chat.completions.create(
+            model="deepseek-chat",
+            messages=[
+                {"role": "user", "content": "قل مرحبا بالعربية"}
+            ],
+            max_tokens=100
+        )
+        return f"✅ الاتصال بـ DeepSeek يعمل بنجاح! الرد: {response.choices[0].message.content}"
     except Exception as e:
-        return f"❌ فشل استدعاء Gemini:\n{str(e)}\n\nالتفاصيل:\n{traceback.format_exc()}", 500
+        return f"❌ فشل استدعاء DeepSeek:\n{str(e)}\n\nالتفاصيل:\n{traceback.format_exc()}", 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
