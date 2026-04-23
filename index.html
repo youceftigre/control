@@ -229,59 +229,122 @@
             text-align: center;
         }
 
-        /* ─── Edit Question Box ─── */
-        .edit-box {
+        /* ─── Global Edit Box (Top of Exam) ─── */
+        .global-edit-area {
             background: #f8fafc;
             border: 2px dashed var(--border);
             border-radius: var(--radius-sm);
-            padding: 16px;
-            margin: 16px 0;
+            padding: 20px;
+            margin-bottom: 20px;
         }
-        .edit-box textarea {
+        .global-edit-area h3 {
+            color: var(--primary);
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+        }
+        .global-edit-area textarea {
             width: 100%;
-            min-height: 80px;
+            min-height: 200px;
             border: 1.5px solid var(--border);
             border-radius: 10px;
-            padding: 10px;
+            padding: 12px;
             font-family: inherit;
             font-size: 0.95rem;
             resize: vertical;
+            line-height: 1.8;
         }
-        .edit-box .edit-actions {
+        .global-edit-actions {
             display: flex;
             gap: 10px;
-            margin-top: 10px;
+            margin-top: 12px;
             justify-content: flex-end;
         }
-        .edit-box .btn-save {
+        .btn-save-global {
             background: var(--accent);
             color: white;
             border: none;
-            padding: 8px 20px;
+            padding: 10px 24px;
             border-radius: 20px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
         }
-        .edit-box .btn-cancel {
+        .btn-cancel-global {
             background: #e2e8f0;
             color: var(--text);
             border: none;
-            padding: 8px 20px;
+            padding: 10px 24px;
             border-radius: 20px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
         }
-        .edit-box .btn-edit {
+        .btn-toggle-edit {
             background: var(--primary-light);
             color: white;
             border: none;
-            padding: 6px 16px;
+            padding: 10px 24px;
             border-radius: 20px;
             cursor: pointer;
-            font-size: 0.85rem;
-            margin-top: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-bottom: 12px;
+        }
+
+        /* ─── Download Buttons ─── */
+        .download-area {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .btn-download {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        .btn-word {
+            background: #2b579a;
+            color: white;
+            box-shadow: 0 4px 12px rgba(43,87,154,0.3);
+        }
+        .btn-word:hover {
+            background: #1e3f6f;
+            transform: translateY(-2px);
+        }
+        .btn-pdf {
+            background: #c0392b;
+            color: white;
+            box-shadow: 0 4px 12px rgba(192,57,43,0.3);
+        }
+        .btn-pdf:hover {
+            background: #a93226;
+            transform: translateY(-2px);
+        }
+
+        /* ─── Strong Separator ─── */
+        .strong-sep {
+            border: none;
+            height: 3px;
+            background: linear-gradient(to right, transparent, var(--primary), transparent);
+            margin: 24px 0;
+        }
+        .page-break {
+            page-break-before: always;
+            break-before: page;
+            border: none;
+            height: 2px;
+            background: linear-gradient(to right, transparent, var(--accent), transparent);
+            margin: 30px 0;
         }
 
         /* ─── Responsive ─── */
@@ -290,6 +353,7 @@
             h1 { font-size: 1.6rem; }
             .form-grid { grid-template-columns: 1fr; padding: 16px; }
             .developer-signature { flex-direction: column; align-items: flex-start; }
+            .download-area { flex-direction: column; align-items: center; }
         }
     </style>
 </head>
@@ -404,6 +468,29 @@
         <span style="font-size: 0.9rem; color: #4f6f8a;">سيظهر الاختبار أدناه بعد الاتصال بالخادم</span>
     </div>
 
+    <!-- ─── Download Buttons ─── -->
+    <div class="download-area" id="downloadArea" style="display: none;">
+        <button class="btn-download btn-word" onclick="downloadWord()">
+            📄 تحميل Word
+        </button>
+        <button class="btn-download btn-pdf" onclick="downloadPDF()">
+            📕 تحميل PDF
+        </button>
+    </div>
+
+    <!-- ─── Global Edit Area (Top of Exam) ─── -->
+    <div class="global-edit-area" id="globalEditArea" style="display: none;">
+        <h3>✏️ تعديل الاختبار</h3>
+        <textarea id="globalEditText" placeholder="يمكنك هنا تعديل نص الاختبار بالكامل..."></textarea>
+        <div class="global-edit-actions">
+            <button class="btn-cancel-global" onclick="cancelGlobalEdit()">إلغاء</button>
+            <button class="btn-save-global" onclick="saveGlobalEdit()">💾 حفظ التعديلات</button>
+        </div>
+    </div>
+    <button class="btn-toggle-edit" id="btnToggleEdit" onclick="toggleGlobalEdit()" style="display: none;">
+        ✏️ تعديل الاختبار
+    </button>
+
     <!-- ─── Output ─── -->
     <div class="output-card">
         <div id="output">
@@ -434,6 +521,12 @@
     const generateBtn = document.getElementById('generateBtn');
     const statusEl = document.getElementById('status');
     const outputEl = document.getElementById('output');
+    const downloadArea = document.getElementById('downloadArea');
+    const globalEditArea = document.getElementById('globalEditArea');
+    const globalEditText = document.getElementById('globalEditText');
+    const btnToggleEdit = document.getElementById('btnToggleEdit');
+
+    let currentExamHTML = '';
 
     // ─── Helpers ───
     function getField(id) {
@@ -453,7 +546,6 @@
         const difficulty = getField('difficulty');
         const extra = getField('extra');
 
-        // بناء التعليمات المحددة للـ AI
         const instructions = `
 أنشئ ${examType} في مادة ${subject} للمستوى ${grade} للسنة الدراسية ${schoolYear}.
 
@@ -471,7 +563,7 @@ ${extra ? '- تعليمات إضافية: ' + extra : ''}
 يجب أن تحتوي فقط على:
 1. عنوان الاختبار في الأعلى يحتوي على: الجمهورية الجزائرية الديمقراطية الشعبية، وزارة التربية الوطنية، المستوى، المادة، المدة، العلامة الكاملة
    - لا تذكر "الموضوع" أو "أنواع الأسئلة" أو "مستوى الصعوبة" في عنوان الاختبار
-2. خط فاصل واضح (hr) بعد المعلومات العلوية وبداية الأسئلة
+2. خط فاصل واضح (hr class="strong-sep") بعد المعلومات العلوية وبداية الأسئلة
 3. الأسئلة فقط (بدون حلول) مع ذكر نقاط كل سؤال بين قوسين مثل: (03 نقاط)
 4. لا تضع الإجابات النموذجية في هذه الصفحة
 5. عند كتابة الكسور، استخدم تنسيق HTML بخط أفقي: <span class="fraction"><span class="num">البسط</span><span class="den">المقام</span></span>
@@ -479,7 +571,7 @@ ${extra ? '- تعليمات إضافية: ' + extra : ''}
 
 ## الصفحة الثانية: الإجابة النموذجية
 بعد الانتهاء من جميع الأسئلة، أضف:
-1. خط فاصل واضح (hr) يفصل بين الأسئلة والإجابة النموذجية
+1. خط فاصل واضح (hr class="page-break") يفصل بين الأسئلة والإجابة النموذجية
 2. عنوان كبير: "الإجابة النموذجية وسلم التنقيط"
 3. الإجابات في الأسفل (صفحة منفصلة)
 4. اكتب حل كل سؤال بالتفصيل مع ذكر نقاط كل جزء
@@ -504,8 +596,13 @@ ${extra ? '- تعليمات إضافية: ' + extra : ''}
     }
 
     function renderResult(htmlContent) {
+        currentExamHTML = htmlContent;
         if (outputEl) outputEl.innerHTML = htmlContent;
-        addEditButtons();
+        // Show download buttons and edit button
+        if (downloadArea) downloadArea.style.display = 'flex';
+        if (btnToggleEdit) btnToggleEdit.style.display = 'inline-block';
+        // Hide edit area by default
+        if (globalEditArea) globalEditArea.style.display = 'none';
     }
 
     function cleanMarkdown(rawText) {
@@ -524,74 +621,127 @@ ${extra ? '- تعليمات إضافية: ' + extra : ''}
             </div>
         `);
         if (statusEl) statusEl.textContent = `⚠️ خطأ: ${message}`;
+        if (downloadArea) downloadArea.style.display = 'none';
+        if (btnToggleEdit) btnToggleEdit.style.display = 'none';
+        if (globalEditArea) globalEditArea.style.display = 'none';
     }
 
-    // ─── Add Edit Buttons to Questions ───
-    function addEditButtons() {
-        const questions = outputEl.querySelectorAll('.q, div[class*="question"], div[class*="exercise"], div[class*="تمري"]');
-        questions.forEach((q, index) => {
-            const editBtn = document.createElement('button');
-            editBtn.className = 'btn-edit';
-            editBtn.textContent = '✏️ تعديل السؤال';
-            editBtn.onclick = () => openEditBox(q, index);
-            q.appendChild(editBtn);
-        });
-    }
-
-    function openEditBox(questionEl, index) {
-        const existingEdit = questionEl.querySelector('.edit-box');
-        if (existingEdit) return;
-
-        const originalHTML = questionEl.innerHTML;
-        const editBox = document.createElement('div');
-        editBox.className = 'edit-box';
-        editBox.innerHTML = `
-            <textarea id="edit-text-${index}">${questionEl.innerText.replace('✏️ تعديل السؤال', '').trim()}</textarea>
-            <div class="edit-actions">
-                <button class="btn-cancel" onclick="cancelEdit(this, \`${encodeURIComponent(originalHTML)}\`)">إلغاء</button>
-                <button class="btn-save" onclick="saveEdit(this, ${index})">حفظ التعديل</button>
-            </div>
-        `;
-        questionEl.appendChild(editBox);
-    }
-
-    window.cancelEdit = function(btn, originalHTML) {
-        const editBox = btn.closest('.edit-box');
-        const questionEl = editBox.parentElement;
-        questionEl.innerHTML = decodeURIComponent(originalHTML);
+    // ─── Global Edit Functions ───
+    window.toggleGlobalEdit = function() {
+        if (globalEditArea.style.display === 'none') {
+            // Show edit area
+            globalEditText.value = outputEl.innerText;
+            globalEditArea.style.display = 'block';
+            btnToggleEdit.textContent = '❌ إغلاق التعديل';
+        } else {
+            // Hide edit area
+            globalEditArea.style.display = 'none';
+            btnToggleEdit.textContent = '✏️ تعديل الاختبار';
+        }
     };
 
-    window.saveEdit = function(btn, index) {
-        const editBox = btn.closest('.edit-box');
-        const questionEl = editBox.parentElement;
-        const newText = document.getElementById(`edit-text-${index}`).value;
+    window.cancelGlobalEdit = function() {
+        globalEditArea.style.display = 'none';
+        btnToggleEdit.textContent = '✏️ تعديل الاختبار';
+    };
 
-        // Convert fractions in text to HTML format
-        const formattedText = convertFractions(newText);
+    window.saveGlobalEdit = function() {
+        const newText = globalEditText.value;
+        // Convert plain text back to HTML with fractions
+        let formattedHTML = convertFractions(newText);
 
-        questionEl.innerHTML = formattedText;
+        // Wrap in basic HTML structure
+        formattedHTML = formattedHTML
+            .split('\n').join('<br>')
+            .replace(/الإجابة النموذجية وسلم التنقيط/g, '<hr class="page-break"><h2 style="color: var(--primary); text-align: center; margin: 20px 0;">الإجابة النموذجية وسلم التنقيط</h2>')
+            .replace(/التمرين الأول/g, '<h3 style="color: var(--primary-light); margin-top: 20px;">التمرين الأول</h3>')
+            .replace(/التمرين الثاني/g, '<h3 style="color: var(--primary-light); margin-top: 20px;">التمرين الثاني</h3>')
+            .replace(/الوضعية الإدماجية/g, '<h3 style="color: var(--primary-light); margin-top: 20px;">الوضعية الإدماجية</h3>');
 
-        // Re-add edit button
-        const editBtn = document.createElement('button');
-        editBtn.className = 'btn-edit';
-        editBtn.textContent = '✏️ تعديل السؤال';
-        editBtn.onclick = () => openEditBox(questionEl, index);
-        questionEl.appendChild(editBtn);
+        outputEl.innerHTML = formattedHTML;
+        currentExamHTML = formattedHTML;
+
+        globalEditArea.style.display = 'none';
+        btnToggleEdit.textContent = '✏️ تعديل الاختبار';
+
+        if (statusEl) statusEl.textContent = '✅ تم حفظ التعديلات';
     };
 
     // ─── Convert Fractions to HTML Format ───
     function convertFractions(text) {
-        // Convert patterns like "3/4" or "12/5" to HTML fraction format
         return text.replace(/(\d+)\/(\d+)/g, '<span class="fraction"><span class="num">$1</span><span class="den">$2</span></span>');
     }
+
+    // ─── Download Functions ───
+    window.downloadWord = function() {
+        const content = outputEl.innerHTML;
+        const subject = getField('subject');
+        const grade = getField('grade');
+
+        const html = `
+            <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+            <head><meta charset='utf-8'><title>${subject} - ${grade}</title></head>
+            <body style="direction: rtl; font-family: 'Arial', sans-serif;">
+                ${content}
+            </body>
+            </html>
+        `;
+
+        const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${subject}_${grade}_اختبار.doc`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
+    window.downloadPDF = function() {
+        const content = outputEl.innerHTML;
+        const subject = getField('subject');
+        const grade = getField('grade');
+
+        const originalTitle = document.title;
+        document.title = `${subject} - ${grade} - اختبار`;
+
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <html dir="rtl">
+            <head>
+                <title>${subject} - ${grade}</title>
+                <style>
+                    body { direction: rtl; font-family: Arial, sans-serif; padding: 20px; }
+                    .fraction { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; margin: 0 4px; }
+                    .fraction .num { border-bottom: 2px solid black; padding: 0 4px; }
+                    .fraction .den { padding: 0 4px; }
+                    .btn-edit, .edit-box, .global-edit-area, .btn-toggle-edit { display: none !important; }
+                    .strong-sep { border: none; height: 3px; background: #0b3b5c; margin: 24px 0; }
+                    .page-break { page-break-before: always; border: none; height: 2px; background: #2a9d8f; margin: 30px 0; }
+                </style>
+            </head>
+            <body>${content}</body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+            document.title = originalTitle;
+        }, 500);
+    };
 
     // ─── Main Function ───
     async function generateExam() {
         const payload = buildPayload();
 
-        // UI: Loading state
         if (generateBtn) generateBtn.disabled = true;
         if (statusEl) statusEl.textContent = '⏳ جاري الاتصال بـ Gemini...';
+        if (downloadArea) downloadArea.style.display = 'none';
+        if (btnToggleEdit) btnToggleEdit.style.display = 'none';
+        if (globalEditArea) globalEditArea.style.display = 'none';
         renderResult('<div style="text-align:center; padding:40px; color:#4a6572;">⏳ يرجى الانتظار...</div>');
 
         try {
@@ -611,7 +761,11 @@ ${extra ? '- تعليمات إضافية: ' + extra : ''}
             const rawText = data.result || JSON.stringify(data);
             let cleanHtml = cleanMarkdown(rawText);
 
-            // Convert any remaining fraction patterns to HTML
+            // Ensure separators exist
+            cleanHtml = cleanHtml
+                .replace(/<hr\s*\/?>/gi, '<hr class="strong-sep">')
+                .replace(/<hr\s+class="page-break"\s*\/?>/gi, '<hr class="page-break">');
+
             cleanHtml = convertFractions(cleanHtml);
 
             renderResult(cleanHtml);
