@@ -2,20 +2,20 @@ from flask import Flask, request, jsonify, send_from_directory
 from dotenv import load_dotenv
 import os
 import google.generativeai as genai
+import traceback
 
 load_dotenv()
 
-api_key = os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
+api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
 if api_key:
     genai.configure(api_key=api_key)
 
-app = Flask(__name__, static_folder='.', static_url_path='')
+app = Flask(__name__, static_folder=".", static_url_path="")
 
 def build_prompt(body=None):
     body = body or {}
-    exam_type = body.get('examType', 'اختبار')
     return f"""أنت خبير تربوي في المنهاج الجزائري.
-أنشئ {exam_type}اً كاملاً باللغة العربية مع الإجابة النموذجية.
+أنشئ {body.get('examType', 'اختبار')}اً كاملاً باللغة العربية مع الإجابة النموذجية.
 
 المادة: {body.get('subject', 'غير محدد')}
 المستوى: {body.get('grade', 'غير محدد')}
@@ -29,36 +29,40 @@ def build_prompt(body=None):
 
 الشروط:
 - التزم بمعايير وزارة التربية الوطنية الجزائرية.
-- نسق الاختبار بشكل احترافي (تمرين أول، تمرين ثاني، وضعية إدماجية).
-- أضف الإجابة النموذجية وسلم التنقيط في نهاية الملف.
-- استخدم تنسيق HTML بسيط (مثل <h3> للعناوين و <br> للسطر الجديد).
+- نسق الاختبار بشكل احترافي.
+- أضف الإجابة النموذجية وسلم التنقيط في النهاية.
+- استخدم HTML بسيط.
 """
 
-@app.route('/api/generate', methods=['POST'])
+@app.route("/api/generate", methods=["POST"])
 def generate():
-    if not request.is_json:
-        return jsonify({'error': 'يجب إرسال البيانات بصيغة JSON'}), 400
-
-    body = request.get_json(silent=True) or {}
-
-    if not api_key:
-        return jsonify({'error': 'مفتاح API غير متوفر. أضفه في Render.'}), 500
-
     try:
+        if not request.is_json:
+            return jsonify({"error": "يجب إرسال البيانات بصيغة JSON"}), 400
+
+        body = request.get_json(silent=True) or {}
+
+        if not api_key:
+            return jsonify({"error": "مفتاح API غير متوفر"}), 500
+
         prompt = build_prompt(body)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel("gemini-1.5-flash")
         response = model.generate_content(prompt)
-        return jsonify({'result': response.text})
+
+        return jsonify({"result": response.text})
+
     except Exception as e:
-        return jsonify({'error': f'حدث خطأ أثناء التوليد: {str(e)}'}), 500
+        print("GEN_ERROR:", str(e))
+        print(traceback.format_exc())
+        return jsonify({"error": str(e)}), 500
 
-@app.route('/', methods=['GET'])
-def home():
-    return send_from_directory('.', 'index.html')
-
-@app.route('/health', methods=['GET'])
+@app.route("/health")
 def health():
-    return jsonify({'status': 'ok', 'api_key_loaded': bool(api_key)})
+    return jsonify({"status": "ok", "api_key_loaded": bool(api_key)})
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
+@app.route("/")
+def home():
+    return send_from_directory(".", "index.html")
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
