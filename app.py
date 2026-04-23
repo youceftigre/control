@@ -77,8 +77,7 @@ def home():
     import os
     from flask import send_from_directory
     directory = os.path.dirname(os.path.abspath(__file__))
-    return send_from_directory(directory, 'index.html')
-```'
+return send_from_directory('.', 'index.html')
 
 
 if __name__ == '__main__':
