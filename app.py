@@ -16,7 +16,7 @@ app = Flask(__name__, static_folder='.', static_url_path='')
 
 def load_model():
     try:
-        model = genai.GenerativeModel('models/gemini-2.5-flash')
+        model = genai.GenerativeModel('models/gemini-2.0-flash')
         print("✅ Model loaded")
         return model
     except Exception as e:
