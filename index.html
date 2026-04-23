@@ -1,1 +1,794 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مولّد الاختبارات التربوية – المنهاج الجزائري</title>
+    <style>
+        /* ─── CSS Variables ─── */
+        :root {
+            --primary: #0b3b5c;
+            --primary-light: #1e5a7d;
+            --accent: #2a9d8f;
+            --accent-light: #e9f2f0;
+            --bg: #f5f7fa;
+            --card: #ffffff;
+            --text: #1e2b3c;
+            --text-muted: #4a6572;
+            --border: #d9e2ec;
+            --shadow: 0 12px 30px rgba(0,0,0,0.08);
+            --radius: 24px;
+            --radius-sm: 14px;
+        }
 
+        /* ─── Reset & Base ─── */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: var(--bg);
+            padding: 20px;
+            color: var(--text);
+            font-family: 'Segoe UI', Tahoma, 'Noto Sans Arabic', sans-serif;
+            line-height: 1.6;
+        }
+
+        /* ─── Container ─── */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 28px 32px;
+            position: relative;
+        }
+
+        /* ─── Header ─── */
+        .developer-signature {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            border-bottom: 1px dashed #cbd5e1;
+            padding-bottom: 10px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .signature-name {
+            background: var(--accent-light);
+            padding: 6px 16px;
+            border-radius: 40px;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 10px;
+            border-right: 6px solid var(--accent);
+            padding-right: 20px;
+        }
+        .subtitle {
+            color: var(--text-muted);
+            margin-bottom: 30px;
+            font-size: 1rem;
+        }
+
+        /* ─── Form Grid ─── */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 18px 24px;
+            background: #fafbfc;
+            padding: 24px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+        }
+        .field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .field-group.full-width { grid-column: 1 / -1; }
+
+        label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #1e3a5f;
+        }
+
+        input, select, textarea {
+            padding: 12px 14px;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            background: white;
+            transition: 0.2s;
+            resize: vertical;
+            color: var(--text);
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--accent);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(42,157,143,0.15);
+        }
+
+        /* ─── Button ─── */
+        .btn-green {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 16px 28px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 48px;
+            cursor: pointer;
+            box-shadow: 0 6px 14px rgba(11,59,92,0.25);
+            transition: all 0.2s;
+            width: 100%;
+            max-width: 300px;
+            margin: 10px 0 20px;
+        }
+        .btn-green:hover {
+            background: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(11,59,92,0.3);
+        }
+        .btn-green:disabled {
+            background: #b0c4d9;
+            box-shadow: none;
+            transform: none;
+            cursor: not-allowed;
+        }
+
+        /* ─── Status ─── */
+        .status-area {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin: 20px 0 10px;
+        }
+        #status {
+            background: #eef3f7;
+            padding: 8px 20px;
+            border-radius: 40px;
+            color: var(--primary);
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        /* ─── Output Card ─── */
+        .output-card {
+            background: var(--card);
+            border: 1px solid #e2e9f0;
+            border-radius: var(--radius);
+            padding: 28px 30px;
+            margin-top: 20px;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.02);
+            line-height: 1.8;
+        }
+        #output { white-space: normal; word-wrap: break-word; }
+
+        .meta {
+            background: var(--accent-light);
+            padding: 12px 18px;
+            border-radius: 30px;
+            color: var(--primary);
+            margin-bottom: 24px;
+            display: inline-block;
+        }
+        .sep {
+            height: 2px;
+            background: linear-gradient(to left, var(--accent), transparent);
+            margin: 20px 0;
+        }
+        .q { margin: 20px 0; }
+        .n { font-weight: 700; color: var(--primary-light); }
+        .t { margin-top: 8px; }
+
+        /* ─── Error ─── */
+        .error-details {
+            background: #ffeaea;
+            padding: 12px;
+            border-radius: 12px;
+            margin-top: 10px;
+            color: #b11;
+            font-size: 0.85rem;
+            direction: ltr;
+            text-align: left;
+        }
+
+        /* ─── Footer ─── */
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #7a8f9f;
+            font-size: 0.85rem;
+        }
+
+        /* ─── Fraction Styling ─── */
+        .fraction {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            vertical-align: middle;
+            margin: 0 4px;
+            font-size: 0.9em;
+        }
+        .fraction .num {
+            border-bottom: 2px solid var(--text);
+            padding: 0 4px;
+            text-align: center;
+        }
+        .fraction .den {
+            padding: 0 4px;
+            text-align: center;
+        }
+
+        /* ─── Global Edit Box (Top of Exam) ─── */
+        .global-edit-area {
+            background: #f8fafc;
+            border: 2px dashed var(--border);
+            border-radius: var(--radius-sm);
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .global-edit-area h3 {
+            color: var(--primary);
+            margin-bottom: 12px;
+            font-size: 1.1rem;
+        }
+        .global-edit-area textarea {
+            width: 100%;
+            min-height: 200px;
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            resize: vertical;
+            line-height: 1.8;
+        }
+        .global-edit-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+            justify-content: flex-end;
+        }
+        .btn-save-global {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .btn-cancel-global {
+            background: #e2e8f0;
+            color: var(--text);
+            border: none;
+            padding: 10px 24px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .btn-toggle-edit {
+            background: var(--primary-light);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin: 10px 0;
+        }
+
+        /* ─── Download Buttons ─── */
+        .download-area {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .btn-download {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        .btn-word {
+            background: #2b579a;
+            color: white;
+            box-shadow: 0 4px 12px rgba(43,87,154,0.3);
+        }
+        .btn-word:hover {
+            background: #1e3f6f;
+            transform: translateY(-2px);
+        }
+        .btn-pdf {
+            background: #c0392b;
+            color: white;
+            box-shadow: 0 4px 12px rgba(192,57,43,0.3);
+        }
+        .btn-pdf:hover {
+            background: #a93226;
+            transform: translateY(-2px);
+        }
+
+        /* ─── Strong Separator ─── */
+        .strong-sep {
+            border: none;
+            height: 3px;
+            background: linear-gradient(to right, transparent, var(--primary), transparent);
+            margin: 24px 0;
+        }
+        .page-break {
+            page-break-before: always;
+            break-before: page;
+            border: none;
+            height: 2px;
+            background: linear-gradient(to right, transparent, var(--accent), transparent);
+            margin: 30px 0;
+        }
+
+        /* ─── Responsive ─── */
+        @media (max-width: 600px) {
+            .container { padding: 16px; }
+            h1 { font-size: 1.6rem; }
+            .form-grid { grid-template-columns: 1fr; padding: 16px; }
+            .developer-signature { flex-direction: column; align-items: flex-start; }
+            .download-area { flex-direction: column; align-items: center; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- ─── Header ─── -->
+    <div class="developer-signature">
+        <span>⚙️ تطوير: <span class="signature-name">youcef.b</span></span>
+        <span>📧 youcefbenhamidaa@gmail.com</span>
+    </div>
+
+    <h1>📋 مولّد الاختبارات التربوية</h1>
+    <p class="subtitle">مولّد اختبارات مخصص للمنهاج الجزائري باستخدام الذكاء الاصطناعي</p>
+
+    <!-- ─── Form ─── -->
+    <div class="form-grid">
+        <div class="field-group">
+            <label for="subject">📚 المادة</label>
+            <select id="subject">
+                <option value="الرياضيات" selected>الرياضيات</option>
+                <option value="اللغة العربية">اللغة العربية</option>
+                <option value="اللغة الفرنسية">اللغة الفرنسية</option>
+                <option value="اللغة الإنجليزية">اللغة الإنجليزية</option>
+                <option value="العلوم الفيزيائية">العلوم الفيزيائية</option>
+                <option value="علوم الطبيعة والحياة">علوم الطبيعة والحياة</option>
+                <option value="التاريخ والجغرافيا">التاريخ والجغرافيا</option>
+                <option value="التربية الإسلامية">التربية الإسلامية</option>
+                <option value="التربية المدنية">التربية المدنية</option>
+                <option value="الإعلام الآلي">الإعلام الآلي</option>
+                <option value="التربية الموسيقية">التربية الموسيقية</option>
+                <option value="التربية التشكيلية">التربية التشكيلية</option>
+                <option value="التربية البدنية">التربية البدنية</option>
+            </select>
+        </div>
+
+        <div class="field-group">
+            <label for="grade">🎓 المستوى الدراسي</label>
+            <select id="grade">
+                <option value="الأولى ابتدائي">الأولى ابتدائي</option>
+                <option value="الثانية ابتدائي">الثانية ابتدائي</option>
+                <option value="الثالثة ابتدائي">الثالثة ابتدائي</option>
+                <option value="الرابعة ابتدائي">الرابعة ابتدائي</option>
+                <option value="الخامسة ابتدائي">الخامسة ابتدائي</option>
+                <option value="الأولى متوسط">الأولى متوسط</option>
+                <option value="الثانية متوسط">الثانية متوسط</option>
+                <option value="الثالثة متوسط" selected>الثالثة متوسط</option>
+                <option value="الرابعة متوسط">الرابعة متوسط</option>
+                <option value="الأولى ثانوي">الأولى ثانوي</option>
+                <option value="الثانية ثانوي">الثانية ثانوي</option>
+                <option value="الثالثة ثانوي">الثالثة ثانوي</option>
+            </select>
+        </div>
+
+        <div class="field-group">
+            <label for="examType">📝 نوع الفرض</label>
+            <select id="examType">
+                <option value="اختبار" selected>اختبار</option>
+                <option value="فرض">فرض</option>
+                <option value="امتحان">امتحان</option>
+            </select>
+        </div>
+
+        <div class="field-group">
+            <label for="schoolYear">📅 السنة الدراسية</label>
+            <input type="text" id="schoolYear" value="2025-2026">
+        </div>
+
+        <div class="field-group">
+            <label for="duration">⏱️ المدة</label>
+            <input type="text" id="duration" value="ساعتان" placeholder="مثال: ساعة ونصف">
+        </div>
+
+        <div class="field-group">
+            <label for="mark">💯 العلامة الكاملة</label>
+            <input type="text" id="mark" value="20">
+        </div>
+
+        <div class="field-group full-width">
+            <label for="topic">🔖 الموضوع / المحور</label>
+            <input type="text" id="topic" value="المعادلات والمتراجحات" placeholder="اتركه فارغاً إن لم يكن محدداً">
+        </div>
+
+        <div class="field-group">
+            <label for="types">🧩 أنواع الأسئلة</label>
+            <input type="text" id="types" value="أسئلة موضوعية + تمارين + وضعية إدماجية">
+        </div>
+
+        <div class="field-group">
+            <label for="difficulty">⚖️ مستوى الصعوبة</label>
+            <select id="difficulty">
+                <option value="سهل">سهل</option>
+                <option value="متوسط" selected>متوسط</option>
+                <option value="صعب">صعب</option>
+            </select>
+        </div>
+
+        <div class="field-group full-width">
+            <label for="extra">📌 تعليمات إضافية (اختياري)</label>
+            <textarea id="extra" rows="2" placeholder="مثال: ركز على حل المشكلات، أضف سؤالاً حول التناسب ..."></textarea>
+        </div>
+    </div>
+
+    <!-- ─── Generate Button ─── -->
+    <div style="display: flex; justify-content: center;">
+        <button class="btn-green" id="generateBtn">✨ توليد الاختبار بالذكاء الاصطناعي</button>
+    </div>
+
+    <!-- ─── Status ─── -->
+    <div class="status-area">
+        <span id="status">⏳ جاهز</span>
+        <span style="font-size: 0.9rem; color: #4f6f8a;">سيظهر الاختبار أدناه بعد الاتصال بالخادم</span>
+    </div>
+
+    <!-- ─── Action Buttons Area (Edit + Download) ─── -->
+    <div id="actionButtonsArea" style="display: none; margin: 20px 0;">
+        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px;">
+            <button class="btn-toggle-edit" id="btnToggleEdit" onclick="toggleGlobalEdit()">
+                ✏️ تعديل الاختبار
+            </button>
+        </div>
+
+        <!-- Global Edit Box -->
+        <div class="global-edit-area" id="globalEditArea" style="display: none;">
+            <h3>✏️ تعديل الاختبار</h3>
+            <textarea id="globalEditText" placeholder="يمكنك هنا تعديل نص الاختبار بالكامل..."></textarea>
+            <div class="global-edit-actions">
+                <button class="btn-cancel-global" onclick="cancelGlobalEdit()">إلغاء</button>
+                <button class="btn-save-global" onclick="saveGlobalEdit()">💾 حفظ التعديلات</button>
+            </div>
+        </div>
+
+        <!-- Download Buttons -->
+        <div class="download-area">
+            <button class="btn-download btn-word" onclick="downloadWord()">
+                📄 تحميل Word
+            </button>
+            <button class="btn-download btn-pdf" onclick="downloadPDF()">
+                📕 تحميل PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- ─── Output ─── -->
+    <div class="output-card">
+        <div id="output">
+            <h2>📄 ورقة الاختبار</h2>
+            <div class="meta">الرياضيات - الثالثة متوسط - اختبار</div>
+            <div class="sep"></div>
+            <div class="q">
+                <div class="n">جاهز للبدء</div>
+                <div class="t">املأ الحقول ثم اضغط على الزر لإنشاء الاختبار.</div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        © 2025 مولّد الاختبارات التربوية – المنهاج الجزائري
+    </footer>
+</div>
+
+<!-- ─── JavaScript ─── -->
+<script>
+(function() {
+    "use strict";
+
+    // ─── Configuration ───
+    const API_URL = '/api/generate';
+
+    // ─── DOM Elements ───
+    const generateBtn = document.getElementById('generateBtn');
+    const statusEl = document.getElementById('status');
+    const outputEl = document.getElementById('output');
+    const actionButtonsArea = document.getElementById('actionButtonsArea');
+    const globalEditArea = document.getElementById('globalEditArea');
+    const globalEditText = document.getElementById('globalEditText');
+    const btnToggleEdit = document.getElementById('btnToggleEdit');
+
+    let currentExamHTML = '';
+
+    // ─── Helpers ───
+    function getField(id) {
+        const el = document.getElementById(id);
+        return el ? el.value.trim() : '';
+    }
+
+    function buildPayload() {
+        const subject = getField('subject');
+        const grade = getField('grade');
+        const examType = getField('examType');
+        const schoolYear = getField('schoolYear');
+        const duration = getField('duration');
+        const mark = getField('mark');
+        const topic = getField('topic');
+        const types = getField('types');
+        const difficulty = getField('difficulty');
+        const extra = getField('extra');
+
+        const instructions = `
+أنشئ ${examType} في مادة ${subject} للمستوى ${grade} للسنة الدراسية ${schoolYear}.
+
+المعلومات:
+- المدة: ${duration}
+- العلامة الكاملة: ${mark}
+- الموضوع/المحور: ${topic || 'غير محدد'}
+- أنواع الأسئلة: ${types}
+- مستوى الصعوبة: ${difficulty}
+${extra ? '- تعليمات إضافية: ' + extra : ''}
+
+⚠️ هام جداً: يجب أن يكون التنسيق بالشكل التالي (بصيغة HTML):
+
+## الصفحة الأولى: ورقة الأسئلة
+يجب أن تحتوي فقط على:
+1. عنوان الاختبار في الأعلى يحتوي على: الجمهورية الجزائرية الديمقراطية الشعبية، وزارة التربية الوطنية، المستوى، المادة، المدة، العلامة الكاملة
+   - لا تذكر "الموضوع" أو "أنواع الأسئلة" أو "مستوى الصعوبة" في عنوان الاختبار
+2. خط فاصل واضح (hr class="strong-sep") بعد المعلومات العلوية وبداية الأسئلة
+3. الأسئلة فقط (بدون حلول) مع ذكر نقاط كل سؤال بين قوسين مثل: (03 نقاط)
+4. لا تضع الإجابات النموذجية في هذه الصفحة
+5. عند كتابة الكسور، استخدم تنسيق HTML بخط أفقي: <span class="fraction"><span class="num">البسط</span><span class="den">المقام</span></span>
+   - مثال: 3/4 يصبح: <span class="fraction"><span class="num">3</span><span class="den">4</span></span>
+
+## الصفحة الثانية: الإجابة النموذجية
+بعد الانتهاء من جميع الأسئلة، أضف:
+1. خط فاصل واضح (hr class="page-break") يفصل بين الأسئلة والإجابة النموذجية
+2. عنوان كبير: "الإجابة النموذجية وسلم التنقيط"
+3. الإجابات في الأسفل (صفحة منفصلة)
+4. اكتب حل كل سؤال بالتفصيل مع ذكر نقاط كل جزء
+5. استخدم نفس تنسيق الكسور (خط أفقي)
+
+استخدم HTML للتنسيق مع فصول واضحة.
+        `.trim();
+
+        return {
+            subject: subject,
+            grade: grade,
+            examType: examType,
+            schoolYear: schoolYear,
+            duration: duration,
+            mark: mark,
+            topic: topic,
+            types: types,
+            difficulty: difficulty,
+            extra: extra,
+            prompt: instructions
+        };
+    }
+
+    function renderResult(htmlContent) {
+        currentExamHTML = htmlContent;
+        if (outputEl) outputEl.innerHTML = htmlContent;
+        // Show action buttons area (edit + download)
+        if (actionButtonsArea) {
+            actionButtonsArea.style.display = 'block';
+            console.log('✅ Action buttons area shown');
+        }
+        // Hide edit area by default
+        if (globalEditArea) globalEditArea.style.display = 'none';
+        if (btnToggleEdit) btnToggleEdit.textContent = '✏️ تعديل الاختبار';
+    }
+
+    function cleanMarkdown(rawText) {
+        return rawText
+            .replace(/\`\`\`html\s*/gi, '')
+            .replace(/\`\`\`\s*/g, '')
+            .trim();
+    }
+
+    function showError(message, stack = '') {
+        renderResult(`
+            <div style="color: #b33; background: #fff2f2; padding: 20px; border-radius: 20px;">
+                <strong>⚠️ تعذر توليد الاختبار</strong><br>
+                <span style="font-size: 0.9em;">${message}</span>
+                ${stack ? `<div class="error-details">${stack}</div>` : ''}
+            </div>
+        `);
+        if (statusEl) statusEl.textContent = `⚠️ خطأ: ${message}`;
+        if (actionButtonsArea) actionButtonsArea.style.display = 'none';
+    }
+
+    // ─── Global Edit Functions ───
+    window.toggleGlobalEdit = function() {
+        if (globalEditArea.style.display === 'none') {
+            globalEditText.value = outputEl.innerText;
+            globalEditArea.style.display = 'block';
+            btnToggleEdit.textContent = '❌ إغلاق التعديل';
+        } else {
+            globalEditArea.style.display = 'none';
+            btnToggleEdit.textContent = '✏️ تعديل الاختبار';
+        }
+    };
+
+    window.cancelGlobalEdit = function() {
+        globalEditArea.style.display = 'none';
+        btnToggleEdit.textContent = '✏️ تعديل الاختبار';
+    };
+
+    window.saveGlobalEdit = function() {
+        const newText = globalEditText.value;
+        let formattedHTML = convertFractions(newText);
+
+        formattedHTML = formattedHTML
+            .split('\n').join('<br>')
+            .replace(/الإجابة النموذجية وسلم التنقيط/g, '<hr class="page-break"><h2 style="color: var(--primary); text-align: center; margin: 20px 0;">الإجابة النموذجية وسلم التنقيط</h2>')
+            .replace(/التمرين الأول/g, '<h3 style="color: var(--primary-light); margin-top: 20px;">التمرين الأول</h3>')
+            .replace(/التمرين الثاني/g, '<h3 style="color: var(--primary-light); margin-top: 20px;">التمرين الثاني</h3>')
+            .replace(/الوضعية الإدماجية/g, '<h3 style="color: var(--primary-light); margin-top: 20px;">الوضعية الإدماجية</h3>');
+
+        outputEl.innerHTML = formattedHTML;
+        currentExamHTML = formattedHTML;
+
+        globalEditArea.style.display = 'none';
+        btnToggleEdit.textContent = '✏️ تعديل الاختبار';
+
+        if (statusEl) statusEl.textContent = '✅ تم حفظ التعديلات';
+    };
+
+    // ─── Convert Fractions to HTML Format ───
+    function convertFractions(text) {
+        return text.replace(/(\d+)\/(\d+)/g, '<span class="fraction"><span class="num">$1</span><span class="den">$2</span></span>');
+    }
+
+    // ─── Download Functions ───
+    window.downloadWord = function() {
+        const content = outputEl.innerHTML;
+        const subject = getField('subject');
+        const grade = getField('grade');
+
+        const html = `
+            <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+            <head><meta charset='utf-8'><title>${subject} - ${grade}</title></head>
+            <body style="direction: rtl; font-family: 'Arial', sans-serif;">
+                ${content}
+            </body>
+            </html>
+        `;
+
+        const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${subject}_${grade}_اختبار.doc`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
+    window.downloadPDF = function() {
+        const content = outputEl.innerHTML;
+        const subject = getField('subject');
+        const grade = getField('grade');
+
+        const originalTitle = document.title;
+        document.title = `${subject} - ${grade} - اختبار`;
+
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <html dir="rtl">
+            <head>
+                <title>${subject} - ${grade}</title>
+                <style>
+                    body { direction: rtl; font-family: Arial, sans-serif; padding: 20px; }
+                    .fraction { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; margin: 0 4px; }
+                    .fraction .num { border-bottom: 2px solid black; padding: 0 4px; }
+                    .fraction .den { padding: 0 4px; }
+                    .global-edit-area, .btn-toggle-edit { display: none !important; }
+                    .strong-sep { border: none; height: 3px; background: #0b3b5c; margin: 24px 0; }
+                    .page-break { page-break-before: always; border: none; height: 2px; background: #2a9d8f; margin: 30px 0; }
+                </style>
+            </head>
+            <body>${content}</body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+            document.title = originalTitle;
+        }, 500);
+    };
+
+    // ─── Main Function ───
+    async function generateExam() {
+        const payload = buildPayload();
+
+        if (generateBtn) generateBtn.disabled = true;
+        if (statusEl) statusEl.textContent = '⏳ جاري الاتصال بـ Gemini...';
+        if (actionButtonsArea) actionButtonsArea.style.display = 'none';
+        renderResult('<div style="text-align:center; padding:40px; color:#4a6572;">⏳ يرجى الانتظار...</div>');
+
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                const serverError = data.error || data.details || `خطأ HTTP: ${response.status}`;
+                throw new Error(serverError);
+            }
+
+            const rawText = data.result || JSON.stringify(data);
+            let cleanHtml = cleanMarkdown(rawText);
+
+            cleanHtml = cleanHtml
+                .replace(/<hr\s*\/?>/gi, '<hr class="strong-sep">')
+                .replace(/<hr\s+class="page-break"\s*\/?>/gi, '<hr class="page-break">');
+
+            cleanHtml = convertFractions(cleanHtml);
+
+            renderResult(cleanHtml);
+            if (statusEl) statusEl.textContent = '✅ تم الإنشاء بنجاح';
+
+        } catch (error) {
+            console.error('❌ فشل:', error);
+            showError(error.message, error.stack);
+        } finally {
+            if (generateBtn) generateBtn.disabled = false;
+        }
+    }
+
+    // ─── Event Listeners ───
+    document.addEventListener('DOMContentLoaded', () => {
+        if (generateBtn) {
+            generateBtn.addEventListener('click', generateExam);
+        }
+        console.log('🚀 التطبيق جاهز');
+    });
+
+})();
+</script>
+
+</body>
+</html>
