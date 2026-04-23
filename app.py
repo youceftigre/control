@@ -37,7 +37,7 @@ def generate():
     if not request.is_json:
         return jsonify({'error': 'يجب إرسال البيانات بصيغة JSON'}), 400
     if not api_key:
-        return jsonify({'error': 'مفتاح API غير متوفر'}), 500
+        return jsonify({'error': 'مفتاح API غير متوفر. تأكد من إعداده في Render'}), 500
     try:
         body = request.get_json()
         prompt = build_prompt(body)
@@ -45,8 +45,11 @@ def generate():
         response = model.generate_content(prompt)
         return jsonify({'result': response.text})
     except Exception as e:
-        print(f"Error: {e}")
-        return jsonify({'error': 'خطأ في الخادم'}), 500
+        # طباعة الخطأ بالتفصيل في سجلات Render
+        import traceback
+        print("❌❌❌ خطأ في /api/generate:")
+        traceback.print_exc()
+        return jsonify({'error': f'خطأ: {str(e)}'}), 500
 
 @app.route('/')
 def home():
