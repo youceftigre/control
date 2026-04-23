@@ -1,28 +1,26 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from dotenv import load_dotenv
 import os
 import google.generativeai as genai
 
-# تحميل متغيرات البيئة من ملف .env
+# تحميل متغيرات البيئة من ملف .env (سيعمل محلياً، أما في Render أضف المفتاح في الإعدادات)
 load_dotenv()
 
 # الحصول على مفتاح API
 api_key = os.getenv('GEMINI_API_KEY') or os.getenv('GOOGLE_API_KEY')
-if not api_key:
-    raise ValueError('GEMINI_API_KEY غير موجود في ملف .env')
 
 # تهيئة مكتبة Gemini
-genai.configure(api_key=api_key)
+if api_key:
+    genai.configure(api_key=api_key)
 
 # إنشاء تطبيق Flask
-app = Flask(__name__)
+# جعلنا template_folder هو المجلد الحالي لسهولة الوصول لملف index.html
+app = Flask(__name__, static_folder='.', static_url_path='')
 
 
 def build_prompt(body: dict) -> str:
-    """
-    بناء النص الموجه (prompt) لإرساله إلى نموذج Gemini.
-    """
-    return f"""أنت خبير تربوي.
+    """بناء النص الموجه (prompt) لنموذج Gemini."""
+    return f"""أنت خبير تربوي في المنهاج الجزائري.
 أنشئ {body.get('examType', 'اختبار')}اً كاملاً باللغة العربية مع الإجابة النموذجية.
 
 المادة: {body.get('subject')}
@@ -36,50 +34,39 @@ def build_prompt(body: dict) -> str:
 تعليمات إضافية: {body.get('extra') or 'لا توجد'}
 
 الشروط:
-- اجعل الأسئلة مناسبة للمنهاج الجزائري.
-- لا تخرج عن مستوى التلاميذ.
-- أضف الإجابات الصحيحة في النهاية.
-- أضف التصحيح النموذجي لكل سؤال."""
-
+- التزم بمعايير وزارة التربية الوطنية الجزائرية.
+- نسق الاختبار بشكل احترافي (تمرين أول، تمرين ثاني، وضعية إدماجية).
+- أضف الإجابة النموذجية وسلم التنقيط في نهاية الملف.
+- استخدم تنسيق HTML بسيط (مثل <h3> للعناوين و <br> للسطر الجديد) لضمان العرض الجميل.
+"""
 
 @app.route('/api/generate', methods=['POST'])
 def generate():
-    """
-    نقطة نهاية لإنشاء اختبار باستخدام Gemini.
-    تتوقع JSON يحتوي على معلومات الاختبار.
-    """
-    # التحقق من أن الطلب يرسل JSON صحيحاً
+    """نقطة نهاية لإنشاء الاختبار."""
     if not request.is_json:
         return jsonify({'error': 'يجب إرسال البيانات بصيغة JSON'}), 400
 
+    if not api_key:
+        return jsonify({'error': 'مفتاح API غير متوفر. تأكد من إعداده في Render'}), 500
+
     try:
         body = request.get_json()
-        if not body:
-            return jsonify({'error': 'جسم الطلب فارغ'}), 400
-
-        # بناء الموجه
         prompt = build_prompt(body)
 
-        # استدعاء نموذج Gemini
         model = genai.GenerativeModel('gemini-1.5-flash')
         response = model.generate_content(prompt)
 
         return jsonify({'result': response.text})
 
     except Exception as e:
-        # تسجيل الخطأ في وحدة التحكم (لأغراض التطوير)
-        print(f"❌ خطأ أثناء إنشاء المحتوى: {str(e)}")
-        return jsonify({'error': 'حدث خطأ أثناء معالجة الطلب. الرجاء المحاولة لاحقاً.'}), 500
-
+        print(f"❌ خطأ: {str(e)}")
+        return jsonify({'error': 'حدث خطأ أثناء معالجة الطلب.'}), 500
 
 @app.route('/', methods=['GET'])
 def home():
-    import os
-    from flask import send_from_directory
-    directory = os.path.dirname(os.path.abspath(__file__))
-return send_from_directory('.', 'index.html')
-
+    """عرض صفحة الواجهة الرئيسية."""
+    return send_from_directory('.', 'index.html')
 
 if __name__ == '__main__':
-    # تشغيل التطبيق في وضع التطوير
-    app.run(debug=True)
+    # التشغيل محلياً
+    app.run(host='0.0.0.0', port=5000, debug=True)
