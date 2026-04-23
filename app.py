@@ -1,21 +1,21 @@
 from flask import Flask, request, jsonify, send_from_directory
 from dotenv import load_dotenv
 import os
-import google.generativeai as genai
 import traceback
+from google import genai
 
 load_dotenv()
 
 api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-if api_key:
-    genai.configure(api_key=api_key)
+client = genai.Client(api_key=api_key) if api_key else None
 
-app = Flask(__name__, static_folder=".", static_url_path="")
+app = Flask(__name__, static_folder='.', static_url_path='')
 
 def build_prompt(body=None):
     body = body or {}
+    exam_type = body.get('examType', 'اختبار')
     return f"""أنت خبير تربوي في المنهاج الجزائري.
-أنشئ {body.get('examType', 'اختبار')}اً كاملاً باللغة العربية مع الإجابة النموذجية.
+أنشئ {exam_type}اً كاملاً باللغة العربية مع الإجابة النموذجية.
 
 المادة: {body.get('subject', 'غير محدد')}
 المستوى: {body.get('grade', 'غير محدد')}
@@ -34,35 +34,42 @@ def build_prompt(body=None):
 - استخدم HTML بسيط.
 """
 
-@app.route("/api/generate", methods=["POST"])
+@app.route('/api/generate', methods=['POST'])
 def generate():
     try:
         if not request.is_json:
-            return jsonify({"error": "يجب إرسال البيانات بصيغة JSON"}), 400
+            return jsonify({'error': 'يجب إرسال البيانات بصيغة JSON'}), 400
 
         body = request.get_json(silent=True) or {}
 
-        if not api_key:
-            return jsonify({"error": "مفتاح API غير متوفر"}), 500
+        if not client:
+            return jsonify({'error': 'مفتاح API غير متوفر'}), 500
 
         prompt = build_prompt(body)
-        model = genai.GenerativeModel("gemini-1.5-flash")
-        response = model.generate_content(prompt)
 
-        return jsonify({"result": response.text})
+        resp = client.models.generate_content(
+            model='gemini-2.0-flash',
+            contents=prompt,
+        )
+
+        text = getattr(resp, 'text', None)
+        if not text:
+            return jsonify({'error': 'لم يتم استلام نص من Gemini'}), 500
+
+        return jsonify({'result': text})
 
     except Exception as e:
-        print("GEN_ERROR:", str(e))
+        print('GEN_ERROR:', str(e))
         print(traceback.format_exc())
-        return jsonify({"error": str(e)}), 500
+        return jsonify({'error': str(e)}), 500
 
-@app.route("/health")
+@app.route('/health')
 def health():
-    return jsonify({"status": "ok", "api_key_loaded": bool(api_key)})
+    return jsonify({'status': 'ok', 'api_key_loaded': bool(api_key)})
 
-@app.route("/")
+@app.route('/')
 def home():
-    return send_from_directory(".", "index.html")
+    return send_from_directory('.', 'index.html')
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
