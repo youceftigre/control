@@ -2,7 +2,8 @@
 from flask import Flask, request, jsonify, send_from_directory
 from groq import Groq
 from dotenv import load_dotenv
-import os, traceback
+import os
+import traceback
 
 load_dotenv()
 api_key = os.getenv('GROQ_API_KEY')
@@ -16,8 +17,7 @@ else:
 app = Flask(__name__, static_folder='.', static_url_path='')
 
 def build_prompt(body: dict) -> str:
-    return f"""أنت خبير تربوي في المنهاج الجزائري.
-قم بإنشاء {body.get('examType', 'اختبار')} كامل باللغة العربية مع الإجابة النموذجية وسلم التنقيط.
+    return f"""أنت خبير تربوي في المنهاج الجزائري لتوليد اختبارات الرياضيات. قم بإنشاء {body.get('examType', 'اختبار')} كامل واحترافي باللغة العربية مع **الإجابة النموذجية وسلّم التنقيط** في نهاية الاختبار.
 
 المادة: {body.get('subject')}
 المستوى: {body.get('grade')}
@@ -29,13 +29,21 @@ def build_prompt(body: dict) -> str:
 مستوى الصعوبة: {body.get('difficulty')}
 تعليمات إضافية: {body.get('extra') or 'لا توجد'}
 
-**شروط التنسيق (مهم جداً):**
-- أخرج الاختبار بصيغة HTML نظيفة ومباشرة (دون وضعها داخل ```html).
-- لا تستخدم عناصر تفاعلية مثل <input> أو <button> أو <form>.
-- استخدم عناوين <h2> و <h3>، فقرات <p>، قوائم مرتبة <ol> وغير مرتبة <ul>، مع ملاحظات التنقيط بين قوسين.
-- أضف الإجابة النموذجية في نهاية الملف تحت عنوان <h2>الإجابة النموذجية</h2>.
-- تأكد من استخدام اللغة العربية الفصحى والأسلوب التربوي المناسب للمنهاج الجزائري.
+**الهيكل المطلوب (يجب الالتزام به):**
+1. **الترويسة**: "الجمهورية الجزائرية الديمقراطية الشعبية" بخط كبير، ثم "وزارة التربية الوطنية" متبوعة بالمستوى والمادة.
+2. **التمرين الأول (06 نقاط)**: سؤال أو سؤالين حسابيين مع توزيع النقاط الجزئية.
+3. **التمرين الثاني (06 نقاط)**: مسألة رياضية بسيطة مع توزيع نقاط.
+4. **الوضعية الإدماجية (08 نقاط)**: مسألة حياتية مركبة تتطلب خطوات.
+5. **الإجابة النموذجية وسلّم التنقيط**: اذكر الإجابة الصحيحة لكل سؤال مع توزيع الدرجات.
+
+**شروط التنسيق المهمة جداً:**
+- استخدم HTML فقط. لا تضع الكود داخل ```html أو أي علامات markdown.
+- لا تستخدم <input>, <button>, <form>, <script>.
+- استخدم <div class="header"> للترويسة، <h2> للعناوين، <p> للفقرات، <ol>/<li> للتمارين.
+- ضع الدرجات بين قوسين بعد كل فقرة، مثال: <p><strong>1. أحسب ما يلي</strong> (03 نقاط)</p>
+- استخدم تصميم احترافي بألوان هادئة (خلفية بيضاء، نص داكن، خط كبير).
 """
+
 @app.route('/api/generate', methods=['POST'])
 def generate():
     if not request.is_json:
@@ -47,7 +55,7 @@ def generate():
         prompt = build_prompt(body)
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            model="llama-3.1-8b-instant",  # ممتاز للعربية وسريع
+            model="llama-3.1-8b-instant",
             temperature=0.7,
             max_tokens=4096
         )
@@ -69,7 +77,7 @@ def test():
         chat_completion = client.chat.completions.create(
             messages=[{"role": "user", "content": "قل مرحبا بالعربية"}],
             model="llama-3.1-8b-instant",
-            max_tokens=100
+            max_tokens=50
         )
         return f"✅ Groq يعمل: {chat_completion.choices[0].message.content}"
     except Exception as e:
