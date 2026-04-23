@@ -41,7 +41,7 @@ def generate():
     try:
         body = request.get_json()
         prompt = build_prompt(body)
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         response = model.generate_content(prompt)
         return jsonify({'result': response.text})
     except Exception as e:
