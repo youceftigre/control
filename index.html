@@ -19,6 +19,8 @@
             --shadow: 0 12px 30px rgba(0,0,0,0.08);
             --radius: 24px;
             --radius-sm: 14px;
+            --a4-width: 210mm;
+            --a4-padding: 20mm;
         }
 
         /* ─── Reset & Base ─── */
@@ -161,15 +163,66 @@
             font-size: 0.95rem;
         }
 
+        /* ─── Font Size Slider ─── */
+        .font-size-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #f0f4f8;
+            padding: 12px 20px;
+            border-radius: 40px;
+            margin: 16px 0;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .font-size-bar label {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 0.9rem;
+        }
+        .font-size-bar input[type="range"] {
+            width: 200px;
+            cursor: pointer;
+        }
+        .font-size-value {
+            background: var(--primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        /* ─── A4 Paper ─── */
+        .a4-paper {
+            width: var(--a4-width);
+            min-height: 297mm;
+            background: white;
+            margin: 0 auto;
+            padding: var(--a4-padding);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+            position: relative;
+            overflow: hidden;
+        }
+        .a4-paper .paper-content {
+            font-size: 14pt;
+            line-height: 1.8;
+            color: #1a1a1a;
+        }
+
         /* ─── Output Card ─── */
         .output-card {
             background: var(--card);
             border: 1px solid #e2e9f0;
             border-radius: var(--radius);
-            padding: 28px 30px;
+            padding: 20px;
             margin-top: 20px;
             box-shadow: inset 0 2px 6px rgba(0,0,0,0.02);
             line-height: 1.8;
+            overflow-x: auto;
         }
         #output { white-space: normal; word-wrap: break-word; }
 
@@ -229,7 +282,7 @@
             text-align: center;
         }
 
-        /* ─── Global Edit Box (Top of Exam) ─── */
+        /* ─── Global Edit Box ─── */
         .global-edit-area {
             background: #f8fafc;
             border: 2px dashed var(--border);
@@ -347,13 +400,38 @@
             margin: 30px 0;
         }
 
+        /* ─── Print Styles for A4 ─── */
+        @media print {
+            body { background: white; padding: 0; }
+            .container { max-width: 100%; border-radius: 0; box-shadow: none; padding: 0; }
+            .output-card { border: none; box-shadow: none; padding: 0; overflow: visible; }
+            .a4-paper {
+                width: 100%;
+                border: none;
+                box-shadow: none;
+                padding: 15mm;
+                margin: 0;
+            }
+            .font-size-bar, .download-area, .global-edit-area, .btn-toggle-edit,
+            .developer-signature, .form-grid, .btn-green, .status-area {
+                display: none !important;
+            }
+        }
+
         /* ─── Responsive ─── */
+        @media (max-width: 900px) {
+            .a4-paper {
+                width: 100%;
+                padding: 15px;
+            }
+        }
         @media (max-width: 600px) {
             .container { padding: 16px; }
             h1 { font-size: 1.6rem; }
             .form-grid { grid-template-columns: 1fr; padding: 16px; }
             .developer-signature { flex-direction: column; align-items: flex-start; }
             .download-area { flex-direction: column; align-items: center; }
+            .font-size-bar input[type="range"] { width: 150px; }
         }
     </style>
 </head>
@@ -468,7 +546,7 @@
         <span style="font-size: 0.9rem; color: #4f6f8a;">سيظهر الاختبار أدناه بعد الاتصال بالخادم</span>
     </div>
 
-    <!-- ─── Action Buttons Area (Edit + Download) ─── -->
+    <!-- ─── Action Buttons Area ─── -->
     <div id="actionButtonsArea" style="display: none; margin: 20px 0;">
         <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px;">
             <button class="btn-toggle-edit" id="btnToggleEdit" onclick="toggleGlobalEdit()">
@@ -486,6 +564,15 @@
             </div>
         </div>
 
+        <!-- Font Size Slider -->
+        <div class="font-size-bar">
+            <label>🔤 حجم الخط:</label>
+            <span style="font-size: 0.8rem;">صغير</span>
+            <input type="range" id="fontSizeSlider" min="10" max="24" value="14" step="1" oninput="changeFontSize(this.value)">
+            <span style="font-size: 1.2rem;">كبير</span>
+            <span class="font-size-value" id="fontSizeValue">14pt</span>
+        </div>
+
         <!-- Download Buttons -->
         <div class="download-area">
             <button class="btn-download btn-word" onclick="downloadWord()">
@@ -497,15 +584,19 @@
         </div>
     </div>
 
-    <!-- ─── Output ─── -->
+    <!-- ─── Output (A4 Paper) ─── -->
     <div class="output-card">
-        <div id="output">
-            <h2>📄 ورقة الاختبار</h2>
-            <div class="meta">الرياضيات - الثالثة متوسط - اختبار</div>
-            <div class="sep"></div>
-            <div class="q">
-                <div class="n">جاهز للبدء</div>
-                <div class="t">املأ الحقول ثم اضغط على الزر لإنشاء الاختبار.</div>
+        <div class="a4-paper" id="a4Paper">
+            <div class="paper-content" id="output">
+                <h2 style="text-align: center; color: var(--primary);">📄 ورقة الاختبار</h2>
+                <div style="text-align: center; margin: 20px 0;">
+                    <div class="meta">الرياضيات - الثالثة متوسط - اختبار</div>
+                </div>
+                <div class="sep"></div>
+                <div class="q">
+                    <div class="n">جاهز للبدء</div>
+                    <div class="t">املأ الحقول ثم اضغط على الزر لإنشاء الاختبار.</div>
+                </div>
             </div>
         </div>
     </div>
@@ -527,10 +618,13 @@
     const generateBtn = document.getElementById('generateBtn');
     const statusEl = document.getElementById('status');
     const outputEl = document.getElementById('output');
+    const a4Paper = document.getElementById('a4Paper');
     const actionButtonsArea = document.getElementById('actionButtonsArea');
     const globalEditArea = document.getElementById('globalEditArea');
     const globalEditText = document.getElementById('globalEditText');
     const btnToggleEdit = document.getElementById('btnToggleEdit');
+    const fontSizeSlider = document.getElementById('fontSizeSlider');
+    const fontSizeValue = document.getElementById('fontSizeValue');
 
     let currentExamHTML = '';
 
@@ -604,11 +698,15 @@ ${extra ? '- تعليمات إضافية: ' + extra : ''}
     function renderResult(htmlContent) {
         currentExamHTML = htmlContent;
         if (outputEl) outputEl.innerHTML = htmlContent;
-        // Show action buttons area (edit + download)
+        // Show action buttons area
         if (actionButtonsArea) {
             actionButtonsArea.style.display = 'block';
             console.log('✅ Action buttons area shown');
         }
+        // Reset font size to default
+        if (outputEl) outputEl.style.fontSize = '14pt';
+        if (fontSizeSlider) fontSizeSlider.value = 14;
+        if (fontSizeValue) fontSizeValue.textContent = '14pt';
         // Hide edit area by default
         if (globalEditArea) globalEditArea.style.display = 'none';
         if (btnToggleEdit) btnToggleEdit.textContent = '✏️ تعديل الاختبار';
@@ -632,6 +730,16 @@ ${extra ? '- تعليمات إضافية: ' + extra : ''}
         if (statusEl) statusEl.textContent = `⚠️ خطأ: ${message}`;
         if (actionButtonsArea) actionButtonsArea.style.display = 'none';
     }
+
+    // ─── Font Size Control ───
+    window.changeFontSize = function(size) {
+        if (outputEl) {
+            outputEl.style.fontSize = size + 'pt';
+        }
+        if (fontSizeValue) {
+            fontSizeValue.textContent = size + 'pt';
+        }
+    };
 
     // ─── Global Edit Functions ───
     window.toggleGlobalEdit = function() {
@@ -683,8 +791,17 @@ ${extra ? '- تعليمات إضافية: ' + extra : ''}
 
         const html = `
             <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-            <head><meta charset='utf-8'><title>${subject} - ${grade}</title></head>
-            <body style="direction: rtl; font-family: 'Arial', sans-serif;">
+            <head><meta charset='utf-8'><title>${subject} - ${grade}</title>
+            <style>
+                body { direction: rtl; font-family: 'Arial', sans-serif; font-size: 14pt; }
+                .fraction { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; margin: 0 4px; }
+                .fraction .num { border-bottom: 2px solid black; padding: 0 4px; }
+                .fraction .den { padding: 0 4px; }
+                .strong-sep { border: none; height: 3px; background: #0b3b5c; margin: 24px 0; }
+                .page-break { page-break-before: always; border: none; height: 2px; background: #2a9d8f; margin: 30px 0; }
+            </style>
+            </head>
+            <body style="direction: rtl; font-family: 'Arial', sans-serif; padding: 20mm;">
                 ${content}
             </body>
             </html>
@@ -715,11 +832,12 @@ ${extra ? '- تعليمات إضافية: ' + extra : ''}
             <head>
                 <title>${subject} - ${grade}</title>
                 <style>
-                    body { direction: rtl; font-family: Arial, sans-serif; padding: 20px; }
+                    @page { size: A4; margin: 20mm; }
+                    body { direction: rtl; font-family: Arial, sans-serif; padding: 0; margin: 0; font-size: 14pt; }
                     .fraction { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; margin: 0 4px; }
                     .fraction .num { border-bottom: 2px solid black; padding: 0 4px; }
                     .fraction .den { padding: 0 4px; }
-                    .global-edit-area, .btn-toggle-edit { display: none !important; }
+                    .global-edit-area, .btn-toggle-edit, .font-size-bar { display: none !important; }
                     .strong-sep { border: none; height: 3px; background: #0b3b5c; margin: 24px 0; }
                     .page-break { page-break-before: always; border: none; height: 2px; background: #2a9d8f; margin: 30px 0; }
                 </style>
