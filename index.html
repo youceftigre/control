@@ -3,207 +3,496 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة الامتحانات الجزائرية الاحترافية | Pro Exam DZ</title>
-    <!-- خطوط وأيقونات -->
+    <title>موسوعة الاختبارات الجزائرية الذكية | Pro Exam DZ</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- مكتبة PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <style>
         :root {
-            --primary: #0f4c75; /* أزرق رسمي داكن */
+            --primary: #0f4c75;
+            --primary-dark: #0a3d62;
             --secondary: #3282b8;
-            --accent: #bbe1fa;
-            --text: #1b262c;
+            --accent: #f39c12;
+            --accent-dark: #d69e2e;
+            --success: #27ae60;
             --bg: #f0f2f5;
             --white: #ffffff;
+            --text: #1b262c;
+            --text-light: #666;
+            --border: #e1e1e1;
             --shadow: 0 4px 20px rgba(0,0,0,0.08);
+            --shadow-lg: 0 10px 40px rgba(0,0,0,0.15);
         }
 
-        * { box-sizing: border-box; outline: none; }
-        body { margin: 0; font-family: 'Tajawal', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; overflow: hidden; }
+        * { box-sizing: border-box; margin: 0; padding: 0; outline: none; }
+        
+        body { 
+            font-family: 'Tajawal', sans-serif; 
+            background: var(--bg); 
+            color: var(--text); 
+            height: 100vh; 
+            display: flex; 
+            overflow: hidden; 
+            direction: rtl;
+        }
 
-        /* --- القائمة الجانبية (Sidebar) --- */
+        /* --- القائمة الجانبية المدمجة --- */
         .sidebar {
-            width: 360px; /* زيادة العرض قليلاً لاستيعاب الحقول الجديدة */
+            width: 480px;
+            min-width: 480px;
             background: var(--white);
-            height: 100%;
-            padding: 25px;
-            box-shadow: 2px 0 15px rgba(0,0,0,0.05);
+            height: 100vh;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            box-shadow: 2px 0 15px rgba(0,0,0,0.05);
             z-index: 10;
         }
-
-        .brand {
+        /* الهيدر مع معلومات المطور */
+        .sidebar-header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 20px;
             text-align: center;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #eee;
             flex-shrink: 0;
         }
-        .brand h1 { font-size: 1.4rem; color: var(--primary); margin: 0; font-weight: 800; }
-        .brand p { font-size: 0.8rem; color: #666; margin-top: 5px; }
-        .dev-badge { 
-            background: linear-gradient(45deg, var(--primary), var(--secondary)); 
-            color: white; padding: 4px 8px; border-radius: 20px; font-size: 0.7rem; display: inline-block; margin-top: 5px;        }
-
-        .form-section { flex-grow: 1; overflow-y: auto; padding-right: 5px; }
-        
-        /* تنسيق الحقول في عمودين إذا أمكن لتوفير المساحة */
-        .row-group { display: flex; gap: 10px; }
-        .col-half { flex: 1; }
-
-        .form-group { margin-bottom: 12px; }
-        label { display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 6px; color: var(--primary); }
-        
-        select, input {
-            width: 100%; padding: 10px; border: 2px solid #e1e1e1; border-radius: 8px;
-            font-family: inherit; transition: 0.3s; background: #fafafa; font-size: 0.9rem;
+        .sidebar-header h1 { font-size: 1.4rem; font-weight: 800; margin-bottom: 5px; }
+        .sidebar-header p { font-size: 0.85rem; opacity: 0.9; }
+        .dev-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            display: inline-block;
+            margin-top: 8px;
         }
-        select:focus, input:focus { border-color: var(--secondary); background: white; }
+        .dev-email {
+            font-size: 0.75rem;
+            direction: ltr;
+            margin-top: 5px;
+            opacity: 0.9;
+        }
 
-        .btn-generate {
-            background: var(--primary); color: white; border: none; padding: 14px;
-            width: 100%; border-radius: 10px; font-size: 1rem; font-weight: bold;
-            cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px;
-            box-shadow: 0 4px 15px rgba(15, 76, 117, 0.3);
+        /* شريط الإحصائيات */
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            padding: 15px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid var(--border);
             flex-shrink: 0;
         }
-        .btn-generate:hover { transform: translateY(-2px); background: #0a3d62; }
-        .btn-generate:disabled { opacity: 0.7; cursor: wait; }
+        .stat-item {
+            text-align: center;
+            padding: 10px 5px;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        .stat-value { font-size: 1.3rem; font-weight: 700; color: var(--primary); }
+        .stat-label { font-size: 0.7rem; color: var(--text-light); margin-top: 2px; }
 
-        /* --- منطقة العمل الرئيسية --- */
-        .main-area {
+        /* منطقة النموذج - مضغوطة بدون تمرير */
+        .form-container {
             flex-grow: 1;
+            padding: 15px 20px;            overflow-y: auto;
             display: flex;
             flex-direction: column;
-            position: relative;
-            background: #555;
+            gap: 12px;
         }
 
-        /* شريط الأدوات العلوي */
-        .top-toolbar {
+        /* صندوق البحث الذكي */
+        .smart-search {
+            background: linear-gradient(135deg, #fffaf0, #fff);
+            border: 2px dashed var(--accent);
+            border-radius: 12px;
+            padding: 15px;
+            flex-shrink: 0;
+        }
+        .smart-search label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 8px;
+        }
+        .smart-search input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            margin-bottom: 10px;
+        }
+        .smart-search input:focus { border-color: var(--accent); }
+        
+        .hint-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .hint-tag {
+            background: var(--accent);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .hint-tag:hover { transform: scale(1.05); background: var(--accent-dark); }
+
+        /* شبكة الحقول المضغوطة */        .input-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .form-group { display: flex; flex-direction: column; }
+        .full-width { grid-column: 1 / -1; }
+
+        .field-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            background: #fafafa;
+            transition: 0.2s;
+        }
+        select:focus, input:focus {
+            border-color: var(--secondary);
+            background: white;
+            box-shadow: 0 0 0 3px rgba(50, 130, 184, 0.15);
+        }
+
+        /* أزرار الإجراءات */
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 5px;
+            flex-shrink: 0;
+        }
+        
+        .btn {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-dark); transform: translateY(-2px); }
+        .btn-accent { background: var(--accent); color: white; }
+        .btn-accent:hover { background: var(--accent-dark); transform: translateY(-2px); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #219a52; transform: translateY(-2px); }
+        .btn:disabled { opacity: 0.6; cursor: wait; transform: none; }
+
+        /* قائمة نتائج البحث */
+        .results-container {
+            flex-shrink: 0;
+            max-height: 150px;
+            overflow-y: auto;
+            border-top: 1px solid var(--border);
+            padding-top: 10px;
+            display: none;
+        }
+        .results-title {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--primary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .result-item {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            border-right: 3px solid var(--accent);
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.85rem;
+        }
+        .result-item:hover { background: #e9ecef; transform: translateX(-3px); }
+        .result-meta { font-size: 0.7rem; color: var(--text-light); margin-bottom: 3px; }
+        .result-text { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* --- منطقة العرض الرئيسية --- */
+        .main-area {
+            flex-grow: 1;            display: flex;
+            flex-direction: column;
+            background: #4a5568;
+            height: 100vh;
+        }
+
+        /* شريط الأدوات العائم */
+        .toolbar {
             background: var(--white);
-            padding: 10px 30px;
+            padding: 10px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            z-index: 20;
             flex-shrink: 0;
+            z-index: 20;
         }
-
-        .tools-group { display: flex; gap: 10px; }
-        .tool-btn {            padding: 8px 15px; border: 1px solid #ddd; background: white; border-radius: 6px;
-            cursor: pointer; font-family: inherit; font-size: 0.9rem; transition: 0.2s;
-            display: flex; align-items: center; gap: 8px;
+        .tools-left, .tools-right { display: flex; gap: 8px; align-items: center; }
+        
+        .tool-btn {
+            padding: 8px 14px;
+            border: 1px solid var(--border);
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: 0.2s;
         }
         .tool-btn:hover { background: #f8f9fa; border-color: var(--secondary); color: var(--secondary); }
-        
+        .tool-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
         .btn-pdf { background: #dc3545; color: white; border: none; }
-        .btn-pdf:hover { background: #c82333; color: white; }
         .btn-print { background: #28a745; color: white; border: none; }
-        .btn-print:hover { background: #218838; color: white; }
-        .btn-edit { background: var(--accent); color: var(--primary); border: none; }
-        .btn-save { background: #27ae60; color: white; border: none; display: none; }
 
         /* حاوية الورقة */
         .paper-wrapper {
             flex-grow: 1;
             overflow-y: auto;
-            padding: 40px;
+            padding: 30px;
             display: flex;
             justify-content: center;
+            align-items: flex-start;
         }
 
         /* ورقة A4 الرسمية */
         .a4-paper {
-            background: white;
-            width: 210mm;
+            background: white;            width: 210mm;
             min-height: 297mm;
             padding: 15mm 20mm;
             box-shadow: 0 0 30px rgba(0,0,0,0.4);
-            position: relative;
             font-size: 16px;
             line-height: 1.6;
             color: #000;
             transition: 0.3s;
         }
-
-        /* وضع التعديل */
         .a4-paper[contenteditable="true"] {
-            border: 2px dashed var(--secondary);
+            border: 3px dashed var(--secondary);
             box-shadow: 0 0 40px rgba(50, 130, 184, 0.4);
             cursor: text;
         }
 
         /* الترويسة الرسمية */
         .official-header {
-            display: table; width: 100%; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 15px;
+            display: table;
+            width: 100%;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 12px;
         }
         .header-row { display: table-row; }
-        .header-cell { display: table-cell; vertical-align: middle; padding: 5px; }
-        .right-col { width: 30%; text-align: right; font-size: 0.9em; font-weight: bold; }        .center-col { width: 40%; text-align: center; }
-        .left-col { width: 30%; text-align: left; font-size: 0.9em; }
-
-        .republic-text { font-size: 1.2em; margin-bottom: 5px; }
+        .header-cell { display: table-cell; vertical-align: middle; padding: 4px; }
+        .right-col { width: 30%; text-align: right; font-size: 0.85em; font-weight: bold; }
+        .center-col { width: 40%; text-align: center; }
+        .left-col { width: 30%; text-align: left; font-size: 0.85em; }
+        .republic-text { font-size: 1.1em; margin-bottom: 4px; }
         .exam-title-box {
-            border: 2px solid #000; padding: 15px; border-radius: 8px; background: #fdfdfd; margin: 20px 0; text-align: center;
+            border: 2px solid #000;
+            padding: 12px;
+            border-radius: 6px;
+            background: #fdfdfd;
+            margin: 15px 0;
+            text-align: center;
         }
-        .exam-title { font-size: 1.5em; font-weight: 800; text-decoration: underline; margin-bottom: 10px; }
+        .exam-title { font-size: 1.4em; font-weight: 800; text-decoration: underline; }
 
-        /* الأسئلة */
-        .question-block { margin-bottom: 25px; page-break-inside: avoid; }
-        .q-title { font-weight: bold; font-size: 1.1em; margin-bottom: 10px; display: flex; justify-content: space-between; }
-        .points { border: 1px solid #000; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; background: #eee; }
+        /* تنسيق الأسئلة */
+        .question-block { margin-bottom: 20px; page-break-inside: avoid; }
+        .q-title {
+            font-weight: bold;
+            font-size: 1.05em;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .points {
+            border: 1px solid #000;            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            background: #eee;
+        }
 
-        /* رسائل الحالة */
+        /* مؤشر التحميل */
+        .loading-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 50;
+        }
+        .loading-overlay.show { display: flex; }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #e1e1e1;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .loading-text { font-size: 1rem; color: var(--primary); font-weight: 500; }
+
+        /* رسالة الحالة */
         #status-msg {
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-            background: #333; color: white; padding: 10px 20px; border-radius: 30px;
-            font-size: 0.9rem; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 100;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            opacity: 0;
+            transition: 0.3s;
+            pointer-events: none;
+            z-index: 100;
         }
         #status-msg.show { opacity: 1; bottom: 30px; }
+
+        /* التذييل */
+        .footer {            text-align: center;
+            padding: 15px;
+            background: var(--primary);
+            color: white;
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+        .footer .dev-name { font-weight: 600; color: #ffd700; }
+        .footer .email { direction: ltr; font-size: 0.75rem; margin-top: 3px; opacity: 0.9; }
 
         /* الطباعة */
         @media print {
             body { background: white; height: auto; display: block; overflow: visible; }
-            .sidebar, .top-toolbar, #status-msg { display: none !important; }
+            .sidebar, .toolbar, #status-msg, .footer { display: none !important; }
             .main-area { background: white; display: block; }
             .paper-wrapper { padding: 0; display: block; overflow: visible; }
-            .a4-paper { 
-                width: 100%; box-shadow: none; margin: 0; padding: 0; border: none; 
-                page-break-after: always;
-            }
+            .a4-paper { width: 100%; box-shadow: none; margin: 0; padding: 0; border: none; page-break-after: always; }
             @page { size: A4; margin: 15mm 20mm; }
+        }
+
+        @media (max-width: 1100px) {
+            .sidebar { width: 100%; min-width: 100%; height: auto; position: fixed; top: 0; right: -100%; transition: 0.3s; }
+            .sidebar.open { right: 0; }
+            .main-area { margin-right: 0; }
+            .menu-toggle { display: flex !important; }
         }
     </style>
 </head>
 <body>
 
-    <!-- القائمة الجانبية -->
-    <div class="sidebar no-print">
-        <div class="brand">
-            <h1><i class="fas fa-graduation-cap"></i> منصة الامتحانات</h1>
+    <!-- القائمة الجانبية المدمجة -->
+    <div class="sidebar" id="sidebar">
+        
+        <!-- الهيدر مع معلومات المطور -->
+        <div class="sidebar-header">
+            <h1><i class="fas fa-graduation-cap"></i> موسوعة الاختبارات</h1>
             <p>المنهاج الجزائري - التعليم المتوسط</p>
             <span class="dev-badge">⚙️ Dev: youcef .b</span>
+            <div class="dev-email">📧 youcefbenhamidaa@gmail.com</div>
         </div>
 
-        <div class="form-section">
-            <!-- الصف الأول: المادة والمستوى -->
-            <div class="row-group">
-                <div class="col-half form-group">                    <label><i class="fas fa-book"></i> المادة</label>
+        <!-- شريط الإحصائيات -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-value" id="statQuestions">500+</div>
+                <div class="stat-label">سؤال أصلي</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="statVariations">2K+</div>
+                <div class="stat-label">تنويع</div>            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="statSubjects">12</div>
+                <div class="stat-label">مواد</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="statExams">∞</div>
+                <div class="stat-label">اختبار</div>
+            </div>
+        </div>
+
+        <!-- منطقة النموذج -->
+        <div class="form-container">
+            
+            <!-- صندوق البحث الذكي -->
+            <div class="smart-search">
+                <label><i class="fas fa-lightbulb"></i> ابحث بتلميح ذكي</label>
+                <input type="text" id="hintInput" placeholder="مثال: معادلة، جذر، فلاح، دائرة...">
+                <div class="hint-tags">
+                    <span class="hint-tag" onclick="setHint('معادلة')">معادلة</span>
+                    <span class="hint-tag" onclick="setHint('جذر')">جذر</span>
+                    <span class="hint-tag" onclick="setHint('PGCD')">PGCD</span>
+                    <span class="hint-tag" onclick="setHint('دائرة')">دائرة</span>
+                    <span class="hint-tag" onclick="setHint('فلاح')">فلاح</span>
+                    <span class="hint-tag" onclick="setHint('إحصاء')">إحصاء</span>
+                    <span class="hint-tag" onclick="setHint('هندسة')">هندسة</span>
+                </div>
+            </div>
+
+            <!-- الحقول الأساسية -->
+            <div class="input-grid">
+                <div class="form-group">
+                    <label class="field-label"><i class="fas fa-book"></i> المادة</label>
                     <select id="subject">
                         <option value="">اختر...</option>
-                        <optgroup label="أساسية"><option value="الرياضيات">الرياضيات</option><option value="اللغة العربية">العربية</option><option value="اللغة الفرنسية">الفرنسية</option><option value="اللغة الإنجليزية">الإنجليزية</option></optgroup>
-                        <optgroup label="علمية"><option value="العلوم الفيزيائية والتكنولوجيا">الفيزياء</option><option value="علوم الطبيعة والحياة">العلوم</option><option value="الإعلام الآلي">إعلام آلي</option></optgroup>
-                        <optgroup label="اجتماعية"><option value="التاريخ والجغرافيا">تاريخ وجغرافيا</option><option value="التربية الإسلامية">تربية إسلامية</option><option value="التربية المدنية">تربية مدنية</option></optgroup>
+                        <optgroup label="أساسية">
+                            <option value="الرياضيات">الرياضيات</option>
+                            <option value="اللغة العربية">العربية</option>
+                            <option value="اللغة الفرنسية">الفرنسية</option>
+                            <option value="اللغة الإنجليزية">الإنجليزية</option>
+                        </optgroup>
+                        <optgroup label="علمية">
+                            <option value="العلوم الفيزيائية والتكنولوجيا">الفيزياء</option>
+                            <option value="علوم الطبيعة والحياة">العلوم</option>
+                            <option value="الإعلام الآلي">إعلام آلي</option>
+                        </optgroup>
+                        <optgroup label="اجتماعية">
+                            <option value="التاريخ والجغرافيا">تاريخ وجغرافيا</option>
+                            <option value="التربية الإسلامية">تربية إسلامية</option>
+                            <option value="التربية المدنية">تربية مدنية</option>                        </optgroup>
                     </select>
                 </div>
-                <div class="col-half form-group">
-                    <label><i class="fas fa-layer-group"></i> المستوى</label>
+                <div class="form-group">
+                    <label class="field-label"><i class="fas fa-layer-group"></i> المستوى</label>
                     <select id="grade">
                         <option value="السنة الأولى متوسط">1 متوسط</option>
                         <option value="السنة الثانية متوسط">2 متوسط</option>
@@ -211,233 +500,422 @@
                         <option value="السنة الرابعة متوسط">4 متوسط</option>
                     </select>
                 </div>
-            </div>
-
-            <!-- الصف الثاني: الفصل والسنة الدراسية -->
-            <div class="row-group">
-                <div class="col-half form-group">
-                    <label><i class="fas fa-calendar-alt"></i> الفصل</label>
+                <div class="form-group">
+                    <label class="field-label"><i class="fas fa-calendar-alt"></i> الفصل</label>
                     <select id="semester">
                         <option value="الفصل الأول">الأول</option>
                         <option value="الفصل الثاني">الثاني</option>
                         <option value="الفصل الثالث">الثالث</option>
                     </select>
                 </div>
-                <div class="col-half form-group">
-                    <label><i class="fas fa-calendar-check"></i> السنة الدراسية</label>
+                <div class="form-group">
+                    <label class="field-label"><i class="fas fa-calendar-check"></i> السنة</label>
                     <input type="text" id="schoolYear" value="2024/2025">
                 </div>
             </div>
 
-            <!-- الصف الثالث: المديرية والمؤسسة -->
-            <div class="form-group">
-                <label><i class="fas fa-map-marker-alt"></i> مديرية التربية لولاية</label>
-                <input type="text" id="directorate" placeholder="مثال: الجزائر شرق، وهران..." value="الجزائر وسط">
-            </div>
-
-            <div class="form-group">
-                <label><i class="fas fa-school"></i> اسم المؤسسة</label>
-                <input type="text" id="school" value="متوسطة الشهيد بن مهيدي">
-            </div>
-
-            <!-- الصف الرابع: المدة والصعوبة -->
-            <div class="row-group">
-                <div class="col-half form-group">
-                    <label><i class="fas fa-clock"></i> المدة الزمنية</label>                    <input type="text" id="duration" value="ساعتان">
+            <!-- معلومات المؤسسة -->
+            <div class="input-grid">
+                <div class="form-group full-width">
+                    <label class="field-label"><i class="fas fa-map-marker-alt"></i> مديرية التربية</label>
+                    <input type="text" id="directorate" value="الجزائر وسط">
                 </div>
-                <div class="col-half form-group">
-                    <label><i class="fas fa-balance-scale"></i> درجة الصعوبة</label>
+                <div class="form-group full-width">
+                    <label class="field-label"><i class="fas fa-school"></i> المؤسسة</label>
+                    <input type="text" id="school" value="متوسطة الشهيد بن مهيدي">
+                </div>
+            </div>
+
+            <!-- إعدادات الاختبار -->
+            <div class="input-grid">
+                <div class="form-group">
+                    <label class="field-label"><i class="fas fa-clock"></i> المدة</label>
+                    <input type="text" id="duration" value="ساعتان">
+                </div>
+                <div class="form-group">
+                    <label class="field-label"><i class="fas fa-balance-scale"></i> الصعوبة</label>
                     <select id="difficulty">
                         <option value="سهل">سهل</option>
                         <option value="متوسط" selected>متوسط</option>
-                        <option value="صعب">صعب (BEM)</option>
-                    </select>
+                        <option value="صعب">صعب (BEM)</option>                    </select>
                 </div>
             </div>
 
-            <div class="form-group">
-                <label><i class="fas fa-lightbulb"></i> موضوع محدد (اختياري)</label>
-                <input type="text" id="topic" placeholder="مثال: الزكاة، المعادلات...">
+            <!-- أزرار التوليد -->
+            <div class="action-buttons">
+                <button class="btn btn-primary" onclick="generateExam()" id="genBtn">
+                    <i class="fas fa-magic"></i> توليد اختبار كامل
+                </button>
+                <button class="btn btn-accent" onclick="generateSmart()" id="smartBtn">
+                    <i class="fas fa-bolt"></i> توليد سؤال ذكي بالتلميح
+                </button>
+                <button class="btn btn-success" onclick="searchQuestions()">
+                    <i class="fas fa-search"></i> بحث في بنك الأسئلة
+                </button>
             </div>
+
+            <!-- نتائج البحث -->
+            <div class="results-container" id="resultsContainer">
+                <div class="results-title"><i class="fas fa-list"></i> نتائج البحث</div>
+                <div id="resultsList"></div>
+            </div>
+
         </div>
 
-        <button class="btn-generate" onclick="generateExam()" id="genBtn">
-            <i class="fas fa-magic"></i> توليد الاختبار الذكي
-        </button>
+        <!-- التذييل -->
+        <div class="footer">
+            <div class="dev-name">⚙️ تطوير: youcef .b</div>
+            <div class="email">youcefbenhamidaa@gmail.com</div>
+            <div style="margin-top: 5px; opacity: 0.8;">© 2025 جميع الحقوق محفوظة</div>
+        </div>
     </div>
 
-    <!-- منطقة العمل -->
+    <!-- منطقة العرض الرئيسية -->
     <div class="main-area">
+        
         <!-- شريط الأدوات -->
-        <div class="top-toolbar no-print" id="toolbar" style="display:none;">
-            <div class="tools-group">
-                <button class="tool-btn" onclick="changeFontSize(1)" title="تكبير الخط"><i class="fas fa-plus"></i> A+</button>
-                <button class="tool-btn" onclick="changeFontSize(-1)" title="تصغير الخط"><i class="fas fa-minus"></i> A-</button>
-                <div style="width:1px; background:#ddd; margin:0 5px;"></div>
-                <button class="tool-btn btn-edit" id="editBtn" onclick="toggleEdit()"><i class="fas fa-pen"></i> تعديل</button>
-                <button class="tool-btn btn-save" id="saveBtn" onclick="toggleEdit()"><i class="fas fa-check"></i> حفظ</button>
+        <div class="toolbar" id="toolbar" style="display:none;">
+            <div class="tools-left">
+                <button class="tool-btn" onclick="changeFontSize(1)" title="تكبير"><i class="fas fa-plus"></i> A+</button>
+                <button class="tool-btn" onclick="changeFontSize(-1)" title="تصغير"><i class="fas fa-minus"></i> A-</button>
+                <button class="tool-btn btn-edit" id="editBtn" onclick="toggleEdit()" title="تعديل">
+                    <i class="fas fa-pen"></i> تعديل
+                </button>
+                <button class="tool-btn btn-save" id="saveBtn" onclick="toggleEdit()" title="حفظ" style="display:none;">
+                    <i class="fas fa-check"></i> حفظ
+                </button>
             </div>
-            <div class="tools-group">
-                <button class="tool-btn btn-pdf" onclick="downloadPDF()"><i class="fas fa-file-pdf"></i> تحميل PDF</button>
-                <button class="tool-btn btn-print" onclick="window.print()"><i class="fas fa-print"></i> طباعة</button>
+            <div class="tools-right">
+                <button class="tool-btn btn-pdf" onclick="downloadPDF()" title="PDF">                    <i class="fas fa-file-pdf"></i> PDF
+                </button>
+                <button class="tool-btn btn-print" onclick="window.print()" title="طباعة">
+                    <i class="fas fa-print"></i> طباعة
+                </button>
             </div>
         </div>
 
-        <!-- الورقة -->
+        <!-- مؤشر التحميل -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="spinner"></div>
+            <div class="loading-text" id="loadingText">جاري التوليد...</div>
+        </div>
+
+        <!-- معاينة الورقة -->
         <div class="paper-wrapper">
             <div class="a4-paper" id="paperContent">
-                <div style="text-align: center; padding-top: 150px; color: #aaa;">
-                    <i class="fas fa-file-alt" style="font-size: 4rem; margin-bottom: 20px; opacity: 0.3;"></i>
-                    <h2>مساحة العمل فارغة</h2>
-                    <p>قم باختيار الإعدادات من القائمة ثم اضغط "توليد"</p>
+                <div style="text-align: center; padding-top: 120px; color: #aaa;">
+                    <i class="fas fa-file-alt" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.3;"></i>
+                    <h3>مساحة العمل</h3>
+                    <p style="font-size: 0.9rem;">اختر الإعدادات واضغط توليد</p>
                 </div>
             </div>
-        </div>    </div>
+        </div>
+    </div>
 
+    <!-- رسالة الحالة -->
     <div id="status-msg"></div>
 
 <script>
     let currentFontSize = 16;
     let isEditing = false;
+    let currentExam = null;
 
     function get(id) { return document.getElementById(id).value.trim(); }
-
-    function showStatus(msg) {
-        const el = document.getElementById('status-msg');
-        el.textContent = msg;
-        el.classList.add('show');
-        setTimeout(() => el.classList.remove('show'), 3000);
+    
+    function setHint(hint) {
+        document.getElementById('hintInput').value = hint;
+        showStatus(`💡 تم اختيار: ${hint}`, 'info');
     }
 
+    function showStatus(msg, type = 'info') {
+        const el = document.getElementById('status-msg');
+        el.textContent = msg;
+        el.style.background = type === 'error' ? '#c53030' : (type === 'success' ? '#27ae60' : '#333');
+        el.classList.add('show');
+        setTimeout(() => el.classList.remove('show'), 2500);
+    }
+
+    function showLoading(text = 'جاري التوليد...') {        document.getElementById('loadingText').textContent = text;
+        document.getElementById('loadingOverlay').classList.add('show');
+    }
+
+    function hideLoading() {
+        document.getElementById('loadingOverlay').classList.remove('show');
+    }
+
+    // توليد اختبار كامل
     async function generateExam() {
-        const btn = document.getElementById('genBtn');
-        const paper = document.getElementById('paperContent');
-        const toolbar = document.getElementById('toolbar');
-
-        if (!get('subject')) { showStatus('⚠️ يرجى اختيار المادة'); return; }
-
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التفكير...';
-        showStatus('⏳ يتم صياغة الأسئلة وفق المنهاج...');
-
+        if (!get('subject')) { showStatus('⚠️ اختر المادة أولاً', 'error'); return; }
+        
+        showLoading('🎨 يتم تصميم الاختبار...');
+        
         try {
-            // إرسال جميع البيانات الجديدة إلى البايثون
             const res = await fetch('/api/generate', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
-                    subject: get('subject'),
-                    grade: get('grade'),
-                    semester: get('semester'),
-                    school: get('school'),
-                    directorate: get('directorate'), // مديرية التربية
-                    schoolYear: get('schoolYear'),   // السنة الدراسية
-                    duration: get('duration'),       // المدة
-                    difficulty: get('difficulty'),   // الصعوبة
-                    topic: get('topic'),
-                    examType: 'اختبار فصلي'
+                    subject: get('subject'), grade: get('grade'), semester: get('semester'),
+                    school: get('school'), directorate: get('directorate'),
+                    schoolYear: get('schoolYear'), duration: get('duration'),
+                    difficulty: get('difficulty'), topic: get('hintInput'),
+                    examType: 'اختبار فصلي', full_exam: true
                 })
             });
 
             const data = await res.json();
+            hideLoading();
             
-            if (data.success) {                let content = data.result.replace(/```html/gi, '').replace(/```/g, '').trim();
+            if (data.success) {
+                let content = data.result.replace(/```html/gi, '').replace(/```/g, '').trim();
                 
-                // إضافة الترويسة الرسمية مع البيانات الجديدة
+                // إضافة الترويسة إذا لم تكن موجودة
                 if (!content.includes('الجمهورية الجزائرية')) {
-                    content = `
-                    <div class="official-header">
-                        <div class="header-row">
-                            <div class="header-cell right-col">
-                                <div class="republic-text">الجمهورية الجزائرية الديمقراطية الشعبية</div>
-                                <div>وزارة التربية الوطنية</div>
-                                <div>مديرية التربية لولاية: ${get('directorate')}</div>
-                                <div>متوسطة: ${get('school')}</div>
-                            </div>
-                            <div class="header-cell center-col">
-                                <div style="margin-top:20px; font-weight:bold;">اختبار الفصل ${get('semester').replace('الفصل ', '')} للسنة الدراسية ${get('schoolYear')}</div>
-                            </div>
-                            <div class="header-cell left-col">
-                                <div>المادة: ${get('subject')}</div>
-                                <div>المستوى: ${get('grade')}</div>
-                                <div>المدة: ${get('duration')}</div>
-                                <div>المعامل: ....</div>
-                            </div>
-                        </div>
-                    </div>` + content;
+                    content = buildOfficialHeader() + content;
                 }
-
-                paper.innerHTML = content;
-                toolbar.style.display = 'flex';
-                showStatus('✅ تم التوليد بنجاح! يمكنك التعديل الآن.');
                 
-                isEditing = false;
-                updateEditUI();
+                document.getElementById('paperContent').innerHTML = content;
+                document.getElementById('toolbar').style.display = 'flex';
+                showStatus('✅ تم التوليد بنجاح!', 'success');
+                isEditing = false; updateEditUI();
             } else {
-                showStatus('❌ ' + (data.error || 'حدث خطأ'));
+                showStatus('❌ ' + (data.error || 'فشل التوليد'), 'error');
             }
         } catch (e) {
-            showStatus('❌ خطأ في الاتصال بالخادم');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-magic"></i> توليد الاختبار الذكي';
+            hideLoading();
+            showStatus('❌ خطأ في الاتصال', 'error');
+        }
+    }
+    // توليد سؤال ذكي بالتلميح
+    async function generateSmart() {
+        const hint = get('hintInput');
+        if (!hint || !get('subject')) {
+            showStatus('⚠️ أدخل تلميحاً واختر المادة', 'error');
+            return;
+        }
+        
+        showLoading('🧠 يتم توليد سؤال ذكي...');
+        
+        try {
+            const res = await fetch('/api/generate_smart', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    subject: get('subject'), grade: get('grade'),
+                    hint: hint, semester: get('semester')
+                })
+            });
+
+            const data = await res.json();
+            hideLoading();
+            
+            if (data.success) {
+                // عرض السؤال في ورقة بسيطة
+                const html = `
+                    ${buildOfficialHeader()}
+                    <div style="margin-top: 30px;">
+                        <div style="font-weight: bold; font-size: 1.1em; margin-bottom: 15px; text-decoration: underline;">
+                            سؤال ذكي - ${data.skills?.[0] || 'مهارة عامة'}
+                        </div>
+                        <div style="padding-right: 20px; line-height: 1.8; font-size: 1.1em;">
+                            ${data.question}
+                        </div>
+                        <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-right: 3px solid var(--success);">
+                            <strong>💡 ملاحظة التنويع:</strong> ${data.variation || 'تم توليد سؤال فريد'}
+                        </div>
+                        <div style="margin-top: 30px; padding: 15px; background: #fff3cd; border-right: 3px solid var(--accent);">
+                            <strong>✅ الإجابة النموذجية:</strong><br>
+                            ${data.answer || 'يتم إعداد الإجابة...'}
+                        </div>
+                        <div style="margin-top: 15px; font-size: 0.85em; color: #666;">
+                            <i class="fas fa-info-circle"></i> المصدر: ${data.source === 'bank' ? 'بنك الأسئلة' : 'توليد ذكي'} 
+                            | الصعوبة: ${get('difficulty')}
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('paperContent').innerHTML = html;                document.getElementById('toolbar').style.display = 'flex';
+                showStatus('✅ سؤال ذكي جاهز!', 'success');
+                isEditing = false; updateEditUI();
+            } else {
+                showStatus('❌ ' + (data.error || 'لا توجد أسئلة متاحة'), 'error');
+            }
+        } catch (e) {
+            hideLoading();
+            showStatus('❌ خطأ في الاتصال', 'error');
         }
     }
 
+    // بحث في بنك الأسئلة
+    async function searchQuestions() {
+        const hint = get('hintInput');
+        if (!hint) { showStatus('⚠️ أدخل كلمة للبحث', 'error'); return; }
+        
+        showLoading('🔍 جاري البحث...');
+        
+        try {
+            const res = await fetch(`/api/bank/search?subject=${get('subject')}&grade=${get('grade')}&hint=${encodeURIComponent(hint)}`);
+            const data = await res.json();
+            hideLoading();
+            
+            const container = document.getElementById('resultsContainer');
+            const list = document.getElementById('resultsList');
+            
+            if (data.success && data.results.length > 0) {
+                let html = '';
+                data.results.forEach(q => {
+                    html += `
+                        <div class="result-item" onclick="useQuestion('${q.id || 'temp'}', ${JSON.stringify(q).replace(/'/g, "\\'")})">
+                            <div class="result-meta">
+                                ${q.source || 'بنك'} | ${q.type || 'سؤال'} | ${q.difficulty || 'متوسط'}
+                            </div>
+                            <div class="result-text">${q.text || q.question_text || 'سؤال'}</div>
+                        </div>
+                    `;
+                });
+                list.innerHTML = html;
+                container.style.display = 'block';
+                showStatus(`📋 ${data.count} نتيجة وجد`, 'success');
+            } else {
+                list.innerHTML = '<div style="padding:10px;color:#666;">لا توجد نتائج</div>';
+                container.style.display = 'block';
+                showStatus('⚠️ لا توجد نتائج', 'info');
+            }
+        } catch (e) {
+            hideLoading();
+            showStatus('❌ خطأ في البحث', 'error');        }
+    }
+
+    // استخدام سؤال من النتائج
+    function useQuestion(id, question) {
+        const html = `
+            ${buildOfficialHeader()}
+            <div style="margin-top: 30px;">
+                <div style="font-weight: bold; font-size: 1.1em; margin-bottom: 15px; text-decoration: underline;">
+                    سؤال من البنك - ${question.topic || question.type || 'عام'}
+                </div>
+                <div style="padding-right: 20px; line-height: 1.8; font-size: 1.1em;">
+                    ${question.text || question.question_text || 'نص السؤال'}
+                </div>
+                ${question.solution || question.answer_key ? `
+                <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-right: 3px solid var(--accent);">
+                    <strong>✅ الإجابة:</strong><br>
+                    ${question.solution || question.answer_key}
+                </div>` : ''}
+                <div style="margin-top: 15px; font-size: 0.85em; color: #666;">
+                    <i class="fas fa-tag"></i> ID: ${question.id || 'N/A'} | 
+                    <i class="fas fa-star"></i> الصعوبة: ${question.difficulty || 'غير محدد'}
+                </div>
+            </div>
+        `;
+        
+        document.getElementById('paperContent').innerHTML = html;
+        document.getElementById('toolbar').style.display = 'flex';
+        document.getElementById('resultsContainer').style.display = 'none';
+        showStatus('✅ تم تحميل السؤال', 'success');
+    }
+
+    // بناء الترويسة الرسمية
+    function buildOfficialHeader() {
+        return `
+        <div class="official-header">
+            <div class="header-row">
+                <div class="header-cell right-col">
+                    <div class="republic-text">الجمهورية الجزائرية الديمقراطية الشعبية</div>
+                    <div>وزارة التربية الوطنية</div>
+                    <div>مديرية التربية لولاية: ${get('directorate')}</div>
+                    <div>متوسطة: ${get('school')}</div>
+                </div>
+                <div class="header-cell center-col">
+                    <div style="margin-top:15px; font-weight:bold;">اختبار الفصل ${get('semester').replace('الفصل ', '')}</div>
+                    <div style="font-size: 0.9em; margin-top: 5px;">${get('schoolYear')}</div>
+                </div>
+                <div class="header-cell left-col">
+                    <div>المادة: ${get('subject')}</div>
+                    <div>المستوى: ${get('grade')}</div>                    <div>المدة: ${get('duration')}</div>
+                </div>
+            </div>
+        </div>
+        <div style="text-align:center;margin:15px 0;padding:10px;border:2px solid #000;">
+            <div style="font-size:1.3em;font-weight:bold;">اختبار في مادة ${get('subject')}</div>
+        </div>
+        <hr style="border:1px solid #000;margin:15px 0;">`;
+    }
+
+    // تعديل النص
     function toggleEdit() {
         const paper = document.getElementById('paperContent');
         isEditing = !isEditing;
         paper.contentEditable = isEditing;
         
         if (isEditing) {
-            paper.focus();            showStatus('✏️ وضع التعديل مفعل: انقر على أي نص لتغييره');
+            paper.focus();
+            paper.classList.add('editing');
+            showStatus('✏️ وضع التعديل مفعل', 'info');
         } else {
-            showStatus('💾 تم حفظ التعديلات مؤقتاً');
+            paper.classList.remove('editing');
+            showStatus('💾 تم حفظ التعديلات', 'success');
         }
         updateEditUI();
     }
 
     function updateEditUI() {
-        const editBtn = document.getElementById('editBtn');
-        const saveBtn = document.getElementById('saveBtn');
-        const paper = document.getElementById('paperContent');
-        
-        if (isEditing) {
-            editBtn.style.display = 'none';
-            saveBtn.style.display = 'flex';
-            paper.classList.add('editing');
-        } else {
-            editBtn.style.display = 'flex';
-            saveBtn.style.display = 'none';
-            paper.classList.remove('editing');
-        }
+        document.getElementById('editBtn').style.display = isEditing ? 'none' : 'flex';
+        document.getElementById('saveBtn').style.display = isEditing ? 'flex' : 'none';
     }
 
+    // تغيير حجم الخط
     function changeFontSize(delta) {
-        currentFontSize += delta;
-        if (currentFontSize < 12) currentFontSize = 12;
-        if (currentFontSize > 24) currentFontSize = 24;
+        currentFontSize = Math.max(12, Math.min(24, currentFontSize + delta));
         document.getElementById('paperContent').style.fontSize = currentFontSize + 'px';
     }
 
+    // تحميل PDF
     function downloadPDF() {
-        if (isEditing) toggleEdit(); 
-
-        const element = document.getElementById('paperContent');
-        const opt = {
-            margin:       [10, 10, 10, 10],
-            filename:     `اختبار_${get('subject')}_${get('grade')}.pdf`,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2 },
-            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
+        if (isEditing) toggleEdit();
         
-        document.querySelector('.top-toolbar').style.display = 'none';
-        html2pdf().set(opt).from(element).save().then(() => {
-            document.querySelector('.top-toolbar').style.display = 'flex';
-            showStatus('📥 تم تحميل الملف بنجاح');
+        const element = document.getElementById('paperContent');
+        const toolbar = document.querySelector('.toolbar');
+        toolbar.style.display = 'none';
+        
+        html2pdf().set({
+            margin: [10, 10, 10, 10],
+            filename: `اختبار_${get('subject')}_${get('grade')}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        }).from(element).save().then(() => {
+            toolbar.style.display = 'flex';
+            showStatus('📥 تم تحميل PDF', 'success');
         });
     }
+
+    // تحميل الإحصائيات
+    async function loadStats() {
+        try {
+            const res = await fetch('/api/bank/stats');
+            const data = await res.json();
+            if (data.success && data.stats) {
+                const total = Object.values(data.stats.by_subject || {}).reduce((a,b) => a+b, 0);
+                if (total > 0) {
+                    document.getElementById('statQuestions').textContent = total + '+';
+                    document.getElementById('statVariations').textContent = (total * 4) + '+';
+                }
+            }
+        } catch(e) {}
+    }
+
+    // تهيئة عند التحميل
+    window.onload = function() {
+        loadStats();
+        // تحميل المواد من API
+        fetch('/api/subjects')
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && data.subjects) {
+                    // يمكن تحديث القائمة ديناميكياً هنا
+                }
+            });
+    };
 </script>
+
 </body>
 </html>
