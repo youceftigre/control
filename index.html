@@ -163,6 +163,38 @@
             font-size: 0.95rem;
         }
 
+        /* ─── Font Size Slider ─── */
+        .font-size-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #f0f4f8;
+            padding: 12px 20px;
+            border-radius: 40px;
+            margin: 16px 0;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .font-size-bar label {
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 0.9rem;
+        }
+        .font-size-bar input[type="range"] {
+            width: 200px;
+            cursor: pointer;
+        }
+        .font-size-value {
+            background: var(--primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.85rem;
+            min-width: 40px;
+            text-align: center;
+        }
+
         /* ─── A4 Paper ─── */
         .a4-paper {
             width: var(--a4-width);
@@ -215,6 +247,43 @@
         }
         #output { white-space: normal; word-wrap: break-word; }
 
+        .meta {
+            background: var(--accent-light);
+            padding: 12px 18px;
+            border-radius: 30px;
+            color: var(--primary);
+            margin-bottom: 24px;
+            display: inline-block;
+        }
+        .sep {
+            height: 2px;
+            background: linear-gradient(to left, var(--accent), transparent);
+            margin: 20px 0;
+        }
+        .q { margin: 20px 0; }
+        .n { font-weight: 700; color: var(--primary-light); }
+        .t { margin-top: 8px; }
+
+        /* ─── Error ─── */
+        .error-details {
+            background: #ffeaea;
+            padding: 12px;
+            border-radius: 12px;
+            margin-top: 10px;
+            color: #b11;
+            font-size: 0.85rem;
+            direction: ltr;
+            text-align: left;
+        }
+
+        /* ─── Footer ─── */
+        footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #7a8f9f;
+            font-size: 0.85rem;
+        }
+
         /* ─── Fraction Styling ─── */
         .fraction {
             display: inline-flex;
@@ -225,13 +294,53 @@
             font-size: 0.9em;
         }
         .fraction .num {
-            border-bottom: 2px solid #000;
+            border-bottom: 2px solid var(--text);
             padding: 0 4px;
             text-align: center;
         }
         .fraction .den {
             padding: 0 4px;
             text-align: center;
+        }
+
+        /* ─── Download Buttons ─── */
+        .download-area {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .btn-download {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        .btn-word {
+            background: #2b579a;
+            color: white;
+            box-shadow: 0 4px 12px rgba(43,87,154,0.3);
+        }
+        .btn-word:hover {
+            background: #1e3f6f;
+            transform: translateY(-2px);
+        }
+        .btn-pdf {
+            background: #c0392b;
+            color: white;
+            box-shadow: 0 4px 12px rgba(192,57,43,0.3);
+        }
+        .btn-pdf:hover {
+            background: #a93226;
+            transform: translateY(-2px);
         }
 
         /* ─── Strong Separator ─── */
@@ -250,57 +359,45 @@
             margin: 30px 0;
         }
 
-        /* ─── Action Buttons ─── */
-        .btn-toggle-edit {
-            padding: 10px 20px;
-            border-radius: 30px;
-            border: 1px solid var(--border);
-            cursor: pointer;
-            background: white;
-        }
-
-        .font-size-bar {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: #f0f4f8;
-            padding: 12px 20px;
-            border-radius: 40px;
-            margin: 16px 0;
-            justify-content: center;
-        }
-
-        .download-area {
-            display: flex;
-            gap: 12px;
-            justify-content: center;
-            margin: 20px 0;
-        }
-
-        .btn-download {
-            padding: 12px 24px;
-            border-radius: 40px;
-            cursor: pointer;
-            border: none;
-            font-weight: 600;
-            color: white;
-        }
-        .btn-word { background: #2b579a; }
-        .btn-pdf { background: #c0392b; }
-
+        /* ─── Print Styles for A4 ─── */
         @media print {
-            .form-grid, .btn-green, .developer-signature, .status-area, .font-size-bar, .download-area, .edit-hint, #btnToggleEdit {
+            body { background: white; padding: 0; }
+            .container { max-width: 100%; border-radius: 0; box-shadow: none; padding: 0; }
+            .output-card { border: none; box-shadow: none; padding: 0; overflow: visible; }
+            .a4-paper {
+                width: 100%;
+                border: none;
+                box-shadow: none;
+                padding: 15mm;
+                margin: 0;
+            }
+            .font-size-bar, .download-area, .edit-hint,
+            .developer-signature, .form-grid, .btn-green, .status-area {
                 display: none !important;
             }
-            body { padding: 0; background: white; }
-            .container { box-shadow: none; padding: 0; max-width: 100%; }
-            .a4-paper { box-shadow: none; border: none; padding: 15mm; }
+        }
+
+        /* ─── Responsive ─── */
+        @media (max-width: 900px) {
+            .a4-paper {
+                width: 100%;
+                padding: 15px;
+            }
+        }
+        @media (max-width: 600px) {
+            .container { padding: 16px; }
+            h1 { font-size: 1.6rem; }
+            .form-grid { grid-template-columns: 1fr; padding: 16px; }
+            .developer-signature { flex-direction: column; align-items: flex-start; }
+            .download-area { flex-direction: column; align-items: center; }
+            .font-size-bar input[type="range"] { width: 150px; }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <!-- ─── Header ─── -->
     <div class="developer-signature">
         <span>⚙️ تطوير: <span class="signature-name">youcef.b</span></span>
         <span>📧 youcefbenhamidaa@gmail.com</span>
@@ -309,34 +406,51 @@
     <h1>📋 مولّد الاختبارات التربوية</h1>
     <p class="subtitle">مولّد اختبارات مخصص للمنهاج الجزائري باستخدام الذكاء الاصطناعي</p>
 
+    <!-- ─── Form ─── -->
     <div class="form-grid">
         <div class="field-group">
             <label for="subject">📚 المادة</label>
             <select id="subject">
                 <option value="الرياضيات" selected>الرياضيات</option>
                 <option value="اللغة العربية">اللغة العربية</option>
+                <option value="اللغة الفرنسية">اللغة الفرنسية</option>
+                <option value="اللغة الإنجليزية">اللغة الإنجليزية</option>
                 <option value="العلوم الفيزيائية">العلوم الفيزيائية</option>
                 <option value="علوم الطبيعة والحياة">علوم الطبيعة والحياة</option>
                 <option value="التاريخ والجغرافيا">التاريخ والجغرافيا</option>
                 <option value="التربية الإسلامية">التربية الإسلامية</option>
+                <option value="التربية المدنية">التربية المدنية</option>
+                <option value="الإعلام الآلي">الإعلام الآلي</option>
+                <option value="التربية الموسيقية">التربية الموسيقية</option>
+                <option value="التربية التشكيلية">التربية التشكيلية</option>
+                <option value="التربية البدنية">التربية البدنية</option>
             </select>
         </div>
 
         <div class="field-group">
             <label for="grade">🎓 المستوى الدراسي</label>
             <select id="grade">
+                <option value="الأولى ابتدائي">الأولى ابتدائي</option>
+                <option value="الثانية ابتدائي">الثانية ابتدائي</option>
+                <option value="الثالثة ابتدائي">الثالثة ابتدائي</option>
+                <option value="الرابعة ابتدائي">الرابعة ابتدائي</option>
+                <option value="الخامسة ابتدائي">الخامسة ابتدائي</option>
                 <option value="الأولى متوسط">الأولى متوسط</option>
                 <option value="الثانية متوسط">الثانية متوسط</option>
                 <option value="الثالثة متوسط" selected>الثالثة متوسط</option>
                 <option value="الرابعة متوسط">الرابعة متوسط</option>
+                <option value="الأولى ثانوي">الأولى ثانوي</option>
+                <option value="الثانية ثانوي">الثانية ثانوي</option>
+                <option value="الثالثة ثانوي">الثالثة ثانوي</option>
             </select>
         </div>
 
         <div class="field-group">
-            <label for="examType">📝 نوع التقييم</label>
+            <label for="examType">📝 نوع الفرض</label>
             <select id="examType">
-                <option value="اختبار">اختبار</option>
+                <option value="اختبار" selected>اختبار</option>
                 <option value="فرض">فرض</option>
+                <option value="امتحان">امتحان</option>
             </select>
         </div>
 
@@ -347,7 +461,7 @@
 
         <div class="field-group">
             <label for="duration">⏱️ المدة</label>
-            <input type="text" id="duration" value="ساعتان">
+            <input type="text" id="duration" value="ساعتان" placeholder="مثال: ساعة ونصف">
         </div>
 
         <div class="field-group">
@@ -357,55 +471,100 @@
 
         <div class="field-group full-width">
             <label for="topic">🔖 الموضوع / المحور</label>
-            <input type="text" id="topic" placeholder="اتركه فارغاً إن لم يكن محدداً">
+            <input type="text" id="topic" value="المعادلات والمتراجحات" placeholder="اتركه فارغاً إن لم يكن محدداً">
+        </div>
+
+        <div class="field-group">
+            <label for="types">🧩 أنواع الأسئلة</label>
+            <input type="text" id="types" value="أسئلة موضوعية + تمارين + وضعية إدماجية">
+        </div>
+
+        <div class="field-group">
+            <label for="difficulty">⚖️ مستوى الصعوبة</label>
+            <select id="difficulty">
+                <option value="سهل">سهل</option>
+                <option value="متوسط" selected>متوسط</option>
+                <option value="صعب">صعب</option>
+            </select>
         </div>
 
         <div class="field-group full-width">
             <label for="extra">📌 تعليمات إضافية (اختياري)</label>
-            <textarea id="extra" rows="2"></textarea>
+            <textarea id="extra" rows="2" placeholder="مثال: ركز على حل المشكلات، أضف سؤالاً حول التناسب ..."></textarea>
         </div>
     </div>
 
+    <!-- ─── Generate Button ─── -->
     <div style="display: flex; justify-content: center;">
         <button class="btn-green" id="generateBtn">✨ توليد الاختبار بالذكاء الاصطناعي</button>
     </div>
 
+    <!-- ─── Status ─── -->
     <div class="status-area">
         <span id="status">⏳ جاهز</span>
+        <span style="font-size: 0.9rem; color: #4f6f8a;">سيظهر الاختبار أدناه بعد الاتصال بالخادم</span>
     </div>
 
+    <!-- ─── Action Buttons Area ─── -->
     <div id="actionButtonsArea" style="display: none; margin: 20px 0;">
-        <div style="display: flex; gap: 12px; justify-content: center; margin-bottom: 16px;">
-            <button class="btn-toggle-edit" id="btnToggleEdit" onclick="toggleEditMode()">✏️ تعديل مباشر</button>
+        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px;">
+            <button class="btn-toggle-edit" id="btnToggleEdit" onclick="toggleEditMode()">
+                ✏️ تعديل مباشر
+            </button>
         </div>
+
+        <!-- Font Size Slider -->
         <div class="font-size-bar">
             <label>🔤 حجم الخط:</label>
+            <span style="font-size: 0.8rem;">صغير</span>
             <input type="range" id="fontSizeSlider" min="10" max="24" value="14" step="1" oninput="changeFontSize(this.value)">
+            <span style="font-size: 1.2rem;">كبير</span>
             <span class="font-size-value" id="fontSizeValue">14pt</span>
         </div>
+
+        <!-- Download Buttons -->
         <div class="download-area">
-            <button class="btn-download btn-word" onclick="downloadWord()">📄 تحميل Word</button>
-            <button class="btn-download btn-pdf" onclick="downloadPDF()">📕 تحميل PDF</button>
+            <button class="btn-download btn-word" onclick="downloadWord()">
+                📄 تحميل Word
+            </button>
+            <button class="btn-download btn-pdf" onclick="downloadPDF()">
+                📕 تحميل PDF
+            </button>
         </div>
     </div>
 
+    <!-- ─── Output (A4 Paper) ─── -->
     <div class="output-card">
         <div class="a4-paper" id="a4Paper">
             <div class="edit-hint">✏️ وضع التعديل مفعل – يمكنك النقر على النص والتعديل مباشرة</div>
             <div class="paper-content" id="output">
-                <p style="text-align:center; color:#999;">سيظهر الاختبار هنا...</p>
+                <h2 style="text-align: center; color: var(--primary);">📄 ورقة الاختبار</h2>
+                <div style="text-align: center; margin: 20px 0;">
+                    <div class="meta">الرياضيات - الثالثة متوسط - اختبار</div>
+                </div>
+                <div class="sep"></div>
+                <div class="q">
+                    <div class="n">جاهز للبدء</div>
+                    <div class="t">املأ الحقول ثم اضغط على الزر لإنشاء الاختبار.</div>
+                </div>
             </div>
         </div>
     </div>
 
-    <footer>© 2025 مولّد الاختبارات التربوية</footer>
+    <footer>
+        © 2025 مولّد الاختبارات التربوية – المنهاج الجزائري
+    </footer>
 </div>
 
+<!-- ─── JavaScript ─── -->
 <script>
 (function() {
     "use strict";
 
+    // ─── Configuration ───
     const API_URL = '/api/generate';
+
+    // ─── DOM Elements ───
     const generateBtn = document.getElementById('generateBtn');
     const statusEl = document.getElementById('status');
     const outputEl = document.getElementById('output');
@@ -416,15 +575,26 @@
     const fontSizeValue = document.getElementById('fontSizeValue');
 
     let isEditMode = false;
+    let currentExamHTML = '';
 
-    // ─── إضافات نظام العزل الصارم ───
-    const specializationShield = {
-        "الرياضيات": "المصطلحات المسموحة: (جبر، هندسة، حساب، أشعة، دوال). يُمنع تماماً ذكر: (نصوص أدبية، شخصيات تاريخية، تجارب فيزيائية، إعراب).",
-        "اللغة العربية": "المصطلحات المسموحة: (نحو، صرف، بلاغة، عروض، نقد). يُمنع تماماً ذكر: (معادلات، رموز كيميائية، خرائط، قوانين فيزياء).",
-        "العلوم الفيزيائية": "المصطلحات المسموحة: (مادة، تحولات، ميكانيك، كهرباء، ضوء). يُمنع تماماً ذكر: (تحليل نص، إعراب، تاريخ الجزائر).",
-        "التاريخ والجغرافيا": "المصطلحات المسموحة: (ثورة، حضارة، تضاريس، مناخ). يُمنع تماماً ذكر: (حسابات معقدة، قواعد لغة، تجارب مخبرية)."
+    // ─── Subject-specific prompts to prevent mixing ───
+    const subjectPrompts = {
+        "الرياضيات": "أسئلة عن: الأعداد، العمليات الحسابية، المعادلات، المتراجحات، الهندسة، الإحصاء، التناسبية. ممنوع أي موضوع خارج الرياضيات.",
+        "اللغة العربية": "أسئلة عن: النحو، الصرف، القراءة، الإملاء، التعبير، النصوص الأدبية، البلاغة. ممنوع أي موضوع خارج اللغة العربية.",
+        "اللغة الفرنسية": "أسئلة عن: القواعد، المفردات، القراءة، الكتابة، التعبير الشفهي. ممنوع أي موضوع خارج اللغة الفرنسية.",
+        "اللغة الإنجليزية": "أسئلة عن: Grammar, Vocabulary, Reading Comprehension, Writing, Listening. ممنوع أي موضوع خارج اللغة الإنجليزية.",
+        "العلوم الفيزيائية": "أسئلة عن: الحركة، القوى، الطاقة، الكهرباء، المغناطيسية، الضوء. ممنوع أي موضوع خارج الفيزياء والكيمياء.",
+        "علوم الطبيعة والحياة": "أسئلة عن: الخلية، التنفس، البيئة، التغذية، النبات، الحيوان، جسم الإنسان. ممنوع أي موضوع خارج علوم الطبيعة والحياة.",
+        "التاريخ والجغرافيا": "أسئلة عن: التاريخ الجزائري، الحضارات، الجغرافيا الطبيعية، السكان، الاقتصاد. ممنوع أي موضوع خارج التاريخ والجغرافيا.",
+        "التربية الإسلامية": "أسئلة عن: التوحيد، الفقه، الحديث، السيرة النبوية، القرآن الكريم. ممنوع أي موضوع خارج التربية الإسلامية.",
+        "التربية المدنية": "أسئلة عن: المواطنة، الدستور، حقوق الإنسان، المؤسسات، السلام. ممنوع أي موضوع خارج التربية المدنية.",
+        "الإعلام الآلي": "أسئلة عن: الحاسوب، البرمجة، الإنترنت، الأمن الرقمي، التطبيقات. ممنوع أي موضوع خارج الإعلام الآلي.",
+        "التربية الموسيقية": "أسئلة عن: النوتات، الإيقاع، الآلات الموسيقية، الأغاني الوطنية. ممنوع أي موضوع خارج التربية الموسيقية.",
+        "التربية التشكيلية": "أسئلة عن: الرسم، الألوان، الأشكال الهندسية، الفنون التشكيلية. ممنوع أي موضوع خارج التربية التشكيلية.",
+        "التربية البدنية": "أسئلة عن: التمارين الرياضية، الصحة، التغذية، الألعاب الرياضية. ممنوع أي موضوع خارج التربية البدنية."
     };
 
+    // ─── Helpers ───
     function getField(id) {
         const el = document.getElementById(id);
         return el ? el.value.trim() : '';
@@ -432,84 +602,283 @@
 
     function buildPayload() {
         const subject = getField('subject');
+        const grade = getField('grade');
+        const examType = getField('examType');
+        const schoolYear = getField('schoolYear');
+        const duration = getField('duration');
+        const mark = getField('mark');
         const topic = getField('topic');
-        
-        const isolationPrompt = `
-🔴 تنبيه أمني تربوي:
-أنت الآن في "وضع التخصص المحصور". 
-المادة المختارة هي: [${subject}].
-قواعد العزل: ${specializationShield[subject] || 'التزم بالتخصص الدقيق للمادة فقط.'}
+        const types = getField('types');
+        const difficulty = getField('difficulty');
+        const extra = getField('extra');
 
-مهمتك:
-صمم اختباراً في مادة ${subject} حصراً. حتى لو كان الموضوع المكتوب (${topic}) يوحي بمادة أخرى، يجب عليك تكييفه ليكون سؤالاً في مادة ${subject} فقط.
-`;
+        // Get subject-specific content guidelines
+        const subjectGuide = subjectPrompts[subject] || "ممنوع أي موضوع خارج " + subject;
 
         const instructions = `
-${isolationPrompt}
-🎯 صمم ${getField('examType')} رسمي للمستوى ${getField('grade')} بالجزائر.
-📅 السنة: ${getField('schoolYear')} | المدة: ${getField('duration')} | العلامة: ${getField('mark')}
-🔖 المحور: ${topic || 'عام'}
+🎯 أنت الآن تُنشئ ${examType} حصرياً في مادة: ${subject}
+📚 المستوى: ${grade}
+📅 السنة الدراسية: ${schoolYear}
 
-هيكل الورقة:
-1. ترويسة رسمية في الأعلى.
-2. الأسئلة مقسمة إلى تمارين ووضعية إدماجية.
-3. خط فاصل <hr class="page-break"> يليه الإجابة النموذجية في صفحة جديدة.
+⏱️ المدة: ${duration}
+💯 العلامة الكاملة: ${mark}
+🔖 الموضوع/المحور: ${topic || 'غير محدد'}
+🧩 أنواع الأسئلة: ${types}
+⚖️ مستوى الصعوبة: ${difficulty}
+${extra ? '📌 تعليمات إضافية: ' + extra : ''}
 
-تنسيق HTML مطلوب:
-- <div class="q"> للحاوية.
-- <div class="n"> للعنوان والنقاط.
-- <div class="t"> للأسئلة.
-- للكسور: <span class="fraction"><span class="num">...</span><span class="den">...</span></span>.
-أرجع HTML خالصاً بدون وسم \`\`\`html.
-`.trim();
+═══════════════════════════════════════
+🔴 تعليمات صارمة جداً - يجب الالتزام بها:
+═══════════════════════════════════════
 
-        return { subject, prompt: instructions };
+❌ ممنوع تماماً:
+1. ممنوع إضافة أسئلة من أي مادة أخرى غير: ${subject}
+2. ممنوع خلط مفاهيم من مواد مختلفة
+3. ممنوع إضافة معلومات خارجة عن المنهاج الجزائري
+4. ممنوع ذكر "العلامة الكاملة" أو "الموضوع" أو "أنواع الأسئلة" أو "مستوى الصعوبة" في عنوان الاختبار
+
+✅ يجب أن تكون الأسئلة:
+1. 100% متعلقة بمادة ${subject} فقط
+2. مناسبة للمستوى ${grade}
+3. مطابقة للمنهاج الجزائري الحالي
+
+📌 محتوى المادة المحدد:
+${subjectGuide}
+
+═══════════════════════════════════════
+📄 تنسيق ورقة الأسئلة:
+═══════════════════════════════════════
+
+## الصفحة الأولى: ورقة الأسئلة
+يجب أن تحتوي فقط على:
+1. عنوان الاختبار في الأعلى يحتوي على: الجمهورية الجزائرية الديمقراطية الشعبية، وزارة التربية الوطنية، المستوى، المادة، المدة
+2. خط فاصل واضح (hr class="strong-sep") بعد المعلومات العلوية وبداية الأسئلة
+3. الأسئلة فقط (بدون حلول) مع ذكر نقاط كل سؤال بين قوسين مثل: (03 نقاط)
+4. لا تضع الإجابات النموذجية في هذه الصفحة
+5. عند كتابة الكسور، استخدم تنسيق HTML بخط أفقي: <span class="fraction"><span class="num">البسط</span><span class="den">المقام</span></span>
+
+## الصفحة الثانية: الإجابة النموذجية
+بعد الانتهاء من جميع الأسئلة، أضف:
+1. خط فاصل واضح (hr class="page-break") يفصل بين الأسئلة والإجابة النموذجية
+2. عنوان كبير: "الإجابة النموذجية وسلم التنقيط"
+3. الإجابات في الأسفل (صفحة منفصلة)
+4. اكتب حل كل سؤال بالتفصيل مع ذكر نقاط كل جزء
+5. استخدم نفس تنسيق الكسور (خط أفقي)
+
+⚠️ تأكد مرة أخرى: جميع الأسئلة يجب أن تكون في مادة ${subject} فقط!
+        `.trim();
+
+        return {
+            subject: subject,
+            grade: grade,
+            examType: examType,
+            schoolYear: schoolYear,
+            duration: duration,
+            mark: mark,
+            topic: topic,
+            types: types,
+            difficulty: difficulty,
+            extra: extra,
+            prompt: instructions
+        };
     }
 
+    function renderResult(htmlContent) {
+        currentExamHTML = htmlContent;
+        if (outputEl) outputEl.innerHTML = htmlContent;
+        if (actionButtonsArea) {
+            actionButtonsArea.style.display = 'block';
+        }
+        if (outputEl) outputEl.style.fontSize = '14pt';
+        if (fontSizeSlider) fontSizeSlider.value = 14;
+        if (fontSizeValue) fontSizeValue.textContent = '14pt';
+        isEditMode = false;
+        if (a4Paper) a4Paper.classList.remove('editable');
+        if (outputEl) outputEl.contentEditable = 'false';
+        if (btnToggleEdit) btnToggleEdit.textContent = '✏️ تعديل مباشر';
+    }
+
+    function cleanMarkdown(rawText) {
+        return rawText
+            .replace(/\`\`\`html\s*/gi, '')
+            .replace(/\`\`\`\s*/g, '')
+            .trim();
+    }
+
+    function showError(message, stack = '') {
+        renderResult(`
+            <div style="color: #b33; background: #fff2f2; padding: 20px; border-radius: 20px;">
+                <strong>⚠️ تعذر توليد الاختبار</strong><br>
+                <span style="font-size: 0.9em;">${message}</span>
+                ${stack ? `<div class="error-details">${stack}</div>` : ''}
+            </div>
+        `);
+        if (statusEl) statusEl.textContent = `⚠️ خطأ: ${message}`;
+        if (actionButtonsArea) actionButtonsArea.style.display = 'none';
+    }
+
+    // ─── Edit Mode (Direct on A4 Paper) ───
+    window.toggleEditMode = function() {
+        isEditMode = !isEditMode;
+
+        if (isEditMode) {
+            a4Paper.classList.add('editable');
+            outputEl.contentEditable = 'true';
+            btnToggleEdit.textContent = '❌ إيقاف التعديل';
+            statusEl.textContent = '✏️ وضع التعديل مفعل';
+            outputEl.focus();
+        } else {
+            a4Paper.classList.remove('editable');
+            outputEl.contentEditable = 'false';
+            btnToggleEdit.textContent = '✏️ تعديل مباشر';
+            statusEl.textContent = '✅ تم حفظ التعديلات';
+            currentExamHTML = outputEl.innerHTML;
+        }
+    };
+
+    // ─── Font Size Control ───
+    window.changeFontSize = function(size) {
+        if (outputEl) {
+            outputEl.style.fontSize = size + 'pt';
+        }
+        if (fontSizeValue) {
+            fontSizeValue.textContent = size + 'pt';
+        }
+    };
+
+    // ─── Convert Fractions to HTML Format ───
+    function convertFractions(text) {
+        return text.replace(/(\d+)\/(\d+)/g, '<span class="fraction"><span class="num">$1</span><span class="den">$2</span></span>');
+    }
+
+    // ─── Download Functions ───
+    window.downloadWord = function() {
+        if (isEditMode) toggleEditMode();
+
+        const content = outputEl.innerHTML;
+        const subject = getField('subject');
+        const grade = getField('grade');
+
+        const html = `
+            <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+            <head><meta charset='utf-8'><title>${subject} - ${grade}</title>
+            <style>
+                body { direction: rtl; font-family: 'Arial', sans-serif; font-size: 14pt; }
+                .fraction { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; margin: 0 4px; }
+                .fraction .num { border-bottom: 2px solid black; padding: 0 4px; }
+                .fraction .den { padding: 0 4px; }
+                .strong-sep { border: none; height: 3px; background: #0b3b5c; margin: 24px 0; }
+                .page-break { page-break-before: always; border: none; height: 2px; background: #2a9d8f; margin: 30px 0; }
+            </style>
+            </head>
+            <body style="direction: rtl; font-family: 'Arial', sans-serif; padding: 20mm;">
+                ${content}
+            </body>
+            </html>
+        `;
+
+        const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${subject}_${grade}_اختبار.doc`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    };
+
+    window.downloadPDF = function() {
+        if (isEditMode) toggleEditMode();
+
+        const content = outputEl.innerHTML;
+        const subject = getField('subject');
+        const grade = getField('grade');
+
+        const originalTitle = document.title;
+        document.title = `${subject} - ${grade} - اختبار`;
+
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <html dir="rtl">
+            <head>
+                <title>${subject} - ${grade}</title>
+                <style>
+                    @page { size: A4; margin: 20mm; }
+                    body { direction: rtl; font-family: Arial, sans-serif; padding: 0; margin: 0; font-size: 14pt; }
+                    .fraction { display: inline-flex; flex-direction: column; align-items: center; vertical-align: middle; margin: 0 4px; }
+                    .fraction .num { border-bottom: 2px solid black; padding: 0 4px; }
+                    .fraction .den { padding: 0 4px; }
+                    .edit-hint { display: none !important; }
+                    .strong-sep { border: none; height: 3px; background: #0b3b5c; margin: 24px 0; }
+                    .page-break { page-break-before: always; border: none; height: 2px; background: #2a9d8f; margin: 30px 0; }
+                </style>
+            </head>
+            <body>${content}</body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => {
+            printWindow.print();
+            printWindow.close();
+            document.title = originalTitle;
+        }, 500);
+    };
+
+    // ─── Main Function ───
     async function generateExam() {
-        generateBtn.disabled = true;
-        statusEl.textContent = '⏳ جاري التوليد...';
-        outputEl.innerHTML = '<div style="text-align:center; padding:40px;">⏳ يرجى الانتظار...</div>';
+        const payload = buildPayload();
+
+        if (generateBtn) generateBtn.disabled = true;
+        if (statusEl) statusEl.textContent = '⏳ جاري الاتصال بـ Gemini...';
+        if (actionButtonsArea) actionButtonsArea.style.display = 'none';
+        renderResult('<div style="text-align:center; padding:40px; color:#4a6572;">⏳ يرجى الانتظار...</div>');
 
         try {
             const response = await fetch(API_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(buildPayload())
+                body: JSON.stringify(payload)
             });
 
             const data = await response.json();
-            // تنظيف النتيجة من الماركدوان
-            let cleanHtml = (data.result || JSON.stringify(data)).replace(/```html|```/gi, '').trim();
 
-            outputEl.innerHTML = cleanHtml;
-            actionButtonsArea.style.display = 'block';
-            statusEl.textContent = '✅ تم الإنشاء';
+            if (!response.ok) {
+                const serverError = data.error || data.details || `خطأ HTTP: ${response.status}`;
+                throw new Error(serverError);
+            }
+
+            const rawText = data.result || JSON.stringify(data);
+            let cleanHtml = cleanMarkdown(rawText);
+
+            cleanHtml = cleanHtml
+                .replace(/<hr\s*\/?>/gi, '<hr class="strong-sep">')
+                .replace(/<hr\s+class="page-break"\s*\/?>/gi, '<hr class="page-break">');
+
+            cleanHtml = convertFractions(cleanHtml);
+
+            renderResult(cleanHtml);
+            if (statusEl) statusEl.textContent = '✅ تم الإنشاء بنجاح';
+
         } catch (error) {
-            statusEl.textContent = '❌ خطأ في الاتصال';
+            console.error('❌ فشل:', error);
+            showError(error.message, error.stack);
         } finally {
-            generateBtn.disabled = false;
+            if (generateBtn) generateBtn.disabled = false;
         }
     }
 
-    window.toggleEditMode = function() {
-        isEditMode = !isEditMode;
-        a4Paper.classList.toggle('editable', isEditMode);
-        outputEl.contentEditable = isEditMode;
-        btnToggleEdit.textContent = isEditMode ? '❌ إيقاف التعديل' : '✏️ تعديل مباشر';
-    };
-
-    window.changeFontSize = function(size) {
-        outputEl.style.fontSize = size + 'pt';
-        fontSizeValue.textContent = size + 'pt';
-    };
-
-    window.downloadWord = function() { /* منطق التحميل كما هو */ };
-    window.downloadPDF = function() { window.print(); };
-
-    generateBtn.addEventListener('click', generateExam);
+    // ─── Event Listeners ───
+    document.addEventListener('DOMContentLoaded', () => {
+        if (generateBtn) {
+            generateBtn.addEventListener('click', generateExam);
+        }
+        console.log('🚀 التطبيق جاهز');
+    });
 
 })();
 </script>
+
 </body>
 </html>
