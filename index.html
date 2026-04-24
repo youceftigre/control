@@ -3,188 +3,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>منصة الفروض والاختبارات - النموذج الرسمي القابل للتعديل</title>
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
-    <!-- مكتبة تحويل HTML إلى PDF -->
+    <title>منصة الامتحانات الجزائرية الاحترافية | Pro Exam DZ</title>
+    <!-- خطوط وأيقونات -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- مكتبة PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
     <style>
         :root {
-            --primary: #1a5276;
-            --secondary: #2980b9;
-            --accent: #f39c12;
-            --bg: #e9ecef;
+            --primary: #0f4c75; /* أزرق رسمي داكن */
+            --secondary: #3282b8;
+            --accent: #bbe1fa;
+            --text: #1b262c;
+            --bg: #f0f2f5;
+            --white: #ffffff;
+            --shadow: 0 4px 20px rgba(0,0,0,0.08);
         }
 
-        body {
-            background: var(--bg);
-            font-family: 'Tajawal', sans-serif;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            gap: 20px;
-            height: 100vh;
-            overflow: hidden;
-        }
+        * { box-sizing: border-box; outline: none; }
+        body { margin: 0; font-family: 'Tajawal', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; overflow: hidden; }
 
-        /* --- القائمة الجانبية --- */
+        /* --- القائمة الجانبية (Sidebar) --- */
         .sidebar {
-            width: 320px;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            overflow-y: auto;
+            width: 360px; /* زيادة العرض قليلاً لاستيعاب الحقول الجديدة */
+            background: var(--white);
+            height: 100%;
+            padding: 25px;
+            box-shadow: 2px 0 15px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 10;
+        }
+
+        .brand {
+            text-align: center;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            flex-shrink: 0;
+        }
+        .brand h1 { font-size: 1.4rem; color: var(--primary); margin: 0; font-weight: 800; }
+        .brand p { font-size: 0.8rem; color: #666; margin-top: 5px; }
+        .dev-badge { 
+            background: linear-gradient(45deg, var(--primary), var(--secondary)); 
+            color: white; padding: 4px 8px; border-radius: 20px; font-size: 0.7rem; display: inline-block; margin-top: 5px;        }
+
+        .form-section { flex-grow: 1; overflow-y: auto; padding-right: 5px; }
+        
+        /* تنسيق الحقول في عمودين إذا أمكن لتوفير المساحة */
+        .row-group { display: flex; gap: 10px; }
+        .col-half { flex: 1; }
+
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-size: 0.85rem; font-weight: 700; margin-bottom: 6px; color: var(--primary); }
+        
+        select, input {
+            width: 100%; padding: 10px; border: 2px solid #e1e1e1; border-radius: 8px;
+            font-family: inherit; transition: 0.3s; background: #fafafa; font-size: 0.9rem;
+        }
+        select:focus, input:focus { border-color: var(--secondary); background: white; }
+
+        .btn-generate {
+            background: var(--primary); color: white; border: none; padding: 14px;
+            width: 100%; border-radius: 10px; font-size: 1rem; font-weight: bold;
+            cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; gap: 10px;
+            box-shadow: 0 4px 15px rgba(15, 76, 117, 0.3);
+            flex-shrink: 0;
+        }
+        .btn-generate:hover { transform: translateY(-2px); background: #0a3d62; }
+        .btn-generate:disabled { opacity: 0.7; cursor: wait; }
+
+        /* --- منطقة العمل الرئيسية --- */
+        .main-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background: #555;
+        }
+
+        /* شريط الأدوات العلوي */
+        .top-toolbar {
+            background: var(--white);
+            padding: 10px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 20;
             flex-shrink: 0;
         }
 
-        .dev-info {
-            text-align: center;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+        .tools-group { display: flex; gap: 10px; }
+        .tool-btn {            padding: 8px 15px; border: 1px solid #ddd; background: white; border-radius: 6px;
+            cursor: pointer; font-family: inherit; font-size: 0.9rem; transition: 0.2s;
+            display: flex; align-items: center; gap: 8px;
         }
-        .dev-name { font-weight: bold; color: #ffd700; }
+        .tool-btn:hover { background: #f8f9fa; border-color: var(--secondary); color: var(--secondary); }
+        
+        .btn-pdf { background: #dc3545; color: white; border: none; }
+        .btn-pdf:hover { background: #c82333; color: white; }
+        .btn-print { background: #28a745; color: white; border: none; }
+        .btn-print:hover { background: #218838; color: white; }
+        .btn-edit { background: var(--accent); color: var(--primary); border: none; }
+        .btn-save { background: #27ae60; color: white; border: none; display: none; }
 
-        h2 { font-size: 1.2rem; color: var(--primary); border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 0; }
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; }
-        select, input {
-            width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;
-            font-family: inherit; font-size: 0.95rem;
-        }
-
-        button.gen-btn {
-            background: var(--primary); color: white; border: none; padding: 12px;
-            width: 100%; border-radius: 5px; cursor: pointer; font-weight: bold;
-            transition: 0.3s;
-        }
-        button.gen-btn:hover { background: #154360; }
-
-        /* --- منطقة المعاينة --- */
-        .preview-container {
+        /* حاوية الورقة */
+        .paper-wrapper {
             flex-grow: 1;
-            background: #555;
-            border-radius: 10px;
             overflow-y: auto;
             padding: 40px;
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            position: relative;
-        }
-
-        /* --- شريط الأدوات العائم --- */
-        .toolbar {
-            position: sticky;
-            top: 0;
-            background: rgba(255, 255, 255, 0.95);
-            padding: 10px 20px;
-            border-radius: 50px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-            display: flex;
-            gap: 10px;
-            z-index: 100;
-            margin-bottom: 20px;
-            backdrop-filter: blur(5px);
-            flex-wrap: wrap;
             justify-content: center;
         }
 
-        .tool-btn {
-            background: white; border: 1px solid #ddd; padding: 8px 15px;
-            border-radius: 20px; cursor: pointer; font-family: inherit;
-            display: flex; align-items: center; gap: 5px; transition: 0.2s;
-            font-size: 0.9rem;        }
-        .tool-btn:hover { background: #f8f9fa; transform: translateY(-2px); }
-        
-        .btn-pdf { background: #dc3545; color: white; border: none; }
-        .btn-print { background: #17a2b8; color: white; border: none; }
-        .btn-edit { background: var(--accent); color: white; border: none; }
-        .btn-save { background: #27ae60; color: white; border: none; display: none; }
-
-        /* --- ورقة الاختبار الرسمية A4 --- */
+        /* ورقة A4 الرسمية */
         .a4-paper {
             background: white;
-            width: 210mm; /* عرض A4 دقيق */
-            min-height: 297mm; /* طول A4 دقيق */
-            padding: 15mm 20mm; /* هوامش الطباعة */
-            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            width: 210mm;
+            min-height: 297mm;
+            padding: 15mm 20mm;
+            box-shadow: 0 0 30px rgba(0,0,0,0.4);
             position: relative;
             font-size: 16px;
             line-height: 1.6;
             color: #000;
             transition: 0.3s;
-            box-sizing: border-box; /* لضمان احتساب الهوامش ضمن العرض */
         }
 
-        /* تأثير عند تفعيل وضع التعديل */
-        .a4-paper.editing {
-            border: 2px dashed var(--accent);
-            box-shadow: 0 0 30px rgba(243, 156, 18, 0.3);
-            outline: none;
+        /* وضع التعديل */
+        .a4-paper[contenteditable="true"] {
+            border: 2px dashed var(--secondary);
+            box-shadow: 0 0 40px rgba(50, 130, 184, 0.4);
+            cursor: text;
         }
 
-        /* تنسيق الترويسة الرسمية */
+        /* الترويسة الرسمية */
         .official-header {
-            display: table;
-            width: 100%;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #000;
-            padding-bottom: 10px;
+            display: table; width: 100%; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 15px;
         }
         .header-row { display: table-row; }
-        .header-cell { 
-            display: table-cell; 
-            vertical-align: middle; 
-            text-align: center;
-            padding: 5px;
-        }
-        .right-col { width: 30%; text-align: right; font-size: 0.9em; }
-        .center-col { width: 40%; text-align: center; font-weight: bold; }
+        .header-cell { display: table-cell; vertical-align: middle; padding: 5px; }
+        .right-col { width: 30%; text-align: right; font-size: 0.9em; font-weight: bold; }        .center-col { width: 40%; text-align: center; }
         .left-col { width: 30%; text-align: left; font-size: 0.9em; }
 
-        .republic-text { font-weight: bold; font-size: 1.1em; margin-bottom: 5px; }        .ministry-text { margin-bottom: 15px; }
-        
+        .republic-text { font-size: 1.2em; margin-bottom: 5px; }
         .exam-title-box {
-            text-align: center;
-            margin: 30px 0;
-            border: 2px solid #000;
-            padding: 10px;
-            border-radius: 5px;
-            background: #fdfdfd;
+            border: 2px solid #000; padding: 15px; border-radius: 8px; background: #fdfdfd; margin: 20px 0; text-align: center;
         }
-        .exam-title { font-size: 1.4em; font-weight: bold; text-decoration: underline; }
+        .exam-title { font-size: 1.5em; font-weight: 800; text-decoration: underline; margin-bottom: 10px; }
 
-        /* تنسيق الأسئلة */
-        .question-section { margin-bottom: 25px; }
-        .section-title { 
-            font-weight: bold; 
-            text-decoration: underline; 
-            margin-bottom: 15px; 
-            font-size: 1.1em;
+        /* الأسئلة */
+        .question-block { margin-bottom: 25px; page-break-inside: avoid; }
+        .q-title { font-weight: bold; font-size: 1.1em; margin-bottom: 10px; display: flex; justify-content: space-between; }
+        .points { border: 1px solid #000; padding: 2px 8px; border-radius: 4px; font-size: 0.8em; background: #eee; }
+
+        /* رسائل الحالة */
+        #status-msg {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: #333; color: white; padding: 10px 20px; border-radius: 30px;
+            font-size: 0.9rem; opacity: 0; transition: 0.3s; pointer-events: none; z-index: 100;
         }
-        .points-badge {
-            float: left;
-            border: 1px solid #000;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.8em;
-            background: #eee;
-        }
+        #status-msg.show { opacity: 1; bottom: 30px; }
 
         /* الطباعة */
         @media print {
-            body { background: white; padding: 0; display: block; height: auto; overflow: visible; }
-            .sidebar, .toolbar, .dev-info { display: none !important; }
-            .preview-container { background: white; padding: 0; display: block; overflow: visible; }
+            body { background: white; height: auto; display: block; overflow: visible; }
+            .sidebar, .top-toolbar, #status-msg { display: none !important; }
+            .main-area { background: white; display: block; }
+            .paper-wrapper { padding: 0; display: block; overflow: visible; }
             .a4-paper { 
-                width: 100%; 
-                box-shadow: none; 
-                margin: 0; 
-                padding: 0; 
-                border: none;
+                width: 100%; box-shadow: none; margin: 0; padding: 0; border: none; 
+                page-break-after: always;
             }
             @page { size: A4; margin: 15mm 20mm; }
         }
@@ -194,90 +185,116 @@
 
     <!-- القائمة الجانبية -->
     <div class="sidebar no-print">
-        <div class="dev-info">            <div class="dev-name">⚙️ تطوير: youcef .b</div>
-            <div style="font-size: 0.8rem;">youcefbenhamidaa@gmail.com</div>
+        <div class="brand">
+            <h1><i class="fas fa-graduation-cap"></i> منصة الامتحانات</h1>
+            <p>المنهاج الجزائري - التعليم المتوسط</p>
+            <span class="dev-badge">⚙️ Dev: youcef .b</span>
         </div>
 
-        <h2>📋 إعدادات الاختبار</h2>
-        
-        <div class="form-group">
-            <label>المادة *</label>
-            <select id="subject">
-                <option value="">اختر المادة...</option>
-                <optgroup label="أساسية">
-                    <option value="الرياضيات">الرياضيات</option>
-                    <option value="اللغة العربية">اللغة العربية</option>
-                    <option value="اللغة الفرنسية">اللغة الفرنسية</option>
-                    <option value="اللغة الإنجليزية">اللغة الإنجليزية</option>
-                </optgroup>
-                <optgroup label="علمية">
-                    <option value="العلوم الفيزيائية والتكنولوجيا">الفيزياء</option>
-                    <option value="علوم الطبيعة والحياة">العلوم</option>
-                    <option value="الإعلام الآلي">إعلام آلي</option>
-                </optgroup>
-                <optgroup label="اجتماعية">
-                    <option value="التاريخ والجغرافيا">تاريخ وجغرافيا</option>
-                    <option value="التربية الإسلامية">تربية إسلامية</option>
-                    <option value="التربية المدنية">تربية مدنية</option>
-                </optgroup>
-            </select>
+        <div class="form-section">
+            <!-- الصف الأول: المادة والمستوى -->
+            <div class="row-group">
+                <div class="col-half form-group">                    <label><i class="fas fa-book"></i> المادة</label>
+                    <select id="subject">
+                        <option value="">اختر...</option>
+                        <optgroup label="أساسية"><option value="الرياضيات">الرياضيات</option><option value="اللغة العربية">العربية</option><option value="اللغة الفرنسية">الفرنسية</option><option value="اللغة الإنجليزية">الإنجليزية</option></optgroup>
+                        <optgroup label="علمية"><option value="العلوم الفيزيائية والتكنولوجيا">الفيزياء</option><option value="علوم الطبيعة والحياة">العلوم</option><option value="الإعلام الآلي">إعلام آلي</option></optgroup>
+                        <optgroup label="اجتماعية"><option value="التاريخ والجغرافيا">تاريخ وجغرافيا</option><option value="التربية الإسلامية">تربية إسلامية</option><option value="التربية المدنية">تربية مدنية</option></optgroup>
+                    </select>
+                </div>
+                <div class="col-half form-group">
+                    <label><i class="fas fa-layer-group"></i> المستوى</label>
+                    <select id="grade">
+                        <option value="السنة الأولى متوسط">1 متوسط</option>
+                        <option value="السنة الثانية متوسط">2 متوسط</option>
+                        <option value="السنة الثالثة متوسط">3 متوسط</option>
+                        <option value="السنة الرابعة متوسط">4 متوسط</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- الصف الثاني: الفصل والسنة الدراسية -->
+            <div class="row-group">
+                <div class="col-half form-group">
+                    <label><i class="fas fa-calendar-alt"></i> الفصل</label>
+                    <select id="semester">
+                        <option value="الفصل الأول">الأول</option>
+                        <option value="الفصل الثاني">الثاني</option>
+                        <option value="الفصل الثالث">الثالث</option>
+                    </select>
+                </div>
+                <div class="col-half form-group">
+                    <label><i class="fas fa-calendar-check"></i> السنة الدراسية</label>
+                    <input type="text" id="schoolYear" value="2024/2025">
+                </div>
+            </div>
+
+            <!-- الصف الثالث: المديرية والمؤسسة -->
+            <div class="form-group">
+                <label><i class="fas fa-map-marker-alt"></i> مديرية التربية لولاية</label>
+                <input type="text" id="directorate" placeholder="مثال: الجزائر شرق، وهران..." value="الجزائر وسط">
+            </div>
+
+            <div class="form-group">
+                <label><i class="fas fa-school"></i> اسم المؤسسة</label>
+                <input type="text" id="school" value="متوسطة الشهيد بن مهيدي">
+            </div>
+
+            <!-- الصف الرابع: المدة والصعوبة -->
+            <div class="row-group">
+                <div class="col-half form-group">
+                    <label><i class="fas fa-clock"></i> المدة الزمنية</label>                    <input type="text" id="duration" value="ساعتان">
+                </div>
+                <div class="col-half form-group">
+                    <label><i class="fas fa-balance-scale"></i> درجة الصعوبة</label>
+                    <select id="difficulty">
+                        <option value="سهل">سهل</option>
+                        <option value="متوسط" selected>متوسط</option>
+                        <option value="صعب">صعب (BEM)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label><i class="fas fa-lightbulb"></i> موضوع محدد (اختياري)</label>
+                <input type="text" id="topic" placeholder="مثال: الزكاة، المعادلات...">
+            </div>
         </div>
 
-        <div class="form-group">
-            <label>المستوى *</label>
-            <select id="grade">
-                <option value="السنة الأولى متوسط">الأولى متوسط</option>
-                <option value="السنة الثانية متوسط">الثانية متوسط</option>
-                <option value="السنة الثالثة متوسط">الثالثة متوسط</option>
-                <option value="السنة الرابعة متوسط">الرابعة متوسط</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label>الفصل *</label>
-            <select id="semester">
-                <option value="الفصل الأول">الأول</option>
-                <option value="الفصل الثاني">الثاني</option>
-                <option value="الفصل الثالث">الثالث</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label>المؤسسة</label>            <input type="text" id="school" value="متوسطة الشهيد بن مهيدي">
-        </div>
-
-        <div class="form-group">
-            <label>الموضوع (اختياري)</label>
-            <input type="text" id="topic" placeholder="مثال: الزكاة، المعادلات...">
-        </div>
-
-        <button class="gen-btn" onclick="generateExam()" id="genBtn">✨ توليد الاختبار</button>
-        <div id="status" style="margin-top:10px; text-align:center; font-size:0.9rem;"></div>
+        <button class="btn-generate" onclick="generateExam()" id="genBtn">
+            <i class="fas fa-magic"></i> توليد الاختبار الذكي
+        </button>
     </div>
 
-    <!-- منطقة العرض -->
-    <div class="preview-container">
-        
+    <!-- منطقة العمل -->
+    <div class="main-area">
         <!-- شريط الأدوات -->
-        <div class="toolbar no-print" id="toolbar" style="display:none;">
-            <button class="tool-btn" onclick="changeFontSize(1)">A+ تكبير</button>
-            <button class="tool-btn" onclick="changeFontSize(-1)">A- تصغير</button>
-            <div style="width:1px; background:#ddd; margin:0 5px;"></div>
-            <button class="tool-btn btn-edit" id="editBtn" onclick="toggleEdit()">✏️ تعديل النص</button>
-            <button class="tool-btn btn-save" id="saveBtn" onclick="toggleEdit()">💾 حفظ التعديلات</button>
-            <div style="width:1px; background:#ddd; margin:0 5px;"></div>
-            <button class="tool-btn btn-pdf" onclick="downloadPDF()">📕 PDF</button>
-            <button class="tool-btn btn-print" onclick="window.print()">🖨️ طباعة</button>
+        <div class="top-toolbar no-print" id="toolbar" style="display:none;">
+            <div class="tools-group">
+                <button class="tool-btn" onclick="changeFontSize(1)" title="تكبير الخط"><i class="fas fa-plus"></i> A+</button>
+                <button class="tool-btn" onclick="changeFontSize(-1)" title="تصغير الخط"><i class="fas fa-minus"></i> A-</button>
+                <div style="width:1px; background:#ddd; margin:0 5px;"></div>
+                <button class="tool-btn btn-edit" id="editBtn" onclick="toggleEdit()"><i class="fas fa-pen"></i> تعديل</button>
+                <button class="tool-btn btn-save" id="saveBtn" onclick="toggleEdit()"><i class="fas fa-check"></i> حفظ</button>
+            </div>
+            <div class="tools-group">
+                <button class="tool-btn btn-pdf" onclick="downloadPDF()"><i class="fas fa-file-pdf"></i> تحميل PDF</button>
+                <button class="tool-btn btn-print" onclick="window.print()"><i class="fas fa-print"></i> طباعة</button>
+            </div>
         </div>
 
         <!-- الورقة -->
-        <div class="a4-paper" id="paperContent">
-            <div style="text-align: center; padding-top: 100px; color: #777;">
-                <h2>📄 مساحة العمل</h2>
-                <p>اختر الإعدادات واضغط "توليد"</p>
+        <div class="paper-wrapper">
+            <div class="a4-paper" id="paperContent">
+                <div style="text-align: center; padding-top: 150px; color: #aaa;">
+                    <i class="fas fa-file-alt" style="font-size: 4rem; margin-bottom: 20px; opacity: 0.3;"></i>
+                    <h2>مساحة العمل فارغة</h2>
+                    <p>قم باختيار الإعدادات من القائمة ثم اضغط "توليد"</p>
+                </div>
             </div>
-        </div>
-    </div>
+        </div>    </div>
+
+    <div id="status-msg"></div>
 
 <script>
     let currentFontSize = 16;
@@ -285,23 +302,26 @@
 
     function get(id) { return document.getElementById(id).value.trim(); }
 
-    function setStatus(msg, type) {
-        const el = document.getElementById('status');
+    function showStatus(msg) {
+        const el = document.getElementById('status-msg');
         el.textContent = msg;
-        el.style.color = type === 'error' ? 'red' : (type === 'success' ? 'green' : '#333');
+        el.classList.add('show');
+        setTimeout(() => el.classList.remove('show'), 3000);
     }
 
     async function generateExam() {
-        const btn = document.getElementById('genBtn');        const paper = document.getElementById('paperContent');
+        const btn = document.getElementById('genBtn');
+        const paper = document.getElementById('paperContent');
         const toolbar = document.getElementById('toolbar');
 
-        if (!get('subject')) { setStatus('⚠️ اختر المادة أولاً', 'error'); return; }
+        if (!get('subject')) { showStatus('⚠️ يرجى اختيار المادة'); return; }
 
         btn.disabled = true;
-        btn.innerHTML = '⏳ جاري التوليد...';
-        setStatus('جاري تحضير الأسئلة...', 'info');
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التفكير...';
+        showStatus('⏳ يتم صياغة الأسئلة وفق المنهاج...');
 
         try {
+            // إرسال جميع البيانات الجديدة إلى البايثون
             const res = await fetch('/api/generate', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
@@ -310,73 +330,69 @@
                     grade: get('grade'),
                     semester: get('semester'),
                     school: get('school'),
+                    directorate: get('directorate'), // مديرية التربية
+                    schoolYear: get('schoolYear'),   // السنة الدراسية
+                    duration: get('duration'),       // المدة
+                    difficulty: get('difficulty'),   // الصعوبة
                     topic: get('topic'),
-                    schoolYear: '2024/2025',
-                    duration: 'ساعتان',
                     examType: 'اختبار فصلي'
                 })
             });
 
             const data = await res.json();
             
-            if (data.success) {
-                let content = data.result.replace(/```html/gi, '').replace(/```/g, '').trim();
+            if (data.success) {                let content = data.result.replace(/```html/gi, '').replace(/```/g, '').trim();
                 
-                // إضافة الترويسة الرسمية إذا لم تكن موجودة
+                // إضافة الترويسة الرسمية مع البيانات الجديدة
                 if (!content.includes('الجمهورية الجزائرية')) {
                     content = `
                     <div class="official-header">
                         <div class="header-row">
                             <div class="header-cell right-col">
                                 <div class="republic-text">الجمهورية الجزائرية الديمقراطية الشعبية</div>
-                                <div class="ministry-text">وزارة التربية الوطنية</div>
-                                <div>مديرية التربية لولاية: ....................</div>
+                                <div>وزارة التربية الوطنية</div>
+                                <div>مديرية التربية لولاية: ${get('directorate')}</div>
                                 <div>متوسطة: ${get('school')}</div>
                             </div>
                             <div class="header-cell center-col">
-                                <div style="margin-top:20px; font-weight:bold;">اختبار الفصل ${get('semester').replace('الفصل ', '')} للسنة الدراسية 2024/2025</div>
+                                <div style="margin-top:20px; font-weight:bold;">اختبار الفصل ${get('semester').replace('الفصل ', '')} للسنة الدراسية ${get('schoolYear')}</div>
                             </div>
                             <div class="header-cell left-col">
                                 <div>المادة: ${get('subject')}</div>
                                 <div>المستوى: ${get('grade')}</div>
-                                <div>المدة: ساعتان</div>
+                                <div>المدة: ${get('duration')}</div>
                                 <div>المعامل: ....</div>
-                            </div>                        </div>
+                            </div>
+                        </div>
                     </div>` + content;
                 }
 
                 paper.innerHTML = content;
                 toolbar.style.display = 'flex';
-                setStatus('✅ تم التوليد بنجاح', 'success');
+                showStatus('✅ تم التوليد بنجاح! يمكنك التعديل الآن.');
                 
-                // إعادة تعيين وضع التعديل
                 isEditing = false;
                 updateEditUI();
             } else {
-                setStatus('❌ ' + data.error, 'error');
+                showStatus('❌ ' + (data.error || 'حدث خطأ'));
             }
         } catch (e) {
-            setStatus('❌ خطأ في الاتصال', 'error');
+            showStatus('❌ خطأ في الاتصال بالخادم');
         } finally {
             btn.disabled = false;
-            btn.innerHTML = '✨ توليد الاختبار';
+            btn.innerHTML = '<i class="fas fa-magic"></i> توليد الاختبار الذكي';
         }
     }
 
-    // دالة تبديل وضع التعديل
     function toggleEdit() {
         const paper = document.getElementById('paperContent');
         isEditing = !isEditing;
-        
         paper.contentEditable = isEditing;
         
         if (isEditing) {
-            paper.classList.add('editing');
-            paper.focus();
-            setStatus('✏️ وضع التعديل مفعل: يمكنك النقر على أي نص لتغييره', 'info');
+            paper.focus();            showStatus('✏️ وضع التعديل مفعل: انقر على أي نص لتغييره');
         } else {
-            paper.classList.remove('editing');
-            setStatus('✅ تم حفظ التعديلات يدوياً', 'success');
+            showStatus('💾 تم حفظ التعديلات مؤقتاً');
         }
         updateEditUI();
     }
@@ -384,13 +400,17 @@
     function updateEditUI() {
         const editBtn = document.getElementById('editBtn');
         const saveBtn = document.getElementById('saveBtn');
+        const paper = document.getElementById('paperContent');
         
         if (isEditing) {
             editBtn.style.display = 'none';
             saveBtn.style.display = 'flex';
+            paper.classList.add('editing');
         } else {
             editBtn.style.display = 'flex';
-            saveBtn.style.display = 'none';        }
+            saveBtn.style.display = 'none';
+            paper.classList.remove('editing');
+        }
     }
 
     function changeFontSize(delta) {
@@ -401,8 +421,7 @@
     }
 
     function downloadPDF() {
-        // إيقاف وضع التعديل قبل التحميل
-        if (isEditing) toggleEdit();
+        if (isEditing) toggleEdit(); 
 
         const element = document.getElementById('paperContent');
         const opt = {
@@ -413,12 +432,12 @@
             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
         
-        document.querySelector('.toolbar').style.display = 'none';
+        document.querySelector('.top-toolbar').style.display = 'none';
         html2pdf().set(opt).from(element).save().then(() => {
-            document.querySelector('.toolbar').style.display = 'flex';
+            document.querySelector('.top-toolbar').style.display = 'flex';
+            showStatus('📥 تم تحميل الملف بنجاح');
         });
     }
 </script>
-
 </body>
 </html>
