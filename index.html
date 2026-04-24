@@ -3,14 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مولّد الاختبارات التربوية – المنهاج الجزائري</title>
+    <title>مولّد الاختبارات التربوية الشامل – المنهاج الجزائري</title>
+    <!-- خط تجوال -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #1a1a1a;
-            --accent: #2c5282; /* أزرق رسمي */
-            --bg: #f5f5f5;
+            --primary: #1a5276; /* أزرق داكن */
+            --secondary: #2980b9; /* أزرق فاتح */
+            --accent: #f39c12; /* برتقالي */
+            --bg: #f4f6f7;
             --card: #ffffff;
-            --border: #e2e8f0;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -18,220 +20,242 @@
         body {
             background: var(--bg);
             padding: 20px;
-            font-family: 'Traditional Arabic', 'Arial', sans-serif;
-            line-height: 1.8;
-            color: var(--primary);
+            font-family: 'Tajawal', sans-serif;
+            line-height: 1.6;
+            color: #333;
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1200px;
             margin: 0 auto;
-            background: var(--card);
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            padding: 30px;
+            display: grid;
+            grid-template-columns: 350px 1fr; /* القائمة يمين والورقة يسار */
+            gap: 20px;
         }
 
-        /* Header & Developer Info */
+        @media (max-width: 900px) {
+            .container { grid-template-columns: 1fr; }
+        }
+
+        /* --- لوحة التحكم --- */
+        .control-panel {
+            background: var(--card);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            height: fit-content;
+        }
+
+        .dev-info {
+            text-align: center;            margin-bottom: 20px;
+            padding: 15px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 8px;
+            color: white;
+        }
+        .dev-name { font-weight: bold; font-size: 1.2rem; color: #ffd700; }
+
+        h2 { color: var(--primary); margin-bottom: 20px; font-size: 1.4rem; text-align: center; }
+
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: var(--primary); font-size: 0.9rem; }
+        
+        select, input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 1rem;
+            transition: 0.3s;
+        }
+        select:focus, input:focus { border-color: var(--secondary); outline: none; }
+
+        button.generate-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px;
+            width: 100%;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: 0.3s;
+        }
+        button.generate-btn:hover { background: var(--secondary); transform: translateY(-2px); }
+        button:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+
+        /* --- منطقة العرض --- */
+        .preview-area {
+            background: #555; /* خلفية داكنة لإبراز الورقة */
+            padding: 20px;
+            border-radius: 12px;
+            overflow-y: auto;
+            min-height: 80vh;
+            display: flex;
+            justify-content: center;
+        }
+        /* ورقة A4 */
+        .a4-paper {
+تفضل، هذا هو كود `index.html` المحدث بالكامل. لقد قمت بإضافة **جميع المواد** (بما في ذلك الفنية، الموسيقية، البدنية، والإعلام الآلي) و **جميع السنوات الأربع** للقوائم المنسدلة، ليتوافق تماماً مع كود البايثون الشامل الذي زودتك به.
+
+احفظ هذا الملف باسم `index.html` في نفس مجلد `app.py`.
+
+```html
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مولّد الاختبارات التربوية الشامل – المنهاج الجزائري</title>
+    <!-- خط تجوال -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1a5276; /* أزرق داكن */
+            --secondary: #2980b9; /* أزرق فاتح */
+            --accent: #f39c12; /* برتقالي */
+            --bg: #f4f6f7;
+            --card: #ffffff;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: var(--bg);
+            padding: 20px;
+            font-family: 'Tajawal', sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 350px 1fr; /* القائمة يمين والورقة يسار */
+            gap: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .container { grid-template-columns: 1fr; }
+        }
+
+        /* --- لوحة التحكم --- */
+        .control-panel {
+            background: var(--card);            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            height: fit-content;
+        }
+
         .dev-info {
             text-align: center;
             margin-bottom: 20px;
             padding: 15px;
-            background: linear-gradient(135deg, #1a5276 0%, #2980b9 100%);
-            border-radius: 12px;
-            color: white;
-            box-shadow: 0 4px 15px rgba(41, 128, 185, 0.3);
-        }
-
-        .dev-name {
-            font-size: 1.4rem;
-            font-weight: bold;
-            color: #ffd700; /* ذهبي */
-            margin-bottom: 5px;        }
-
-        .app-header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 2px solid var(--accent);
-        }
-
-        h1 {
-            font-size: 2rem;
-            color: var(--accent);
-            margin-bottom: 5px;
-        }
-
-        .subtitle {
-            color: #666;
-            font-size: 1rem;
-        }
-
-        /* Form Grid */
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 25px;
-            padding: 25px;
-            background: #fafafa;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
             border-radius: 8px;
-            border: 1px solid var(--border);
+            color: white;
         }
+        .dev-name { font-weight: bold; font-size: 1.2rem; color: #ffd700; }
 
-        .field-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
+        h2 { color: var(--primary); margin-bottom: 20px; font-size: 1.4rem; text-align: center; }
 
-        .field-group.full-width {
-            grid-column: 1 / -1;
-        }
-
-        label {
-            font-weight: bold;
-            font-size: 0.95rem;
-            color: var(--accent);
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        input, select, textarea {
-            padding: 12px 15px;
-            border: 1px solid #ccc;
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: var(--primary); font-size: 0.9rem; }
+        
+        select, input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
             border-radius: 6px;
-            font-size: 1rem;
             font-family: inherit;
-            transition: border-color 0.2s;
-            background: white;
+            font-size: 1rem;
+            transition: 0.3s;
         }
+        select:focus, input:focus { border-color: var(--secondary); outline: none; }
 
-        input:focus, select:focus {
-            border-color: var(--accent);
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(44, 82, 130, 0.1);
-        }
-
-        /* Buttons */
-        .btn-generate {
-            background: var(--accent);
+        button.generate-btn {
+            background: var(--primary);
             color: white;
             border: none;
-            padding: 16px 40px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-            display: block;
-            margin: 25px auto;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 6px rgba(44, 82, 130, 0.2);
-        }
-
-        .btn-generate:hover {
-            background: #1a365d;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(44, 82, 130, 0.3);
-        }
-
-        .btn-generate:disabled {
-            background: #cbd5e0;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        /* Status Message */
-        #status {
-            text-align: center;
-            padding: 12px;            margin: 15px 0;
+            padding: 14px;
+            width: 100%;
             border-radius: 6px;
-            font-weight: 500;
-            display: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: 0.3s;
+        }
+        button.generate-btn:hover { background: var(--secondary); transform: translateY(-2px); }
+        button:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+
+        /* --- منطقة العرض --- */
+        .preview-area {            background: #555; /* خلفية داكنة لإبراز الورقة */
+            padding: 20px;
+            border-radius: 12px;
+            overflow-y: auto;
+            min-height: 80vh;
+            display: flex;
+            justify-content: center;
         }
 
-        /* A4 Paper Simulation */
+        /* ورقة A4 */
         .a4-paper {
+            background: white;
             width: 210mm;
             min-height: 297mm;
-            background: white;
-            margin: 40px auto;
-            padding: 20mm; /* هوامش الطباعة القياسية */
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-            border: 1px solid #ddd;
+            padding: 0; /* الـ Padding الداخلي يأتي من HTML المولد */
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
             position: relative;
         }
 
-        .paper-content {
-            font-size: 14pt; /* حجم خط مناسب للطباعة */
-            line-height: 1.6;
-            color: #000;
+        /* رسائل الحالة */
+        #status {
+            text-align: center;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 6px;
+            font-weight: bold;
+            display: none;
         }
+        .loading { background: #e3f2fd; color: #1565c0; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e9; color: #2e7d32; }
 
-        /* Action Buttons */
-        .action-buttons {
+        /* أزرار الإجراءات */
+        .actions {
+            margin-top: 20px;
             display: flex;
-            gap: 15px;
+            gap: 10px;
             justify-content: center;
-            margin: 30px 0;
-            flex-wrap: wrap;
         }
-
         .btn-action {
-            padding: 12px 25px;
+            padding: 10px 20px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
             font-weight: bold;
-            font-size: 1rem;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+            color: white;
         }
-
-        .btn-word { background: #2b579a; color: white; }
-        .btn-word:hover { background: #1e3f72; }
-
-        .btn-pdf { background: #dc3545; color: white; }        .btn-pdf:hover { background: #bd2130; }
-
-        .btn-edit { background: #f39c12; color: white; }
-        .btn-edit:hover { background: #d35400; }
-
-        /* Print Styles */
+        .btn-print { background: var(--accent); }
+        .btn-word { background: #2b579a; }
+        /* الطباعة */
         @media print {
             body { background: white; padding: 0; }
-            .container { 
+            .control-panel, .actions, #status, .dev-info { display: none !important; }
+            .container { display: block; width: 100%; margin: 0; }
+            .preview-area { background: white; padding: 0; display: block; }
+            .a4-paper { 
+                width: 100%; 
                 box-shadow: none; 
-                padding: 0; 
                 margin: 0; 
-                max-width: 100%;
-                width: 100%;
+                padding: 0; 
             }
-            .form-grid, .btn-generate, .action-buttons, #status, .dev-info, .app-header {
-                display: none !important;
-            }
-            .a4-paper {
-                width: 100%;
-                border: none;
-                box-shadow: none;
-                padding: 0; /* الهوامش تتحكم بها إعدادات المتصفح أو CSS الداخلي للورقة */
-                margin: 0;
-            }
-            /* إجبار الخلفية والألوان على الظهور عند الطباعة */
-            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-        }
-
-        @media (max-width: 850px) {
-            .a4-paper {
-                width: 100%;
-                padding: 15px;
-                overflow-x: auto;
-            }
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
+            @page { margin: 0; size: auto; }
         }
     </style>
 </head>
@@ -239,24 +263,16 @@
 
 <div class="container">
     
-    <!-- ─── Developer Info ─── -->
-    <div class="dev-info no-print">
-        <div class="dev-name">⚙️ تطوير: youcef .b</div>
-        <div style="font-size: 0.9rem; direction: ltr;">
-            📧 <a href="mailto:youcefbenhamidaa@gmail.com" style="color: #fff; text-decoration: none;">youcefbenhamidaa@gmail.com</a>        </div>
-        <div style="font-size: 0.8rem; margin-top: 5px; opacity: 0.8;">
-            © 2025 جميع الحقوق محفوظة
+    <!-- لوحة التحكم -->
+    <div class="control-panel no-print">
+        <div class="dev-info">
+            <div class="dev-name">⚙️ تطوير: youcef .b</div>
+            <div style="font-size: 0.8rem;">youcefbenhamidaa@gmail.com</div>
         </div>
-    </div>
 
-    <div class="app-header no-print">
-        <h1>📋 مولّد الاختبارات التربوية الذكي</h1>
-        <p class="subtitle">المنهاج الجزائري - التعليم المتوسط</p>
-    </div>
+        <h2>📋 إعدادات الاختبار</h2>
 
-    <div class="form-grid no-print">
-        <!-- المادة: تم تحديث القائمة لتشمل كل المواد -->
-        <div class="field-group">
+        <div class="form-group">
             <label>📚 المادة *</label>
             <select id="subject">
                 <option value="">اختر المادة...</option>
@@ -266,36 +282,35 @@
                     <option value="اللغة الفرنسية">اللغة الفرنسية</option>
                     <option value="اللغة الإنجليزية">اللغة الإنجليزية</option>
                 </optgroup>
-                <optgroup label="المواد العلمية والتكنولوجية">
+                <optgroup label="المواد العلمية">
                     <option value="العلوم الفيزيائية والتكنولوجيا">العلوم الفيزيائية والتكنولوجيا</option>
                     <option value="علوم الطبيعة والحياة">علوم الطبيعة والحياة</option>
-                    <option value="التربية العلمية والتكنولوجية">التربية العلمية والتكنولوجية</option>
+                    <option value="الإعلام الآلي">الإعلام الآلي</option>
                 </optgroup>
-                <optgroup label="المواد الاجتماعية والإنسانية">
+                <optgroup label="المواد الاجتماعية والتربوية">
                     <option value="التاريخ والجغرافيا">التاريخ والجغرافيا</option>
                     <option value="التربية الإسلامية">التربية الإسلامية</option>
                     <option value="التربية المدنية">التربية المدنية</option>
                 </optgroup>
-                <optgroup label="مواد الإيقاظ والفنون">
-                    <option value="التربية الفنية التشكيلية">التربية الفنية التشكيلية</option>
+                <optgroup label="مواد الإيقاظ والفنون">                    <option value="التربية الفنية التشكيلية">التربية الفنية التشكيلية</option>
                     <option value="التربية الموسيقية">التربية الموسيقية</option>
                     <option value="التربية البدنية والرياضية">التربية البدنية والرياضية</option>
-                    <option value="الإعلام الآلي">الإعلام الآلي</option>
                 </optgroup>
             </select>
         </div>
 
-        <div class="field-group">
+        <div class="form-group">
             <label>🎓 المستوى *</label>
             <select id="grade">
                 <option value="">اختر المستوى...</option>
                 <option value="السنة الأولى متوسط">السنة الأولى متوسط</option>
                 <option value="السنة الثانية متوسط">السنة الثانية متوسط</option>
                 <option value="السنة الثالثة متوسط">السنة الثالثة متوسط</option>
-                <option value="السنة الرابعة متوسط">السنة الرابعة متوسط</option>            </select>
+                <option value="السنة الرابعة متوسط">السنة الرابعة متوسط</option>
+            </select>
         </div>
 
-        <div class="field-group">
+        <div class="form-group">
             <label>📖 الفصل *</label>
             <select id="semester">
                 <option value="">اختر الفصل...</option>
@@ -305,219 +320,121 @@
             </select>
         </div>
 
-        <!-- اسم المؤسسة: تم التعديل -->
-        <div class="field-group full-width">
-            <label>🏫 اسم المؤسسة التربوية</label>
-            <input type="text" id="school" placeholder="مثال: متوسطة ابن سينا - الجزائر العاصمة" value="متوسطة الشهيد محمد العربي بن مهيدي">
+        <div class="form-group">
+            <label>🏫 المؤسسة التربوية</label>
+            <input type="text" id="school" placeholder="مثال: متوسطة ابن سينا" value="متوسطة الشهيد محمد العربي بن مهيدي">
         </div>
 
-        <div class="field-group">
-            <label>📅 السنة الدراسية *</label>
+        <div class="form-group">
+            <label>📅 السنة الدراسية</label>
             <input type="text" id="schoolYear" value="2024/2025">
         </div>
 
-        <div class="field-group">
-            <label>⏱️ المدة الزمنية *</label>
+        <div class="form-group">
+            <label>⏱️ المدة الزمنية</label>
             <input type="text" id="duration" value="ساعتان">
         </div>
 
-        <div class="field-group">
-            <label>📝 نوع الاختبار *</label>
-            <select id="examType">
-                <option value="اختبار فصلي">اختبار فصلي</option>
-                <option value="فرض محروس">فرض محروس</option>
-                <option value="امتحان تجريبي">امتحان تجريبي (BEM)</option>
-            </select>
-        </div>
-
-        <div class="field-group">
-            <label>⚖️ مستوى الصعوبة</label>
-            <select id="difficulty">
-                <option value="سهل">سهل</option>
-                <option value="متوسط" selected>متوسط</option>
-                <option value="صعب">صعب (مستوى الامتحان الرسمي)</option>
-            </select>
-        </div>
-
-        <div class="field-group full-width">
+        <div class="form-group">
             <label>🔖 موضوع محدد (اختياري)</label>
-            <input type="text" id="topic" placeholder="مثال: المعادلات، الحرب العالمية، التغذية... (اتركه فارغاً لاختيار عشوائي)">        </div>
+            <input type="text" id="topic" placeholder="اتركه فارغاً لاختيار عشوائي">
+        </div>
+
+        <button class="generate-btn" onclick="generateExam()" id="genBtn">✨ توليد ورقة الاختبار</button>
+                <div id="status"></div>
+
+        <div class="actions" id="actionButtons" style="display: none;">
+            <button class="btn-action btn-word" onclick="downloadWord()">📄 Word</button>
+            <button class="btn-action btn-print" onclick="window.print()">🖨️ طباعة</button>
+        </div>
     </div>
 
-    <button class="btn-generate" onclick="generateExam()">✨ توليد ورقة الاختبار</button>
-
-    <div id="status"></div>
-
-    <div class="action-buttons no-print" id="actionButtons" style="display: none;">
-        <button class="btn-action btn-word" onclick="downloadWord()">
-            <span>📄</span> تحميل Word
-        </button>
-        <button class="btn-action btn-pdf" onclick="window.print()">
-            <span>📕</span> طباعة / PDF
-        </button>
-        <button class="btn-action btn-edit" onclick="toggleEdit()">
-            <span>✏️</span> تعديل النص
-        </button>
-    </div>
-
-    <!-- منطقة عرض الورقة -->
-    <div class="a4-paper" id="a4Paper">
-        <div class="paper-content" id="output">
-            <div style="text-align: center; padding: 100px 20px; color: #aaa; border: 2px dashed #ddd; border-radius: 10px;">
-                <h2 style="margin-bottom: 10px;">📄 مساحة العمل</h2>
-                <p>قم باختيار الإعدادات أعلاه ثم اضغط على زر التوليد.</p>
+    <!-- منطقة المعاينة -->
+    <div class="preview-area">
+        <div class="a4-paper" id="paperContent">
+            <div style="text-align: center; padding: 100px 20px; color: #aaa;">
+                <h2>📄 مساحة العمل</h2>
+                <p>قم باختيار الإعدادات ثم اضغط "توليد"</p>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-const API_BASE = ''; // يترك فارغاً إذا كان الملف يعمل على نفس السيرفر
-let isEditMode = false;
+    function get(id) { return document.getElementById(id).value.trim(); }
 
-function get(id) {
-    return document.getElementById(id).value.trim();
-}
-
-function setStatus(msg, type = 'info') {
-    const el = document.getElementById('status');
-    el.textContent = msg;
-    el.style.display = 'block';
-    if (type === 'error') {
-        el.style.background = '#fee2e2';
-        el.style.color = '#b91c1c';
-    } else if (type === 'success') {
-        el.style.background = '#d1fae5';
-        el.style.color = '#047857';
-    } else {
-        el.style.background = '#e2e8f0';        el.style.color = '#1e293b';
+    function setStatus(msg, type) {
+        const el = document.getElementById('status');
+        el.textContent = msg;
+        el.style.display = 'block';
+        el.className = type;
     }
-}
 
-function validate() {
-    const required = ['subject', 'grade', 'semester', 'schoolYear', 'duration', 'examType'];
-    const missing = [];
-    for (const f of required) {
-        if (!get(f)) missing.push(document.querySelector(`label[for="${f}"]`)?.textContent || f);
-    }
-    if (missing.length > 0) {
-        setStatus('⚠️ يرجى ملء الحقول التالية: ' + missing.join(', '), 'error');
-        return false;
-    }
-    return true;
-}
-
-function generateExam() {
-    if (!validate()) return;
-
-    const btn = document.querySelector('.btn-generate');
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '⏳ جاري الاتصال بالذكاء الاصطناعي...';
-    setStatus('جاري تحضير الأسئلة بناءً على المنهاج الجزائري...', 'info');
-
-    const payload = {
-        subject: get('subject'),
-        grade: get('grade'),
-        semester: get('semester'),
-        school: get('school'),
-        schoolYear: get('schoolYear'),
-        duration: get('duration'),
-        examType: get('examType'),
-        difficulty: get('difficulty'),
-        topic: get('topic')
-    };
-
-    fetch(`${API_BASE}/api/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    })
-    .then(r => {
-        if (!r.ok) throw new Error('خطأ في الخادم');
-        return r.json();
-    })
-    .then(data => {
-        if (data.success) {
-            // تنظيف الناتج من أي علامات Markdown قد يضعها الذكاء الاصطناعي            let html = data.result
-                .replace(/```html/gi, '')
-                .replace(/```/g, '')
-                .trim();
-            
-            document.getElementById('output').innerHTML = html;
-            document.getElementById('actionButtons').style.display = 'flex';
-            setStatus('✅ تم توليد الاختبار بنجاح! يمكنك الطباعة الآن.', 'success');
-        } else {
-            setStatus('❌ ' + (data.error || 'فشل التوليد، حاول مرة أخرى'), 'error');
+    async function generateExam() {
+        const btn = document.getElementById('genBtn');
+        const paper = document.getElementById('paperContent');
+        
+        if (!get('subject') || !get('grade')) {
+            setStatus('⚠️ يرجى اختيار المادة والمستوى', 'error');
+            return;
         }
-    })
-    .catch(err => {
-        console.error(err);
-        setStatus('❌ حدث خطأ في الاتصال: ' + err.message, 'error');
-    })
-    .finally(() => {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-    });
-}
 
-function toggleEdit() {
-    const output = document.getElementById('output');
-    isEditMode = !isEditMode;
-    output.contentEditable = isEditMode;
-    
-    if (isEditMode) {
-        output.focus();
-        output.style.border = "2px dashed #f39c12";
-        output.style.padding = "10px";
-        setStatus('✏️ وضع التعديل مفعل: يمكنك النقر على أي نص لتغييره مباشرة.', 'info');
-    } else {
-        output.style.border = "none";
-        output.style.padding = "0";
-        setStatus('✅ تم حفظ التعديلات يدوياً.', 'success');
+        btn.disabled = true;
+        btn.innerHTML = '⏳ جاري التفكير...';
+        setStatus('⏳ يتم الآن صياغة الأسئلة وفق المنهاج...', 'loading');
+
+        const payload = {
+            subject: get('subject'),
+            grade: get('grade'),
+            semester: get('semester'),
+            school: get('school'),
+            schoolYear: get('schoolYear'),
+            duration: get('duration'),
+            topic: get('topic'),            examType: 'اختبار فصلي'
+        };
+
+        try {
+            const res = await fetch('/api/generate', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+
+            if (data.success) {
+                // تنظيف الكود من أي شوائب
+                let html = data.result.replace(/```html/gi, '').replace(/```/g, '').trim();
+                paper.innerHTML = html;
+                document.getElementById('actionButtons').style.display = 'flex';
+                setStatus('✅ تم التوليد بنجاح!', 'success');
+            } else {
+                setStatus('❌ خطأ: ' + (data.error || 'غير معروف'), 'error');
+            }
+        } catch (e) {
+            setStatus('❌ خطأ في الاتصال بالخادم', 'error');
+            console.error(e);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '✨ توليد ورقة الاختبار';
+        }
     }
-}
 
-function downloadWord() {
-    const content = document.getElementById('output').innerHTML;
-    const schoolName = get('school');
-    const subject = get('subject');
-    
-    // تنسيق خاص لضمان ظهور اللغة العربية والاتجاه الصحيح في Word
-    const html = `
-        <html xmlns:o='urn:schemas-microsoft-com:office:office' 
-              xmlns:w='urn:schemas-microsoft-com:office:word' 
-              xmlns='http://www.w3.org/TR/REC-html40'>
-        <head>            <meta charset='utf-8'>
-            <title>${subject}</title>
-            <style>
-                body { 
-                    font-family: 'Traditional Arabic', 'Arial', sans-serif; 
-                    direction: rtl; 
-                    text-align: right;
-                }
-                table { border-collapse: collapse; width: 100%; margin: 20px 0; }
-                td, th { border: 1px solid black; padding: 8px; vertical-align: top; }
-                .header-center { text-align: center; font-weight: bold; }
-                .points { text-align: center; font-weight: bold; width: 80px; }
-            </style>
-        </head>
-        <body>
-            ${content}
-        </body>
-        </html>
-    `;
-    
-    const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `اختبار_${subject}_${schoolName}.doc`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
+    function downloadWord() {
+        const content = document.getElementById('paperContent').innerHTML;
+        const html = `
+            <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+            <head><meta charset='utf-8'><title>اختبار</title>
+            <style>body{font-family:'Traditional Arabic',Arial;direction:rtl;text-align:right;}</style>
+            </head><body>${content}</body></html>`;
+        
+        const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `اختبار_${get('subject')}_${get('grade')}.doc`;
+        a.click();
+    }
 </script>
 
 </body>
