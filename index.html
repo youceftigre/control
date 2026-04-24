@@ -3,437 +3,420 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مولّد الاختبارات التربوية الشامل – المنهاج الجزائري</title>
-    <!-- خط تجوال -->
+    <title>منصة الفروض والاختبارات - النموذج الرسمي القابل للتعديل</title>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- مكتبة تحويل HTML إلى PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         :root {
-            --primary: #1a5276; /* أزرق داكن */
-            --secondary: #2980b9; /* أزرق فاتح */
-            --accent: #f39c12; /* برتقالي */
-            --bg: #f4f6f7;
-            --card: #ffffff;
+            --primary: #1a5276;
+            --secondary: #2980b9;
+            --accent: #f39c12;
+            --bg: #e9ecef;
         }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             background: var(--bg);
-            padding: 20px;
             font-family: 'Tajawal', sans-serif;
-            line-height: 1.6;
-            color: #333;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 350px 1fr; /* القائمة يمين والورقة يسار */
-            gap: 20px;
-        }
-
-        @media (max-width: 900px) {
-            .container { grid-template-columns: 1fr; }
-        }
-
-        /* --- لوحة التحكم --- */
-        .control-panel {
-            background: var(--card);
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            height: fit-content;
-        }
-
-        .dev-info {
-            text-align: center;            margin-bottom: 20px;
-            padding: 15px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            border-radius: 8px;
-            color: white;
-        }
-        .dev-name { font-weight: bold; font-size: 1.2rem; color: #ffd700; }
-
-        h2 { color: var(--primary); margin-bottom: 20px; font-size: 1.4rem; text-align: center; }
-
-        .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; color: var(--primary); font-size: 0.9rem; }
-        
-        select, input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-family: inherit;
-            font-size: 1rem;
-            transition: 0.3s;
-        }
-        select:focus, input:focus { border-color: var(--secondary); outline: none; }
-
-        button.generate-btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 14px;
-            width: 100%;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 1.1rem;
-            font-weight: bold;
-            margin-top: 10px;
-            transition: 0.3s;
-        }
-        button.generate-btn:hover { background: var(--secondary); transform: translateY(-2px); }
-        button:disabled { background: #ccc; cursor: not-allowed; transform: none; }
-
-        /* --- منطقة العرض --- */
-        .preview-area {
-            background: #555; /* خلفية داكنة لإبراز الورقة */
+            margin: 0;
             padding: 20px;
-            border-radius: 12px;
-            overflow-y: auto;
-            min-height: 80vh;
             display: flex;
-            justify-content: center;
-        }
-        /* ورقة A4 */
-        .a4-paper {
-تفضل، هذا هو كود `index.html` المحدث بالكامل. لقد قمت بإضافة **جميع المواد** (بما في ذلك الفنية، الموسيقية، البدنية، والإعلام الآلي) و **جميع السنوات الأربع** للقوائم المنسدلة، ليتوافق تماماً مع كود البايثون الشامل الذي زودتك به.
-
-احفظ هذا الملف باسم `index.html` في نفس مجلد `app.py`.
-
-```html
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مولّد الاختبارات التربوية الشامل – المنهاج الجزائري</title>
-    <!-- خط تجوال -->
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #1a5276; /* أزرق داكن */
-            --secondary: #2980b9; /* أزرق فاتح */
-            --accent: #f39c12; /* برتقالي */
-            --bg: #f4f6f7;
-            --card: #ffffff;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body {
-            background: var(--bg);
-            padding: 20px;
-            font-family: 'Tajawal', sans-serif;
-            line-height: 1.6;
-            color: #333;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: grid;
-            grid-template-columns: 350px 1fr; /* القائمة يمين والورقة يسار */
             gap: 20px;
+            height: 100vh;
+            overflow: hidden;
         }
 
-        @media (max-width: 900px) {
-            .container { grid-template-columns: 1fr; }
-        }
-
-        /* --- لوحة التحكم --- */
-        .control-panel {
-            background: var(--card);            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            height: fit-content;
+        /* --- القائمة الجانبية --- */
+        .sidebar {
+            width: 320px;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            flex-shrink: 0;
         }
 
         .dev-info {
             text-align: center;
-            margin-bottom: 20px;
-            padding: 15px;
             background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 15px;
             border-radius: 8px;
-            color: white;
+            margin-bottom: 20px;
         }
-        .dev-name { font-weight: bold; font-size: 1.2rem; color: #ffd700; }
+        .dev-name { font-weight: bold; color: #ffd700; }
 
-        h2 { color: var(--primary); margin-bottom: 20px; font-size: 1.4rem; text-align: center; }
-
+        h2 { font-size: 1.2rem; color: var(--primary); border-bottom: 2px solid #eee; padding-bottom: 10px; margin-top: 0; }
         .form-group { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; color: var(--primary); font-size: 0.9rem; }
-        
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; }
         select, input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-family: inherit;
-            font-size: 1rem;
+            width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px;
+            font-family: inherit; font-size: 0.95rem;
+        }
+
+        button.gen-btn {
+            background: var(--primary); color: white; border: none; padding: 12px;
+            width: 100%; border-radius: 5px; cursor: pointer; font-weight: bold;
             transition: 0.3s;
         }
-        select:focus, input:focus { border-color: var(--secondary); outline: none; }
+        button.gen-btn:hover { background: #154360; }
 
-        button.generate-btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 14px;
-            width: 100%;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 1.1rem;
-            font-weight: bold;
-            margin-top: 10px;
-            transition: 0.3s;
-        }
-        button.generate-btn:hover { background: var(--secondary); transform: translateY(-2px); }
-        button:disabled { background: #ccc; cursor: not-allowed; transform: none; }
-
-        /* --- منطقة العرض --- */
-        .preview-area {            background: #555; /* خلفية داكنة لإبراز الورقة */
-            padding: 20px;
-            border-radius: 12px;
+        /* --- منطقة المعاينة --- */
+        .preview-container {
+            flex-grow: 1;
+            background: #555;
+            border-radius: 10px;
             overflow-y: auto;
-            min-height: 80vh;
+            padding: 40px;
             display: flex;
-            justify-content: center;
-        }
-
-        /* ورقة A4 */
-        .a4-paper {
-            background: white;
-            width: 210mm;
-            min-height: 297mm;
-            padding: 0; /* الـ Padding الداخلي يأتي من HTML المولد */
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            flex-direction: column;
+            align-items: center;
             position: relative;
         }
 
-        /* رسائل الحالة */
-        #status {
-            text-align: center;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 6px;
-            font-weight: bold;
-            display: none;
-        }
-        .loading { background: #e3f2fd; color: #1565c0; }
-        .error { background: #ffebee; color: #c62828; }
-        .success { background: #e8f5e9; color: #2e7d32; }
-
-        /* أزرار الإجراءات */
-        .actions {
-            margin-top: 20px;
+        /* --- شريط الأدوات العائم --- */
+        .toolbar {
+            position: sticky;
+            top: 0;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 10px 20px;
+            border-radius: 50px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
             display: flex;
             gap: 10px;
+            z-index: 100;
+            margin-bottom: 20px;
+            backdrop-filter: blur(5px);
+            flex-wrap: wrap;
             justify-content: center;
         }
-        .btn-action {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            color: white;
+
+        .tool-btn {
+            background: white; border: 1px solid #ddd; padding: 8px 15px;
+            border-radius: 20px; cursor: pointer; font-family: inherit;
+            display: flex; align-items: center; gap: 5px; transition: 0.2s;
+            font-size: 0.9rem;        }
+        .tool-btn:hover { background: #f8f9fa; transform: translateY(-2px); }
+        
+        .btn-pdf { background: #dc3545; color: white; border: none; }
+        .btn-print { background: #17a2b8; color: white; border: none; }
+        .btn-edit { background: var(--accent); color: white; border: none; }
+        .btn-save { background: #27ae60; color: white; border: none; display: none; }
+
+        /* --- ورقة الاختبار الرسمية A4 --- */
+        .a4-paper {
+            background: white;
+            width: 210mm; /* عرض A4 دقيق */
+            min-height: 297mm; /* طول A4 دقيق */
+            padding: 15mm 20mm; /* هوامش الطباعة */
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+            position: relative;
+            font-size: 16px;
+            line-height: 1.6;
+            color: #000;
+            transition: 0.3s;
+            box-sizing: border-box; /* لضمان احتساب الهوامش ضمن العرض */
         }
-        .btn-print { background: var(--accent); }
-        .btn-word { background: #2b579a; }
+
+        /* تأثير عند تفعيل وضع التعديل */
+        .a4-paper.editing {
+            border: 2px dashed var(--accent);
+            box-shadow: 0 0 30px rgba(243, 156, 18, 0.3);
+            outline: none;
+        }
+
+        /* تنسيق الترويسة الرسمية */
+        .official-header {
+            display: table;
+            width: 100%;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+        }
+        .header-row { display: table-row; }
+        .header-cell { 
+            display: table-cell; 
+            vertical-align: middle; 
+            text-align: center;
+            padding: 5px;
+        }
+        .right-col { width: 30%; text-align: right; font-size: 0.9em; }
+        .center-col { width: 40%; text-align: center; font-weight: bold; }
+        .left-col { width: 30%; text-align: left; font-size: 0.9em; }
+
+        .republic-text { font-weight: bold; font-size: 1.1em; margin-bottom: 5px; }        .ministry-text { margin-bottom: 15px; }
+        
+        .exam-title-box {
+            text-align: center;
+            margin: 30px 0;
+            border: 2px solid #000;
+            padding: 10px;
+            border-radius: 5px;
+            background: #fdfdfd;
+        }
+        .exam-title { font-size: 1.4em; font-weight: bold; text-decoration: underline; }
+
+        /* تنسيق الأسئلة */
+        .question-section { margin-bottom: 25px; }
+        .section-title { 
+            font-weight: bold; 
+            text-decoration: underline; 
+            margin-bottom: 15px; 
+            font-size: 1.1em;
+        }
+        .points-badge {
+            float: left;
+            border: 1px solid #000;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            background: #eee;
+        }
+
         /* الطباعة */
         @media print {
-            body { background: white; padding: 0; }
-            .control-panel, .actions, #status, .dev-info { display: none !important; }
-            .container { display: block; width: 100%; margin: 0; }
-            .preview-area { background: white; padding: 0; display: block; }
+            body { background: white; padding: 0; display: block; height: auto; overflow: visible; }
+            .sidebar, .toolbar, .dev-info { display: none !important; }
+            .preview-container { background: white; padding: 0; display: block; overflow: visible; }
             .a4-paper { 
                 width: 100%; 
                 box-shadow: none; 
                 margin: 0; 
                 padding: 0; 
+                border: none;
             }
-            @page { margin: 0; size: auto; }
+            @page { size: A4; margin: 15mm 20mm; }
         }
     </style>
 </head>
 <body>
 
-<div class="container">
-    
-    <!-- لوحة التحكم -->
-    <div class="control-panel no-print">
-        <div class="dev-info">
-            <div class="dev-name">⚙️ تطوير: youcef .b</div>
+    <!-- القائمة الجانبية -->
+    <div class="sidebar no-print">
+        <div class="dev-info">            <div class="dev-name">⚙️ تطوير: youcef .b</div>
             <div style="font-size: 0.8rem;">youcefbenhamidaa@gmail.com</div>
         </div>
 
         <h2>📋 إعدادات الاختبار</h2>
-
+        
         <div class="form-group">
-            <label>📚 المادة *</label>
+            <label>المادة *</label>
             <select id="subject">
                 <option value="">اختر المادة...</option>
-                <optgroup label="المواد الأساسية">
+                <optgroup label="أساسية">
                     <option value="الرياضيات">الرياضيات</option>
                     <option value="اللغة العربية">اللغة العربية</option>
                     <option value="اللغة الفرنسية">اللغة الفرنسية</option>
                     <option value="اللغة الإنجليزية">اللغة الإنجليزية</option>
                 </optgroup>
-                <optgroup label="المواد العلمية">
-                    <option value="العلوم الفيزيائية والتكنولوجيا">العلوم الفيزيائية والتكنولوجيا</option>
-                    <option value="علوم الطبيعة والحياة">علوم الطبيعة والحياة</option>
-                    <option value="الإعلام الآلي">الإعلام الآلي</option>
+                <optgroup label="علمية">
+                    <option value="العلوم الفيزيائية والتكنولوجيا">الفيزياء</option>
+                    <option value="علوم الطبيعة والحياة">العلوم</option>
+                    <option value="الإعلام الآلي">إعلام آلي</option>
                 </optgroup>
-                <optgroup label="المواد الاجتماعية والتربوية">
-                    <option value="التاريخ والجغرافيا">التاريخ والجغرافيا</option>
-                    <option value="التربية الإسلامية">التربية الإسلامية</option>
-                    <option value="التربية المدنية">التربية المدنية</option>
-                </optgroup>
-                <optgroup label="مواد الإيقاظ والفنون">                    <option value="التربية الفنية التشكيلية">التربية الفنية التشكيلية</option>
-                    <option value="التربية الموسيقية">التربية الموسيقية</option>
-                    <option value="التربية البدنية والرياضية">التربية البدنية والرياضية</option>
+                <optgroup label="اجتماعية">
+                    <option value="التاريخ والجغرافيا">تاريخ وجغرافيا</option>
+                    <option value="التربية الإسلامية">تربية إسلامية</option>
+                    <option value="التربية المدنية">تربية مدنية</option>
                 </optgroup>
             </select>
         </div>
 
         <div class="form-group">
-            <label>🎓 المستوى *</label>
+            <label>المستوى *</label>
             <select id="grade">
-                <option value="">اختر المستوى...</option>
-                <option value="السنة الأولى متوسط">السنة الأولى متوسط</option>
-                <option value="السنة الثانية متوسط">السنة الثانية متوسط</option>
-                <option value="السنة الثالثة متوسط">السنة الثالثة متوسط</option>
-                <option value="السنة الرابعة متوسط">السنة الرابعة متوسط</option>
+                <option value="السنة الأولى متوسط">الأولى متوسط</option>
+                <option value="السنة الثانية متوسط">الثانية متوسط</option>
+                <option value="السنة الثالثة متوسط">الثالثة متوسط</option>
+                <option value="السنة الرابعة متوسط">الرابعة متوسط</option>
             </select>
         </div>
 
         <div class="form-group">
-            <label>📖 الفصل *</label>
+            <label>الفصل *</label>
             <select id="semester">
-                <option value="">اختر الفصل...</option>
-                <option value="الفصل الأول">الفصل الأول</option>
-                <option value="الفصل الثاني">الفصل الثاني</option>
-                <option value="الفصل الثالث">الفصل الثالث</option>
+                <option value="الفصل الأول">الأول</option>
+                <option value="الفصل الثاني">الثاني</option>
+                <option value="الفصل الثالث">الثالث</option>
             </select>
         </div>
 
         <div class="form-group">
-            <label>🏫 المؤسسة التربوية</label>
-            <input type="text" id="school" placeholder="مثال: متوسطة ابن سينا" value="متوسطة الشهيد محمد العربي بن مهيدي">
+            <label>المؤسسة</label>            <input type="text" id="school" value="متوسطة الشهيد بن مهيدي">
         </div>
 
         <div class="form-group">
-            <label>📅 السنة الدراسية</label>
-            <input type="text" id="schoolYear" value="2024/2025">
+            <label>الموضوع (اختياري)</label>
+            <input type="text" id="topic" placeholder="مثال: الزكاة، المعادلات...">
         </div>
 
-        <div class="form-group">
-            <label>⏱️ المدة الزمنية</label>
-            <input type="text" id="duration" value="ساعتان">
-        </div>
-
-        <div class="form-group">
-            <label>🔖 موضوع محدد (اختياري)</label>
-            <input type="text" id="topic" placeholder="اتركه فارغاً لاختيار عشوائي">
-        </div>
-
-        <button class="generate-btn" onclick="generateExam()" id="genBtn">✨ توليد ورقة الاختبار</button>
-                <div id="status"></div>
-
-        <div class="actions" id="actionButtons" style="display: none;">
-            <button class="btn-action btn-word" onclick="downloadWord()">📄 Word</button>
-            <button class="btn-action btn-print" onclick="window.print()">🖨️ طباعة</button>
-        </div>
+        <button class="gen-btn" onclick="generateExam()" id="genBtn">✨ توليد الاختبار</button>
+        <div id="status" style="margin-top:10px; text-align:center; font-size:0.9rem;"></div>
     </div>
 
-    <!-- منطقة المعاينة -->
-    <div class="preview-area">
+    <!-- منطقة العرض -->
+    <div class="preview-container">
+        
+        <!-- شريط الأدوات -->
+        <div class="toolbar no-print" id="toolbar" style="display:none;">
+            <button class="tool-btn" onclick="changeFontSize(1)">A+ تكبير</button>
+            <button class="tool-btn" onclick="changeFontSize(-1)">A- تصغير</button>
+            <div style="width:1px; background:#ddd; margin:0 5px;"></div>
+            <button class="tool-btn btn-edit" id="editBtn" onclick="toggleEdit()">✏️ تعديل النص</button>
+            <button class="tool-btn btn-save" id="saveBtn" onclick="toggleEdit()">💾 حفظ التعديلات</button>
+            <div style="width:1px; background:#ddd; margin:0 5px;"></div>
+            <button class="tool-btn btn-pdf" onclick="downloadPDF()">📕 PDF</button>
+            <button class="tool-btn btn-print" onclick="window.print()">🖨️ طباعة</button>
+        </div>
+
+        <!-- الورقة -->
         <div class="a4-paper" id="paperContent">
-            <div style="text-align: center; padding: 100px 20px; color: #aaa;">
+            <div style="text-align: center; padding-top: 100px; color: #777;">
                 <h2>📄 مساحة العمل</h2>
-                <p>قم باختيار الإعدادات ثم اضغط "توليد"</p>
+                <p>اختر الإعدادات واضغط "توليد"</p>
             </div>
         </div>
     </div>
-</div>
 
 <script>
+    let currentFontSize = 16;
+    let isEditing = false;
+
     function get(id) { return document.getElementById(id).value.trim(); }
 
     function setStatus(msg, type) {
         const el = document.getElementById('status');
         el.textContent = msg;
-        el.style.display = 'block';
-        el.className = type;
+        el.style.color = type === 'error' ? 'red' : (type === 'success' ? 'green' : '#333');
     }
 
     async function generateExam() {
-        const btn = document.getElementById('genBtn');
-        const paper = document.getElementById('paperContent');
-        
-        if (!get('subject') || !get('grade')) {
-            setStatus('⚠️ يرجى اختيار المادة والمستوى', 'error');
-            return;
-        }
+        const btn = document.getElementById('genBtn');        const paper = document.getElementById('paperContent');
+        const toolbar = document.getElementById('toolbar');
+
+        if (!get('subject')) { setStatus('⚠️ اختر المادة أولاً', 'error'); return; }
 
         btn.disabled = true;
-        btn.innerHTML = '⏳ جاري التفكير...';
-        setStatus('⏳ يتم الآن صياغة الأسئلة وفق المنهاج...', 'loading');
-
-        const payload = {
-            subject: get('subject'),
-            grade: get('grade'),
-            semester: get('semester'),
-            school: get('school'),
-            schoolYear: get('schoolYear'),
-            duration: get('duration'),
-            topic: get('topic'),            examType: 'اختبار فصلي'
-        };
+        btn.innerHTML = '⏳ جاري التوليد...';
+        setStatus('جاري تحضير الأسئلة...', 'info');
 
         try {
             const res = await fetch('/api/generate', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(payload)
+                body: JSON.stringify({
+                    subject: get('subject'),
+                    grade: get('grade'),
+                    semester: get('semester'),
+                    school: get('school'),
+                    topic: get('topic'),
+                    schoolYear: '2024/2025',
+                    duration: 'ساعتان',
+                    examType: 'اختبار فصلي'
+                })
             });
 
             const data = await res.json();
-
+            
             if (data.success) {
-                // تنظيف الكود من أي شوائب
-                let html = data.result.replace(/```html/gi, '').replace(/```/g, '').trim();
-                paper.innerHTML = html;
-                document.getElementById('actionButtons').style.display = 'flex';
-                setStatus('✅ تم التوليد بنجاح!', 'success');
+                let content = data.result.replace(/```html/gi, '').replace(/```/g, '').trim();
+                
+                // إضافة الترويسة الرسمية إذا لم تكن موجودة
+                if (!content.includes('الجمهورية الجزائرية')) {
+                    content = `
+                    <div class="official-header">
+                        <div class="header-row">
+                            <div class="header-cell right-col">
+                                <div class="republic-text">الجمهورية الجزائرية الديمقراطية الشعبية</div>
+                                <div class="ministry-text">وزارة التربية الوطنية</div>
+                                <div>مديرية التربية لولاية: ....................</div>
+                                <div>متوسطة: ${get('school')}</div>
+                            </div>
+                            <div class="header-cell center-col">
+                                <div style="margin-top:20px; font-weight:bold;">اختبار الفصل ${get('semester').replace('الفصل ', '')} للسنة الدراسية 2024/2025</div>
+                            </div>
+                            <div class="header-cell left-col">
+                                <div>المادة: ${get('subject')}</div>
+                                <div>المستوى: ${get('grade')}</div>
+                                <div>المدة: ساعتان</div>
+                                <div>المعامل: ....</div>
+                            </div>                        </div>
+                    </div>` + content;
+                }
+
+                paper.innerHTML = content;
+                toolbar.style.display = 'flex';
+                setStatus('✅ تم التوليد بنجاح', 'success');
+                
+                // إعادة تعيين وضع التعديل
+                isEditing = false;
+                updateEditUI();
             } else {
-                setStatus('❌ خطأ: ' + (data.error || 'غير معروف'), 'error');
+                setStatus('❌ ' + data.error, 'error');
             }
         } catch (e) {
-            setStatus('❌ خطأ في الاتصال بالخادم', 'error');
-            console.error(e);
+            setStatus('❌ خطأ في الاتصال', 'error');
         } finally {
             btn.disabled = false;
-            btn.innerHTML = '✨ توليد ورقة الاختبار';
+            btn.innerHTML = '✨ توليد الاختبار';
         }
     }
 
-    function downloadWord() {
-        const content = document.getElementById('paperContent').innerHTML;
-        const html = `
-            <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
-            <head><meta charset='utf-8'><title>اختبار</title>
-            <style>body{font-family:'Traditional Arabic',Arial;direction:rtl;text-align:right;}</style>
-            </head><body>${content}</body></html>`;
+    // دالة تبديل وضع التعديل
+    function toggleEdit() {
+        const paper = document.getElementById('paperContent');
+        isEditing = !isEditing;
         
-        const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `اختبار_${get('subject')}_${get('grade')}.doc`;
-        a.click();
+        paper.contentEditable = isEditing;
+        
+        if (isEditing) {
+            paper.classList.add('editing');
+            paper.focus();
+            setStatus('✏️ وضع التعديل مفعل: يمكنك النقر على أي نص لتغييره', 'info');
+        } else {
+            paper.classList.remove('editing');
+            setStatus('✅ تم حفظ التعديلات يدوياً', 'success');
+        }
+        updateEditUI();
+    }
+
+    function updateEditUI() {
+        const editBtn = document.getElementById('editBtn');
+        const saveBtn = document.getElementById('saveBtn');
+        
+        if (isEditing) {
+            editBtn.style.display = 'none';
+            saveBtn.style.display = 'flex';
+        } else {
+            editBtn.style.display = 'flex';
+            saveBtn.style.display = 'none';        }
+    }
+
+    function changeFontSize(delta) {
+        currentFontSize += delta;
+        if (currentFontSize < 12) currentFontSize = 12;
+        if (currentFontSize > 24) currentFontSize = 24;
+        document.getElementById('paperContent').style.fontSize = currentFontSize + 'px';
+    }
+
+    function downloadPDF() {
+        // إيقاف وضع التعديل قبل التحميل
+        if (isEditing) toggleEdit();
+
+        const element = document.getElementById('paperContent');
+        const opt = {
+            margin:       [10, 10, 10, 10],
+            filename:     `اختبار_${get('subject')}_${get('grade')}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2 },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        
+        document.querySelector('.toolbar').style.display = 'none';
+        html2pdf().set(opt).from(element).save().then(() => {
+            document.querySelector('.toolbar').style.display = 'flex';
+        });
     }
 </script>
 
