@@ -141,7 +141,7 @@
         }
         .btn-green:disabled {
             background: #b0c4d9;
-            box-shadow: none;
+            box            box-shadow: none;
             transform: none;
             cursor: not-allowed;
         }
@@ -276,6 +276,17 @@
             text-align: left;
         }
 
+        /* ─── Validation Error ─── */
+        .validation-error {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+        }
+
         /* ─── Footer ─── */
         footer {
             text-align: center;
@@ -290,7 +301,7 @@
             flex-direction: column;
             align-items: center;
             vertical-align: middle;
-            margin: 0 4px;
+            margin: 0 4: 0 4px;
             font-size: 0.9em;
         }
         .fraction .num {
@@ -340,6 +351,22 @@
         }
         .btn-pdf:hover {
             background: #a93226;
+            transform: translateY(-2px);
+        }
+
+        /* ─── Toggle Edit Button ─── */
+        .btn-toggle-edit {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-toggle-edit:hover {
+            background: #21867a;
             transform: translateY(-2px);
         }
 
@@ -406,47 +433,54 @@
     <h1>📋 مولّد الاختبارات التربوية</h1>
     <p class="subtitle">مولّد اختبارات مخصص للمنهاج الجزائري باستخدام الذكاء الاصطناعي</p>
 
+    <!-- ─── Validation Errors Area ─── -->
+    <div id="validationErrors" style="display: none;"></div>
+
     <!-- ─── Form ─── -->
     <div class="form-grid">
         <div class="field-group">
-            <label for="subject">📚 المادة</label>
-            <select id="subject">
-                <option value="الرياضيات" selected>الرياضيات</option>
+            <label for="subject">📚 المادة *</label>
+            <select id="subject" onchange="loadTopics()">
+                <option value="">اختر المادة...</option>
+                <option value="الرياضيات">الرياضيات</option>
                 <option value="اللغة العربية">اللغة العربية</option>
                 <option value="اللغة الفرنسية">اللغة الفرنسية</option>
                 <option value="اللغة الإنجليزية">اللغة الإنجليزية</option>
-                <option value="العلوم الفيزيائية">العلوم الفيزيائية</option>
+                <option value="العلوم الفيزيائية والتكنولوجيا">العلوم الفيزيائية والتكنولوجيا</option>
                 <option value="علوم الطبيعة والحياة">علوم الطبيعة والحياة</option>
                 <option value="التاريخ والجغرافيا">التاريخ والجغرافيا</option>
                 <option value="التربية الإسلامية">التربية الإسلامية</option>
                 <option value="التربية المدنية">التربية المدنية</option>
-                <option value="الإعلام الآلي">الإعلام الآلي</option>
+                <option value="التربية العلمية والتكنولوجية">التربية العلمية والتكنولوجية</option>
                 <option value="التربية الموسيقية">التربية الموسيقية</option>
-                <option value="التربية التشكيلية">التربية التشكيلية</option>
-                <option value="التربية البدنية">التربية البدنية</option>
+                <option value="التربية الفنية">التربية الفنية</option>
+                <option value="التربية البدنية والرياضية">التربية البدنية والرياضية</option>
             </select>
         </div>
 
         <div class="field-group">
-            <label for="grade">🎓 المستوى الدراسي</label>
-            <select id="grade">
-                <option value="الأولى ابتدائي">الأولى ابتدائي</option>
-                <option value="الثانية ابتدائي">الثانية ابتدائي</option>
-                <option value="الثالثة ابتدائي">الثالثة ابتدائي</option>
-                <option value="الرابعة ابتدائي">الرابعة ابتدائي</option>
-                <option value="الخامسة ابتدائي">الخامسة ابتدائي</option>
-                <option value="الأولى متوسط">الأولى متوسط</option>
-                <option value="الثانية متوسط">الثانية متوسط</option>
-                <option value="الثالثة متوسط" selected>الثالثة متوسط</option>
-                <option value="الرابعة متوسط">الرابعة متوسط</option>
-                <option value="الأولى ثانوي">الأولى ثانوي</option>
-                <option value="الثانية ثانوي">الثانية ثانوي</option>
-                <option value="الثالثة ثانوي">الثالثة ثانوي</option>
+            <label for="grade">🎓 المستوى الدراسي *</label>
+            <select id="grade" onchange="loadTopics()">
+                <option value="">اختر المستوى...</option>
+                <option value="السنة الأولى متوسط">السنة الأولى متوسط</option>
+                <option value="السنة الثانية متوسط">السنة الثانية متوسط</option>
+                <option value="السنة الثالثة متوسط">السنة الثالثة متوسط</option>
+                <option value="السنة الرابعة متوسط">السنة الرابعة متوسط</option>
             </select>
         </div>
 
         <div class="field-group">
-            <label for="examType">📝 نوع الفرض</label>
+            <label for="semester">📖 الفصل الدراسي *</label>
+            <select id="semester" onchange="loadTopics()">
+                <option value="">اختر الفصل...</option>
+                <option value="الفصل الأول">الفصل الأول</option>
+                <option value="الفصل الثاني">الفصل الثاني</option>
+                <option value="الفصل الثالث">الفصل الثالث</option>
+            </select>
+        </div>
+
+        <div class="field-group">
+            <label for="examType">📝 نوع الفرض *</label>
             <select id="examType">
                 <option value="اختبار" selected>اختبار</option>
                 <option value="فرض">فرض</option>
@@ -455,28 +489,32 @@
         </div>
 
         <div class="field-group">
-            <label for="schoolYear">📅 السنة الدراسية</label>
+            <label for="schoolYear">📅 السنة الدراسية *</label>
             <input type="text" id="schoolYear" value="2025-2026">
         </div>
 
         <div class="field-group">
-            <label for="duration">⏱️ المدة</label>
+            <label for="duration">⏱️ المدة *</label>
             <input type="text" id="duration" value="ساعتان" placeholder="مثال: ساعة ونصف">
         </div>
 
         <div class="field-group">
             <label for="mark">💯 العلامة الكاملة</label>
-            <input type="text" id="mark" value="20">
+            <input type="text" id="mark" value="20" readonly style="background: #f0f4f8;">
         </div>
 
         <div class="field-group full-width">
-            <label for="topic">🔖 الموضوع / المحور</label>
-            <input type="text" id="topic" value="المعادلات والمتراجحات" placeholder="اتركه فارغاً إن لم يكن محدداً">
+            <label for="topic">🔖 الموضوع / المحور (اختياري)</label>
+            <select id="topic" style="display: none;">
+                <option value="">اختر من المنهاج...</option>
+            </select>
+            <input type="text" id="topicInput" placeholder="اكتب موضوعاً محدداً أو اتركه فارغاً">
+            <small style="color: var(--text-muted); font-size: 0.8rem;">يمكنك اختيار موضوع من المنهاج أو كتابة موضوعك الخاص</small>
         </div>
 
         <div class="field-group">
-            <label for="types">🧩 أنواع الأسئلة</label>
-            <input type="text" id="types" value="أسئلة موضوعية + تمارين + وضعية إدماجية">
+            <label for="types">🧩 أنواع الأسئلة *</label>
+            <input type="text" id="types" value="وضعية إدماجية" placeholder="مثال: وضعية إدماجية">
         </div>
 
         <div class="field-group">
@@ -540,12 +578,12 @@
             <div class="paper-content" id="output">
                 <h2 style="text-align: center; color: var(--primary);">📄 ورقة الاختبار</h2>
                 <div style="text-align: center; margin: 20px 0;">
-                    <div class="meta">الرياضيات - الثالثة متوسط - اختبار</div>
+                    <div class="meta">اختر المادة والمستوى والفصل ثم اضغط على الزر</div>
                 </div>
                 <div class="sep"></div>
                 <div class="q">
                     <div class="n">جاهز للبدء</div>
-                    <div class="t">املأ الحقول ثم اضغط على الزر لإنشاء الاختبار.</div>
+                    <div class="t">املأ الحقول المطلوبة (*) ثم اضغط على زر التوليد.</div>
                 </div>
             </div>
         </div>
@@ -562,7 +600,7 @@
     "use strict";
 
     // ─── Configuration ───
-    const API_URL = '/api/generate';
+    const API_BASE = '';
 
     // ─── DOM Elements ───
     const generateBtn = document.getElementById('generateBtn');
@@ -573,26 +611,12 @@
     const btnToggleEdit = document.getElementById('btnToggleEdit');
     const fontSizeSlider = document.getElementById('fontSizeSlider');
     const fontSizeValue = document.getElementById('fontSizeValue');
+    const validationErrors = document.getElementById('validationErrors');
+    const topicSelect = document.getElementById('topic');
+    const topicInput = document.getElementById('topicInput');
 
     let isEditMode = false;
     let currentExamHTML = '';
-
-    // ─── Subject-specific prompts to prevent mixing ───
-    const subjectPrompts = {
-        "الرياضيات": "أسئلة عن: الأعداد، العمليات الحسابية، المعادلات، المتراجحات، الهندسة، الإحصاء، التناسبية. ممنوع أي موضوع خارج الرياضيات.",
-        "اللغة العربية": "أسئلة عن: النحو، الصرف، القراءة، الإملاء، التعبير، النصوص الأدبية، البلاغة. ممنوع أي موضوع خارج اللغة العربية.",
-        "اللغة الفرنسية": "أسئلة عن: القواعد، المفردات، القراءة، الكتابة، التعبير الشفهي. ممنوع أي موضوع خارج اللغة الفرنسية.",
-        "اللغة الإنجليزية": "أسئلة عن: Grammar, Vocabulary, Reading Comprehension, Writing, Listening. ممنوع أي موضوع خارج اللغة الإنجليزية.",
-        "العلوم الفيزيائية": "أسئلة عن: الحركة، القوى، الطاقة، الكهرباء، المغناطيسية، الضوء. ممنوع أي موضوع خارج الفيزياء والكيمياء.",
-        "علوم الطبيعة والحياة": "أسئلة عن: الخلية، التنفس، البيئة، التغذية، النبات، الحيوان، جسم الإنسان. ممنوع أي موضوع خارج علوم الطبيعة والحياة.",
-        "التاريخ والجغرافيا": "أسئلة عن: التاريخ الجزائري، الحضارات، الجغرافيا الطبيعية، السكان، الاقتصاد. ممنوع أي موضوع خارج التاريخ والجغرافيا.",
-        "التربية الإسلامية": "أسئلة عن: التوحيد، الفقه، الحديث، السيرة النبوية، القرآن الكريم. ممنوع أي موضوع خارج التربية الإسلامية.",
-        "التربية المدنية": "أسئلة عن: المواطنة، الدستور، حقوق الإنسان، المؤسسات، السلام. ممنوع أي موضوع خارج التربية المدنية.",
-        "الإعلام الآلي": "أسئلة عن: الحاسوب، البرمجة، الإنترنت، الأمن الرقمي، التطبيقات. ممنوع أي موضوع خارج الإعلام الآلي.",
-        "التربية الموسيقية": "أسئلة عن: النوتات، الإيقاع، الآلات الموسيقية، الأغاني الوطنية. ممنوع أي موضوع خارج التربية الموسيقية.",
-        "التربية التشكيلية": "أسئلة عن: الرسم، الألوان، الأشكال الهندسية، الفنون التشكيلية. ممنوع أي موضوع خارج التربية التشكيلية.",
-        "التربية البدنية": "أسئلة عن: التمارين الرياضية، الصحة، التغذية، الألعاب الرياضية. ممنوع أي موضوع خارج التربية البدنية."
-    };
 
     // ─── Helpers ───
     function getField(id) {
@@ -600,77 +624,114 @@
         return el ? el.value.trim() : '';
     }
 
+    function showValidationError(message) {
+        validationErrors.innerHTML = `<div class="validation-error">⚠️ ${message}</div>`;
+        validationErrors.style.display = 'block';
+    }
+
+    function hideValidationError() {
+        validationErrors.style.display = 'none';
+        validationErrors.innerHTML = '';
+    }
+
+    // ─── Load Topics from Server ───
+    window.loadTopics = async function() {
+        const subject = getField('subject');
+        const grade = getField('grade');
+        const semester = getField('semester');
+
+        if (!subject || !grade || !semester) {
+            topicSelect.style.display = 'none';
+            topicInput.style.display = 'block';
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE}/api/topics?subject=${encodeURIComponent(subject)}&grade=${encodeURIComponent(grade)}&semester=${encodeURIComponent(semester)}`);
+            const data = await response.json();
+
+            if (data.topics && data.topics.length > 0) {
+                topicSelect.innerHTML = '<option value="">اختر من المنهاج...</option>';
+                data.topics.forEach(topic => {
+                    const option = document.createElement('option');
+                    option.value = topic;
+                    option.textContent = topic;
+                    topicSelect.appendChild(option);
+                });
+                topicSelect.style.display = 'block';
+                topicInput.style.display = 'none';
+                
+                // When topic is selected from dropdown, update input
+                topicSelect.onchange = function() {
+                    if (this.value) {
+                        topicInput.value = this.value;
+                    }
+                };
+            } else {
+                topicSelect.style.display = 'none';
+                topicInput.style.display = 'block';
+            }
+        } catch (error) {
+            console.error('Failed to load topics:', error);
+            topicSelect.style.display = 'none';
+            topicInput.style.display = 'block';
+        }
+    };
+
+    // ─── Validate Form ───
+    function validateForm() {
+        const required = ['subject', 'grade', 'semester', 'examType', 'schoolYear', 'duration', 'types'];
+        const missing = [];
+
+        for (const field of required) {
+            if (!getField(field)) {
+                const labels = {
+                    'subject': 'المادة',
+                    'grade': 'المستوى الدراسي',
+                    'semester': 'الفصل الدراسي',
+                    'examType': 'نوع الفرض',
+                    'schoolYear': 'السنة الدراسية',
+                    'duration': 'المدة',
+                    'types': 'أنواع الأسئلة'
+                };
+                missing.push(labels[field]);
+            }
+        }
+
+        // Check for integration task
+        const types = getField('types');
+        if (types && !types.includes('إدماج') && !types.includes('intégration') && !types.includes('integration')) {
+            showValidationError('يجب تضمين الوضعية الإدماجية في أنواع الأسئلة');
+            return false;
+        }
+
+        if (missing.length > 0) {
+            showValidationError(`الحقول المطلوبة: ${missing.join('، ')}`);
+            return false;
+        }
+
+        hideValidationError();
+        return true;
+    }
+
+    // ─── Build Payload ───
     function buildPayload() {
         const subject = getField('subject');
         const grade = getField('grade');
+        const semester = getField('semester');
         const examType = getField('examType');
         const schoolYear = getField('schoolYear');
         const duration = getField('duration');
-        const mark = getField('mark');
-        const topic = getField('topic');
+        const mark = getField('mark') || '20';
+        const topic = getField('topic') || getField('topicInput');
         const types = getField('types');
         const difficulty = getField('difficulty');
         const extra = getField('extra');
 
-        // Get subject-specific content guidelines
-        const subjectGuide = subjectPrompts[subject] || "ممنوع أي موضوع خارج " + subject;
-
-        const instructions = `
-🎯 أنت الآن تُنشئ ${examType} حصرياً في مادة: ${subject}
-📚 المستوى: ${grade}
-📅 السنة الدراسية: ${schoolYear}
-
-⏱️ المدة: ${duration}
-💯 العلامة الكاملة: ${mark}
-🔖 الموضوع/المحور: ${topic || 'غير محدد'}
-🧩 أنواع الأسئلة: ${types}
-⚖️ مستوى الصعوبة: ${difficulty}
-${extra ? '📌 تعليمات إضافية: ' + extra : ''}
-
-═══════════════════════════════════════
-🔴 تعليمات صارمة جداً - يجب الالتزام بها:
-═══════════════════════════════════════
-
-❌ ممنوع تماماً:
-1. ممنوع إضافة أسئلة من أي مادة أخرى غير: ${subject}
-2. ممنوع خلط مفاهيم من مواد مختلفة
-3. ممنوع إضافة معلومات خارجة عن المنهاج الجزائري
-4. ممنوع ذكر "العلامة الكاملة" أو "الموضوع" أو "أنواع الأسئلة" أو "مستوى الصعوبة" في عنوان الاختبار
-
-✅ يجب أن تكون الأسئلة:
-1. 100% متعلقة بمادة ${subject} فقط
-2. مناسبة للمستوى ${grade}
-3. مطابقة للمنهاج الجزائري الحالي
-
-📌 محتوى المادة المحدد:
-${subjectGuide}
-
-═══════════════════════════════════════
-📄 تنسيق ورقة الأسئلة:
-═══════════════════════════════════════
-
-## الصفحة الأولى: ورقة الأسئلة
-يجب أن تحتوي فقط على:
-1. عنوان الاختبار في الأعلى يحتوي على: الجمهورية الجزائرية الديمقراطية الشعبية، وزارة التربية الوطنية، المستوى، المادة، المدة
-2. خط فاصل واضح (hr class="strong-sep") بعد المعلومات العلوية وبداية الأسئلة
-3. الأسئلة فقط (بدون حلول) مع ذكر نقاط كل سؤال بين قوسين مثل: (03 نقاط)
-4. لا تضع الإجابات النموذجية في هذه الصفحة
-5. عند كتابة الكسور، استخدم تنسيق HTML بخط أفقي: <span class="fraction"><span class="num">البسط</span><span class="den">المقام</span></span>
-
-## الصفحة الثانية: الإجابة النموذجية
-بعد الانتهاء من جميع الأسئلة، أضف:
-1. خط فاصل واضح (hr class="page-break") يفصل بين الأسئلة والإجابة النموذجية
-2. عنوان كبير: "الإجابة النموذجية وسلم التنقيط"
-3. الإجابات في الأسفل (صفحة منفصلة)
-4. اكتب حل كل سؤال بالتفصيل مع ذكر نقاط كل جزء
-5. استخدم نفس تنسيق الكسور (خط أفقي)
-
-⚠️ تأكد مرة أخرى: جميع الأسئلة يجب أن تكون في مادة ${subject} فقط!
-        `.trim();
-
         return {
             subject: subject,
             grade: grade,
+            semester: semester,
             examType: examType,
             schoolYear: schoolYear,
             duration: duration,
@@ -678,8 +739,7 @@ ${subjectGuide}
             topic: topic,
             types: types,
             difficulty: difficulty,
-            extra: extra,
-            prompt: instructions
+            extra: extra
         };
     }
 
@@ -705,14 +765,27 @@ ${subjectGuide}
             .trim();
     }
 
-    function showError(message, stack = '') {
-        renderResult(`
+    function showError(message, details = '') {
+        let html = `
             <div style="color: #b33; background: #fff2f2; padding: 20px; border-radius: 20px;">
                 <strong>⚠️ تعذر توليد الاختبار</strong><br>
                 <span style="font-size: 0.9em;">${message}</span>
-                ${stack ? `<div class="error-details">${stack}</div>` : ''}
-            </div>
-        `);
+        `;
+        
+        if (details) {
+            if (Array.isArray(details)) {
+                html += `<ul style="margin-top: 10px; padding-right: 20px;">`;
+                details.forEach(d => {
+                    html += `<li style="margin: 5px 0;">${d}</li>`;
+                });
+                html += `</ul>`;
+            } else {
+                html += `<div class="error-details">${details}</div>`;
+            }
+        }
+        
+        html += `</div>`;
+        renderResult(html);
         if (statusEl) statusEl.textContent = `⚠️ خطأ: ${message}`;
         if (actionButtonsArea) actionButtonsArea.style.display = 'none';
     }
@@ -828,15 +901,20 @@ ${subjectGuide}
 
     // ─── Main Function ───
     async function generateExam() {
+        // Validate form first
+        if (!validateForm()) {
+            return;
+        }
+
         const payload = buildPayload();
 
         if (generateBtn) generateBtn.disabled = true;
-        if (statusEl) statusEl.textContent = '⏳ جاري الاتصال بـ Gemini...';
+        if (statusEl) statusEl.textContent = '⏳ جاري توليد الاختبار...';
         if (actionButtonsArea) actionButtonsArea.style.display = 'none';
-        renderResult('<div style="text-align:center; padding:40px; color:#4a6572;">⏳ يرجى الانتظار...</div>');
+        renderResult('<div style="text-align:center; padding:40px; color:#4a6572;">⏳ يرجى الانتظار... جاري توليد الاختبار...</div>');
 
         try {
-            const response = await fetch(API_URL, {
+            const response = await fetch(`${API_BASE}/api/generate`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -845,25 +923,38 @@ ${subjectGuide}
             const data = await response.json();
 
             if (!response.ok) {
-                const serverError = data.error || data.details || `خطأ HTTP: ${response.status}`;
-                throw new Error(serverError);
+                const serverError = data.error || 'حدث خطأ في الخادم';
+                const details = data.details || [];
+                throw { message: serverError, details: details };
             }
 
-            const rawText = data.result || JSON.stringify(data);
+            if (!data.success) {
+                throw { message: data.error || 'فشل في توليد الاختبار', details: data.details || [] };
+            }
+
+            const rawText = data.result || '';
             let cleanHtml = cleanMarkdown(rawText);
 
+            // Clean up HTML
             cleanHtml = cleanHtml
                 .replace(/<hr\s*\/?>/gi, '<hr class="strong-sep">')
                 .replace(/<hr\s+class="page-break"\s*\/?>/gi, '<hr class="page-break">');
 
+            // Convert fractions
             cleanHtml = convertFractions(cleanHtml);
 
             renderResult(cleanHtml);
-            if (statusEl) statusEl.textContent = '✅ تم الإنشاء بنجاح';
+            
+            // Show validation info
+            let statusText = '✅ تم الإنشاء بنجاح';
+            if (data.validation) {
+                statusText += ` | ${data.validation.subject_isolation || ''}`;
+            }
+            if (statusEl) statusEl.textContent = statusText;
 
         } catch (error) {
             console.error('❌ فشل:', error);
-            showError(error.message, error.stack);
+            showError(error.message || 'حدث خطأ غير متوقع', error.details || error.stack);
         } finally {
             if (generateBtn) generateBtn.disabled = false;
         }
