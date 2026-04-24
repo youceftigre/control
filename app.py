@@ -23,6 +23,7 @@ else:
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 
+
 # ------------------------------------------------------------------------- #
 # 2. قاعدة بيانات المنهاج الجزائري (التعليم المتوسط)
 # ------------------------------------------------------------------------- #
@@ -91,7 +92,7 @@ CURRICULUM_DB = {
         "السنة الرابعة متوسط": {
             "الفصل الأول": ["Compréhension: textes littéraires", "Grammaire: concordance des temps", "Vocabulaire: l'identité"],
             "الفصل الثاني": ["Expression écrite: l'essai", "Grammaire: les figures de style", "Vocabulaire: l'avenir"],
-            "الفصل الثالث": ["Compréهension: textes philosophiques", "Grammaire: révision globale", "Vocabulaire: les valeurs"]
+            "الفصل الثالث": ["Compréhension: textes philosophiques", "Grammaire: révision globale", "Vocabulaire: les valeurs"]
         }
     },
     "اللغة الإنجليزية": {
@@ -223,4 +224,8 @@ CURRICULUM_DB = {
         "السنة الرابعة متوسط": {
             "الفصل الأول": ["العولمة والتحديات", "المنظمات الدولية", "الأمم المتحدة"],
             "الفصل الثاني": ["التاريخ: حركات التحرر", "استقلال الجزائر", "البناء الديمقراطي"],
-            "الفصل الثالث": ["الج
+            "الفصل الثالث": ["الجغرافيا: البحر الأبيض المتوسط", "الشرق الأوسط", "إفريقيا"]
+        }
+    },
+    "التربية الفنية": {
+        "السنة الأولى
