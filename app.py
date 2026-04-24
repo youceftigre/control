@@ -41,13 +41,14 @@ else:
 app = Flask(__name__, static_folder='.', static_url_path='')
 
 # ============================================================
-# 2. قاعدة بيانات المنهاج الجزائري الشاملة
+# 2. قاعدة بيانات المنهاج الجزائري الشاملة (مصححة نحوياً)
 # ============================================================
 CURRICULUM_DB = {
     "الرياضيات": {
         "السنة الأولى متوسط": {
             "الفصل الأول": ["الأعداد الطبيعية والعشرية", "العمليات على الأعداد", "القاسم المشترك الأكبر"],
-            "الفصل الثاني": ["الكسور", "النسبة والتناسب", "المعادلات البسيطة"],            "الفصل الثالث": ["الزوايا", "المثلثات", "الدوائر"]
+            "الفصل الثاني": ["الكسور", "النسبة والتناسب", "المعادلات البسيطة"],
+            "الفصل الثالث": ["الزوايا", "المثلثات", "الدوائر"]
         },
         "السنة الثانية متوسط": {
             "الفصل الأول": ["الأعداد النسبية", "القوى", "الجذور"],
@@ -96,7 +97,8 @@ CURRICULUM_DB = {
     },
     "اللغة الإنجليزية": {
         "السنة الرابعة متوسط": {
-            "الفصل الأول": ["Present Simple", "Daily routines", "Family"],            "الفصل الثاني": ["Past Simple", "School life", "Hobbies"],
+            "الفصل الأول": ["Present Simple", "Daily routines", "Family"],
+            "الفصل الثاني": ["Past Simple", "School life", "Hobbies"],
             "الفصل الثالث": ["Future with will", "Environment", "Technology"]
         }
     },
@@ -145,7 +147,8 @@ CURRICULUM_DB = {
         }
     },
     "التربية الإسلامية": {
-        "السنة الأولى متوسط": {            "الفصل الأول": ["التوحيد", "الإيمان بالملائكة", "الكتب السماوية"],
+        "السنة الأولى متوسط": {
+            "الفصل الأول": ["التوحيد", "الإيمان بالملائكة", "الكتب السماوية"],
             "الفصل الثاني": ["الإيمان بالرسل", "اليوم الآخر", "القدر"],
             "الفصل الثالث": ["الطهارة", "الصلاة", "الزكاة"]
         },
@@ -194,7 +197,8 @@ CURRICULUM_DB = {
             "الفصل الثالث": ["العدالة", "المحكمة", "القانون"]
         },
         "السنة الثانية متوسط": {
-            "الفصل الأول": ["الديمقراطية", "الانتخابات", "الأحزاب"],            "الفصل الثاني": ["حقوق الإنسان", "الحرية", "المساواة"],
+            "الفصل الأول": ["الديمقراطية", "الانتخابات", "الأحزاب"],
+            "الفصل الثاني": ["حقوق الإنسان", "الحرية", "المساواة"],
             "الفصل الثالث": ["السلام", "التسامح", "الحوار"]
         },
         "السنة الثالثة متوسط": {
@@ -243,7 +247,8 @@ VALID_GRADES = ["السنة الأولى متوسط", "السنة الثانية
 VALID_SEMESTERS = ["الفصل الأول", "الفصل الثاني", "الفصل الثالث"]
 
 # ============================================================
-# 3. بنك الأسئلة الذكي - مع نظام التنويع التلقائي# ============================================================
+# 3. بنك الأسئلة الذكي - مع نظام التنويع التلقائي
+# ============================================================
 class QuestionBank:
     """بنك الأسئلة الذكي مع نظام التنويع والتوليد"""
     
@@ -265,17 +270,21 @@ class QuestionBank:
             try:
                 with open(self.bank_file, 'r', encoding='utf-8') as f:
                     return json.load(f)
-            except:
+            except (json.JSONDecodeError, IOError):
+                print(f"⚠️ ملف البنك تالف، سيتم تجاهله: {self.bank_file}")
                 return []
         return []
 
     def _save_bank(self):
-        """حفظ بنك الأسئلة في الملف"""
+        """حفظ بنك الأسئلة في الملف مع حد أقصى 200 سؤال"""
         # الاحتفاظ بآخر 200 سؤال فقط
         if len(self.questions) > 200:
             self.questions = self.questions[-200:]
-        with open(self.bank_file, 'w', encoding='utf-8') as f:
-            json.dump(self.questions, f, ensure_ascii=False, indent=2)
+        try:
+            with open(self.bank_file, 'w', encoding='utf-8') as f:
+                json.dump(self.questions, f, ensure_ascii=False, indent=2)
+        except IOError as e:
+            print(f"❌ فشل حفظ البنك: {e}")
 
     def add_question(self, question: Dict) -> str:
         """إضافة سؤال جديد للبنك"""
@@ -292,12 +301,17 @@ class QuestionBank:
         """بحث ذكي متعدد المعايير"""
         results = []
         hint_lower = hint.lower() if hint else None
-                for q in self.questions:
+        
+        for q in self.questions:
             # فلترة حسب المعايير
-            if subject and q.get('subject') != subject: continue
-            if grade and q.get('grade') != grade: continue
-            if semester and q.get('semester') != semester: continue
-            if difficulty and q.get('difficulty') != difficulty: continue
+            if subject and q.get('subject') != subject:
+                continue
+            if grade and q.get('grade') != grade:
+                continue
+            if semester and q.get('semester') != semester:
+                continue
+            if difficulty and q.get('difficulty') != difficulty:
+                continue
             
             # بحث بالتلميح
             if hint_lower:
@@ -322,7 +336,8 @@ class QuestionBank:
 
     def create_variation(self, question: Dict) -> Dict:
         """إنشاء تنويع ذكي للسؤال"""
-        varied = question.copy()
+        import copy
+        varied = copy.deepcopy(question)
         
         # تغيير الأرقام مع الحفاظ على المنطق
         if 'numbers' in question and question['numbers']:
@@ -341,7 +356,8 @@ class QuestionBank:
         varied['variation_id'] = f"VAR-{random.randint(10000, 99999)}"
         varied['generated_at'] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         varied['is_variation'] = True
-        varied['original_id'] = question.get('id', 'unknown')        varied['usage_count'] = 0
+        varied['original_id'] = question.get('id', 'unknown')
+        varied['usage_count'] = 0
         
         return varied
 
@@ -349,15 +365,17 @@ class QuestionBank:
         """تغيير الأرقام بنسبة ±20% مع الحفاظ على الخصائص"""
         new_nums = []
         for n in numbers:
-            if isinstance(n, (int, float)):
-                if isinstance(n, int):
-                    change = random.randint(-max(1, abs(n)//5), max(1, abs(n)//5))
-                    new_n = n + change
-                    if new_n == 0: new_n = 1
-                else:
-                    change = random.uniform(-0.5, 0.5)
-                    new_n = round(n + change, 1)
-                    if new_n <= 0: new_n = 0.5
+            if isinstance(n, int):
+                change = random.randint(-max(1, abs(n)//5), max(1, abs(n)//5))
+                new_n = n + change
+                if new_n == 0:
+                    new_n = 1
+                new_nums.append(new_n)
+            elif isinstance(n, float):
+                change = random.uniform(-0.5, 0.5)
+                new_n = round(n + change, 1)
+                if new_n <= 0:
+                    new_n = 0.5
                 new_nums.append(new_n)
             else:
                 new_nums.append(n)
@@ -390,6 +408,7 @@ class QuestionBank:
                 text = text.replace(old, new, 1)
         
         return text
+    
     def get_stats(self) -> Dict:
         """إحصائيات بنك الأسئلة"""
         stats = {'total': len(self.questions), 'by_subject': {}, 'by_grade': {}, 'by_difficulty': {}}
@@ -416,11 +435,13 @@ class QuestionBank:
     def import_questions(self, questions: List[Dict]) -> int:
         """استيراد أسئلة جديدة"""
         count = 0
+        existing_ids = {q['id'] for q in self.questions}
         for q in questions:
             if 'id' not in q:
                 q['id'] = f"IMP-{random.randint(10000, 99999)}"
-            if q['id'] not in [x['id'] for x in self.questions]:
+            if q['id'] not in existing_ids:
                 self.questions.append(q)
+                existing_ids.add(q['id'])
                 count += 1
         if count > 0:
             self._save_bank()
@@ -439,7 +460,8 @@ class ExamGenerator:
 
     def _get_exam_structure(self, subject: str) -> str:
         """هيكل الاختبار حسب المادة"""
-        structures = {            "الرياضيات": "التمرين الأول (06ن): حساب/هندسة | التمرين الثاني (06ن): تطبيق | الوضعية (08ن): مسألة مركبة",
+        structures = {
+            "الرياضيات": "التمرين الأول (06ن): حساب/هندسة | التمرين الثاني (06ن): تطبيق | الوضعية (08ن): مسألة مركبة",
             "اللغة العربية": "النص القرائي (06ن) | القواعد والإملاء (06ن) | التعبير (08ن)",
             "اللغة الفرنسية": "Compréhension (06pts) | Langue (06pts) | Expression (08pts)",
             "اللغة الإنجليزية": "Reading (06pts) | Language (06pts) | Writing (08pts)",
@@ -458,6 +480,7 @@ class ExamGenerator:
         semester = data.get('semester', 'الفصل الأول')
         topic = data.get('topic', '')
         
+        # الحصول على مواضيع الفصل
         topics = CURRICULUM_DB.get(subject, {}).get(grade, {}).get(semester, [])
         topics_str = ", ".join(topics) if topics else "المنهاج العام"
         
@@ -488,7 +511,8 @@ class ExamGenerator:
         """توليد اختبار بالذكاء الاصطناعي"""
         if not self.ai:
             return None
-                try:
+        
+        try:
             prompt = self._build_ai_prompt(data)
             completion = self.ai.chat.completions.create(
                 model="llama-3.3-70b-versatile",
@@ -537,7 +561,8 @@ class ExamGenerator:
             'header': {
                 'subject': subject, 'grade': grade, 'semester': semester,
                 'school': data.get('school', '...'), 'directorate': data.get('directorate', '...'),
-                'duration': data.get('duration', 'ساعتان'), 'year': data.get('schoolYear', '2024/2025')            },
+                'duration': data.get('duration', 'ساعتان'), 'year': data.get('schoolYear', '2024/2025')
+            },
             'exercises': [],
             'integration': None,
             'correction': []
@@ -575,18 +600,22 @@ class ExamGenerator:
         return exam
 
     def generate_exam(self, data: Dict, use_bank: bool = True) -> Dict:
-        """توليد اختبار (بنك + ذكاء اصطناعي)"""
+        """
+        توليد اختبار (بنك + ذكاء اصطناعي)
+        تم إصلاح خطأ التعليق الذي كان يحجب تنفيذ السطر التالي.
+        """
         # قرار: من البنك أم بالذكاء الاصطناعي؟
         use_ai = not use_bank or random.random() < self.ai_ratio
         
         if use_bank and not use_ai:
-            # من البنك
+            # محاولة من البنك
             exam_data = self.generate_from_bank(data)
             if exam_data:
                 html = self._exam_to_html(exam_data)
                 return {'success': True, 'result': html, 'source': 'bank', 'data': exam_data}
         
-        # بالذكاء الاصطناعي (كاحتياطي أو حسب النسبة)        html = self.generate_with_ai(data)
+        # الاحتياطي بالذكاء الاصطناعي (أو حسب النسبة)
+        html = self.generate_with_ai(data)
         if html:
             return {'success': True, 'result': html, 'source': 'ai'}
         
@@ -635,7 +664,8 @@ class ExamGenerator:
         if exam['integration'] and exam['integration'].get('solution'):
             html += f'<div><strong>الوضعية الإدماجية:</strong><br>{exam["integration"]["solution"]}</div>'
         html += '</div></div>'
-                return html
+        
+        return html
 
     def generate_smart_question(self, data: Dict) -> Optional[Dict]:
         """توليد سؤال واحد ذكي بالتلميح"""
@@ -684,7 +714,8 @@ class ExamGenerator:
                     'solution': result['answer_key'],
                     'skills_tested': result['skills_tested'],
                     'hint': hint,
-                    'source': 'ai-generated'                })
+                    'source': 'ai-generated'
+                })
                 
                 return {'success': True, **result, 'source': 'ai'}
             except Exception as e:
@@ -721,7 +752,7 @@ def get_topics():
     grade = request.args.get('grade')
     semester = request.args.get('semester')
     
-    if not all([subject, grade]):
+    if not subject or not grade:
         return jsonify({'error': 'المادة والمستوى مطلوبان'}), 400
     
     topics = CURRICULUM_DB.get(subject, {}).get(grade, {}).get(semester if semester else '', [])
@@ -733,7 +764,14 @@ def generate_exam():
         return jsonify({'error': 'JSON مطلوب'}), 400
     
     try:
-        data = request.json        use_bank = request.args.get('bank', 'true').lower() == 'true'
+        data = request.json
+        # التحقق من الحقول الإلزامية
+        required = ['subject', 'grade']
+        for field in required:
+            if field not in data:
+                return jsonify({'error': f'الحقل {field} مطلوب'}), 400
+        
+        use_bank = request.args.get('bank', 'true').lower() == 'true'
         
         result = exam_generator.generate_exam(data, use_bank=use_bank)
         
@@ -752,6 +790,11 @@ def generate_smart():
     
     try:
         data = request.json
+        required = ['subject', 'grade']
+        for field in required:
+            if field not in data:
+                return jsonify({'error': f'الحقل {field} مطلوب'}), 400
+        
         result = exam_generator.generate_smart_question(data)
         
         if result and result['success']:
@@ -782,6 +825,7 @@ def bank_stats():
 @app.route('/api/bank/export', methods=['GET'])
 def export_bank():
     return jsonify({'success': True, **question_bank.export_bank()})
+
 @app.route('/api/bank/import', methods=['POST'])
 def import_bank():
     if not request.is_json:
@@ -789,6 +833,8 @@ def import_bank():
     
     data = request.json
     questions = data.get('questions', [])
+    if not isinstance(questions, list):
+        return jsonify({'error': 'questions must be a list'}), 400
     count = question_bank.import_questions(questions)
     
     return jsonify({'success': True, 'imported': count})
@@ -800,7 +846,7 @@ def test_api():
         'ai_available': ai_client is not None,
         'bank_size': len(question_bank.questions),
         'subjects': len(VALID_SUBJECTS),
-        'version': '3.0.0 - Merged Pro',
+        'version': '3.1.0 - Corrected',
         'developer': 'youcef .b'
     })
 
