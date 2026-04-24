@@ -1,28 +1,36 @@
 # -*- coding: utf-8 -*-
+"""
+المطور: youcef .b
+الوصف: منصة توليد الاختبارات الذكية - المنهاج الجزائري الشامل
+التقنيات: Flask, Groq AI (Llama 3), JSON Bank
+"""
+
 from flask import Flask, request, jsonify, send_from_directory
 from groq import Groq
 from dotenv import load_dotenv
 import os
-import traceback
-import random
 import json
+import random
 import datetime
+import traceback
 
-# تحميل المتغيرات البيئية
+# ============================================================
+# 1. إعدادات البيئة والذكاء الاصطناعي
+# ============================================================
 load_dotenv()
-api_key = os.getenv('GROQ_API_KEY')
+API_KEY = os.getenv('GROQ_API_KEY')
 
-if api_key:
-    client = Groq(api_key=api_key)
-    print("✅ Groq client ready")
-else:
+if not API_KEY:
+    print("⚠️ تحذير: لم يتم العثور على مفتاح GROQ_API_KEY في ملف .env")
     client = None
-    print("❌ مفتاح Groq API غير موجود")
+else:
+    client = Groq(api_key=API_KEY)
+    print("✅ تم تهيئة عميل Groq بنجاح")
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 
 # ============================================================
-# 1. قاعدة بيانات المنهاج الجزائري (من كودك الأصلي)
+# 2. قاعدة بيانات المنهاج الجزائري (الشاملة لكل المواد والسنوات)
 # ============================================================
 CURRICULUM_DB = {
     "الرياضيات": {
@@ -34,20 +42,20 @@ CURRICULUM_DB = {
         "السنة الثانية متوسط": {
             "الفصل الأول": ["الأعداد الصحيحة والنسبية", "القوى", "الجذور"],
             "الفصل الثاني": ["المعادلات والمتراجحات من الدرجة الأولى", "الدوال", "الإحصاء"],
-            "الفصل الثالث": ["الزوايا المتقابلة والمتعامدة", "المتوازيات", "المثلثات المتشابهة", "متطابقات مبرهنة طاليس"]
+            "الفصل الثالث": ["الزوايا المتقابلة والمتعامدة", "المتوازيات", "المثلثات المتشابهة", "مبرهنة طاليس"]
         },
         "السنة الثالثة متوسط": {
             "الفصل الأول": ["الأعداد النسبية", "العمليات على الأعداد النسبية", "الأعداد الحقيقية"],
             "الفصل الثاني": ["المعادلات والمتراجحات", "الدوال التآلفية", "الإحصاء"],
-            "الفصل الثالث": ["النسب المثلثية", "المتجهات", "الهندسة في الفضاء"]
-        },
+            "الفصل الثالث": ["النسب المثلثية", "المتجهات", "الهندسة في الفضاء"]        },
         "السنة الرابعة متوسط": {
             "الفصل الأول": ["الأعداد الحقيقية والمعادلات من الدرجة الثانية", "الدوال", "التغيرات"],
             "الفصل الثاني": ["الإحصاء", "الدوال التآلفية والتآلفية العكسية", "الدوال التربيعية"],
             "الفصل الثالث": ["الهندسة في الفضاء", "المساحات والحجوم", "التشابه والتكافؤ"]
         }
     },
-    "اللغة العربية": {        "السنة الأولى متوسط": {
+    "اللغة العربية": {
+        "السنة الأولى متوسط": {
             "الفصل الأول": ["النص القرائي: الوطن والمواطنة", "الإملاء والتعبير", "النحو: المبتدأ والخبر"],
             "الفصل الثاني": ["النص القرائي: الأسرة والمجتمع", "الإملاء والتعبير", "النحو: الفاعل والمفعول به"],
             "الفصل الثالث": ["النص القرائي: البيئة والتنمية", "الإملاء والتعبير", "النحو: النعت والحال"]
@@ -88,15 +96,15 @@ CURRICULUM_DB = {
             "الفصل الأول": ["Compréhension: textes littéraires", "Grammaire: concordance des temps", "Vocabulaire: l'identité"],
             "الفصل الثاني": ["Expression écrite: l'essai", "Grammaire: les figures de style", "Vocabulaire: l'avenir"],
             "الفصل الثالث": ["Compréhension: textes philosophiques", "Grammaire: révision globale", "Vocabulaire: les valeurs"]
-        }
-    },
+        }    },
     "اللغة الإنجليزية": {
         "السنة الأولى متوسط": {
             "الفصل الأول": ["Present Simple", "Daily routines", "Family and friends"],
             "الفصل الثاني": ["Past Simple", "School life", "Hobbies and sports"],
             "الفصل الثالث": ["Future with 'going to'", "Food and health", "Environment"]
         },
-        "السنة الثانية متوسط": {            "الفصل الأول": ["Present Continuous", "Travelling", "Cities and countries"],
+        "السنة الثانية متوسط": {
+            "الفصل الأول": ["Present Continuous", "Travelling", "Cities and countries"],
             "الفصل الثاني": ["Comparatives and Superlatives", "Shopping", "Technology"],
             "الفصل الثالث": ["Present Perfect", "Music and films", "Traditions"]
         },
@@ -137,15 +145,15 @@ CURRICULUM_DB = {
         "السنة الأولى متوسط": {
             "الفصل الأول": ["التغذية عند الإنسان", "الجهاز الهضمي", "المواد الغذائية"],
             "الفصل الثاني": ["التنفس عند الإنسان", "الجهاز التنفسي", "تبادل الغازات"],
-            "الفصل الثالث": ["النباتات الزهرية", "التكاثر في النباتات", "البذور"]
-        },
+            "الفصل الثالث": ["النباتات الزهرية", "التكاثر في النباتات", "البذور"]        },
         "السنة الثانية متوسط": {
             "الفصل الأول": ["الجهاز الدوري", "الدم ومكوناته", "القلب والأوعية الدموية"],
             "الفصل الثاني": ["الجهاز البولي", "التنظيم الهرموني", "الجهاز العصبي"],
             "الفصل الثالث": ["التكاثر عند الإنسان", "الجهاز التناسلي", "النمو والتطور"]
         },
         "السنة الثالثة متوسط": {
-            "الفصل الأول": ["الخلايا والأنسجة", "الأغشية الخلوية", "التنظيم الخلوي"],            "الفصل الثاني": ["الوراثة", "الجينات والكروموسومات", "الشفرة الوراثية"],
+            "الفصل الأول": ["الخلايا والأنسجة", "الأغشية الخلوية", "التنظيم الخلوي"],
+            "الفصل الثاني": ["الوراثة", "الجينات والكروموسومات", "الشفرة الوراثية"],
             "الفصل الثالث": ["النظم البيئية", "التنوع الحيوي", "حماية البيئة"]
         },
         "السنة الرابعة متوسط": {
@@ -186,15 +194,15 @@ CURRICULUM_DB = {
             "الفصل الأول": ["الديمقراطية", "الانتخابات", "الأحزاب السياسية"],
             "الفصل الثاني": ["حقوق الإنسان", "الحرية", "المساواة"],
             "الفصل الثالث": ["السلام", "التسامح", "الحوار"]
-        },
-        "السنة الثالثة متوسط": {
+        },        "السنة الثالثة متوسط": {
             "الفصل الأول": ["الاقتصاد", "الموارد الطبيعية", "التنمية المستدامة"],
             "الفصل الثاني": ["البيئة", "التلوث", "حماية الطبيعة"],
             "الفصل الثالث": ["العولمة", "التحديات", "الهوية الوطنية"]
         },
         "السنة الرابعة متوسط": {
             "الفصل الأول": ["المواطنة الرقمية", "الأمن السيبراني", "المعلوماتية"],
-            "الفصل الثاني": ["المشاركة المدنية", "التطوع", "المجتمع المدني"],            "الفصل الثالث": ["الجزائر في العالم", "العلاقات الدولية", "الانفتاح"]
+            "الفصل الثاني": ["المشاركة المدنية", "التطوع", "المجتمع المدني"],
+            "الفصل الثالث": ["الجزائر في العالم", "العلاقات الدولية", "الانفتاح"]
         }
     },
     "التاريخ والجغرافيا": {
@@ -219,7 +227,7 @@ CURRICULUM_DB = {
             "الفصل الثالث": ["الجغرافيا: البحر الأبيض المتوسط", "الشرق الأوسط", "إفريقيا"]
         }
     },
-    "التربية الفنية": {
+    "التربية الفنية التشكيلية": {
         "السنة الأولى متوسط": {
             "الفصل الأول": ["الرسم الهندسي", "الأشكال الهندسية الأساسية", "التناظر"],
             "الفصل الثاني": ["الألوان", "الألوان الأساسية والثانوية", "الظل والنور"],
@@ -235,15 +243,15 @@ CURRICULUM_DB = {
             "الفصل الثاني": ["العمارة", "العمارة الإسلامية", "العمارة الجزائرية التقليدية"],
             "الفصل الثالث": ["المسرح", "الديكور", "الأزياء"]
         },
-        "السنة الرابعة متوسط": {
-            "الفصل الأول": ["السينما", "التصوير السينمائي", "المونتاج"],
+        "السنة الرابعة متوسط": {            "الفصل الأول": ["السينما", "التصوير السينمائي", "المونتاج"],
             "الفصل الثاني": ["الموسيقى", "الإيقاع", "الآلات الموسيقية"],
             "الفصل الثالث": ["الفن الرقمي", "التصميم الرقمي", "الرسوم المتحركة"]
         }
     },
     "التربية الموسيقية": {
         "السنة الأولى متوسط": {
-            "الفصل الأول": ["المقامات الموسيقية", "مقام البياتي", "مقام الراست"],            "الفصل الثاني": ["الإيقاع", "الأوزان الموسيقية", "الطبول"],
+            "الفصل الأول": ["المقامات الموسيقية", "مقام البياتي", "مقام الراست"],
+            "الفصل الثاني": ["الإيقاع", "الأوزان الموسيقية", "الطبول"],
             "الفصل الثالث": ["الأغنية الجزائرية", "الشعبي", "الراي"]
         },
         "السنة الثانية متوسط": {
@@ -284,25 +292,25 @@ CURRICULUM_DB = {
             "الفصل الثالث": ["التخطيط البدني", "التغذية الرياضية", "الإحماء والتمدد"]
         }
     },
-    "التربية العلمية والتكنولوجية": {
-        "السنة الأولى متوسط": {
-            "الفصل الأول": ["المواد والخصائص", "الحالات الفيزيائية", "الخلائط"],
-            "الفصل الثاني": ["الطاقة", "مصادر الطاقة", "التحولات"],
-            "الفصل الثالث": ["المعلوماتية", "الحاسوب", "البرمجة البسيطة"]
+    "الإعلام الآلي": {        "السنة الأولى متوسط": {
+            "الفصل الأول": ["مكونات الحاسوب", "نظام التشغيل", "معالجة النصوص"],
+            "الفصل الثاني": ["الإنترنت والبحث", "البريد الإلكتروني", "أمن المعلومات"],
+            "الفصل الثالث": ["البرمجة بلغة Scratch", "الخوارزميات البسيطة", "المشاريع"]
         },
         "السنة الثانية متوسط": {
-            "الفصل الأول": ["الكهرباء", "الدوائر", "السلامة"],
-            "الفصل الثاني": ["الميكانيكا", "الآلات البسيطة", "الفعالية"],            "الفصل الثالث": ["التكنولوجيا", "الروبوتات", "الأتمتة"]
+            "الفصل الأول": ["جدول البيانات Excel", "المخططات البيانية", "المعادلات"],
+            "الفصل الثاني": ["العروض التقديمية PowerPoint", "الوسائط المتعددة", "التصميم"],
+            "الفصل الثالث": ["الشبكات المحلية", "مشاركة الموارد", "أمن الشبكات"]
         },
         "السنة الثالثة متوسط": {
-            "الفصل الأول": ["الإلكترونيات", "الدوائر الإلكترونية", "الاستشعار"],
-            "الفصل الثاني": ["الطاقات المتجددة", "الشمسية", "الرياح"],
-            "الفصل الثالث": ["المشاريع التكنولوجية", "التصميم", "التنفيذ"]
+            "الفصل الأول": ["قواعد البيانات Access", "الجداول والاستعلامات", "النماذج والتقارير"],
+            "الفصل الثاني": ["البرمجة بلغة Python", "المتغيرات والشروط", "الحلقات التكرارية"],
+            "الفصل الثالث": ["الويب وتصميم المواقع HTML", "CSS basics", "نشر الموقع"]
         },
         "السنة الرابعة متوسط": {
-            "الفصل الأول": ["الشبكات", "الإنترنت", "الأمان الرقمي"],
-            "الفصل الثاني": ["البرمجة", "الخوارزميات", "التطبيقات"],
-            "الفصل الثالث": ["الذكاء الاصطناعي", "التعلم الآلي", "التطبيقات"]
+            "الفصل الأول": ["البرمجة كائنية التوجه OOP", "الدوال والكائنات", "المشاريع المتقدمة"],
+            "الفصل الثاني": ["الذكاء الاصطناعي Basics", "تعلم الآلة", "التطبيقات"],
+            "الفصل الثالث": ["الأمن السيبراني", "حماية البيانات", "أخلاقيات الرقمية"]
         }
     }
 }
@@ -312,600 +320,245 @@ VALID_GRADES = ["السنة الأولى متوسط", "السنة الثانية
 VALID_SEMESTERS = ["الفصل الأول", "الفصل الثاني", "الفصل الثالث"]
 
 # ============================================================
-# 2. أنظمة التحقق (من كودك الأصلي)
+# 3. إدارة بنك الأسئلة المحلي
 # ============================================================
-
-def validate_request(body: dict) -> tuple:
-    """التحقق الشامل من صحة البيانات المدخلة"""
-    required_fields = ['subject', 'grade', 'schoolYear', 'duration', 'examType', 'semester']
-    missing = [f for f in required_fields if not body.get(f)]
-
-    if missing:
-        return False, f"الحقول المفقودة: {', '.join(missing)}"
-
-    subject = body.get('subject')
-    if subject not in VALID_SUBJECTS:
-        return False, f"المادة '{subject}' غير معروفة."
-
-    grade = body.get('grade')
-    if grade not in VALID_GRADES:
-        return False, f"المستوى '{grade}' غير صالح."
-
-    semester = body.get('semester')
-    if semester and semester not in VALID_SEMESTERS:
-        return False, f"الفصل '{semester}' غير صالح."
-
-    mark = body.get('mark', '20')
-    if str(mark) != '20':
-        return False, "العلامة يجب أن تكون 20/20 في النظام الجزائري"
-
-    return True, "صالح"
-
-def get_curriculum_context(subject: str, grade: str, semester: str = None, topic: str = None) -> str:    """جلب سياق المنهاج للمادة والمستوى المحدد"""
-    subject_data = CURRICULUM_DB.get(subject, {})
-    grade_data = subject_data.get(grade, {})
-
-    context = f"=== المادة: {subject} | المستوى: {grade} ===\n"
-
-    if semester and semester in grade_data:
-        topics = grade_data[semester]
-        context += f"الفصل: {semester}\n"
-        context += f"المواضيع المقررة: {', '.join(topics)}\n"
-    else:
-        context += "المواضيع المقررة في جميع الفصول:\n"
-        for sem, topics in grade_data.items():
-            context += f"- {sem}: {', '.join(topics)}\n"
-
-    if topic:
-        context += f"\nالموضوع المطلوب التركيز عليه: {topic}\n"
-
-    # إضافة تعليمات خاصة حسب المادة
-    context += f"\n=== تعليمات خاصة بمادة {subject} ===\n"
-
-    if subject == "الرياضيات":
-        context += "- يجب أن تكون جميع الأسئلة حسابية أو هندسية أو إحصائية\n"
-        context += "- ممنوع ذكر أي مادة أخرى (لا فيزياء، لا علوم، لا لغة)\n"
-        context += "- استخدم الأرقام الرياضية الصحيحة\n"
-    elif subject == "اللغة العربية":
-        context += "- يجب أن تكون جميع الأسئلة في النحو والبلاغة والإملاء والتعبير\n"
-        context += "- ممنوع خلط اللغة العربية بأي لغة أخرى\n"
-        context += "- النصوص يجب أن تكون عربية فصحى\n"
-    elif subject == "اللغة الفرنسية":
-        context += "- يجب أن تكون جميع الأسئلة باللغة الفرنسية\n"
-        context += "- ممنوع استخدام العربية في الأسئلة أو النصوص\n"
-        context += "- التعليمات يجب أن تكون بالفرنسية\n"
-    elif subject == "اللغة الإنجليزية":
-        context += "- يجب أن تكون جميع الأسئلة باللغة الإنجليزية\n"
-        context += "- ممنوع استخدام العربية أو الفرنسية في الأسئلة\n"
-    elif subject == "العلوم الفيزيائية والتكنولوجيا":
-        context += "- يجب أن تكون جميع الأسئلة في الفيزياء والتكنولوجيا فقط\n"
-        context += "- ممنوع خلط الفيزياء بالكيمياء أو الأحياء\n"
-    elif subject == "علوم الطبيعة والحياة":
-        context += "- يجب أن تكون جميع الأسئلة في الأحياء والبيئة فقط\n"
-        context += "- ممنوع خلط الأحياء بالفيزياء أو الكيمياء\n"
-
-    context += f"\n=== ممنوع تماماً ===\n"
-    context += f"- ذكر أي مادة أخرى غير {subject}\n"
-    context += f"- خلط مواضيع من مستويات أخرى\n"
-    context += f"- أسئلة خارج المنهاج المحدد أعلاه\n"
-
-    return context
-def get_exam_structure(subject: str) -> str:
-    """الحصول على هيكل الاختبار المناسب للمادة"""
-
-    structures = {
-        "الرياضيات": """
-**التمرين الأول: المعرفة والمهارات (06 نقاط)**
-- سؤالين حسابيين مباشرين
-- يختبر المعارف الأساسية
-- توزيع: 03 + 03 نقاط
-
-**التمرين الثاني: التطبيق والتحليل (06 نقاط)**  
-- مسألة تتطلب 2-3 خطوات
-- تطبيق مباشر للقواعد
-- توزيع: 02 + 02 + 02 نقاط
-
-**الوضعية الإدماجية: التفكير والإبداع (08 نقاط)**
-- مسألة حياتية/واقعية معقدة
-- تتطلب 4-5 خطوات منطقية
-- تدمج عدة مفاهيم
-- توزيع: 02 + 02 + 02 + 02 نقاط
-""",
-        "اللغة العربية": """
-**النص القرائي (06 نقاط)**
-- استيعاب منظم (03 نقاط)
-- استيعاب المضمون (03 نقاط)
-
-**القواعد اللغوية (06 نقاط)**
-- النحو (03 نقاط)
-- الإملاء (03 نقاط)
-
-**التعبير الكتابي (08 نقاط)**
-- الوضعية الإدماجية
-- جودة التعبير والأفكار (04 نقاط)
-- التنظيم والترابط (02 نقاط)
-- الصحة اللغوية (02 نقاط)
-""",
-        "اللغة الفرنسية": """
-**Compréhension (06 points)**
-- Compréhension globale (03 points)
-- Compréhension détaillée (03 points)
-
-**Grammaire et vocabulaire (06 points)**
-- Grammaire (03 points)
-- Vocabulaire (03 points)
-
-**Expression écrite (08 points)**
-- Situation d'intégration
-- Richesse lexicale (03 points)
-- Correction grammaticale (03 points)
-- Cohérence et cohésion (02 points)""",
-        "اللغة الإنجليزية": """
-**Reading Comprehension (06 points)**
-- Global understanding (03 points)
-- Detailed comprehension (03 points)
-
-**Grammar and Vocabulary (06 points)**
-- Grammar (03 points)
-- Vocabulary (03 points)
-
-**Writing (08 points)**
-- Integration task
-- Content and ideas (03 points)
-- Language accuracy (03 points)
-- Organization (02 points)
-""",
-        "العلوم الفيزيائية والتكنولوجيا": """
-**التمرين الأول: المعرفة والمهارات (06 نقاط)**
-- أسئلة مباشرة على المفاهيم (03 نقاط)
-- تطبيقات بسيطة (03 نقاط)
-
-**التمرين الثاني: التحليل والتفسير (06 نقاط)**
-- تفسير ظواهر فيزيائية (03 نقاط)
-- تحليل تجارب (03 نقاط)
-
-**الوضعية الإدماجية (08 نقاط)**
-- مسألة تطبيقية مركبة
-- تصميم تجربة أو حل مشكلة تقنية
-- توزيع: 02 + 02 + 02 + 02 نقاط
-""",
-        "علوم الطبيعة والحياة": """
-**التمرين الأول: المعرفة والمهارات (06 نقاط)**
-- تشريح وأوظفة الأعضاء (03 نقاط)
-- العمليات الحيوية (03 نقاط)
-
-**التمرين الثاني: التحليل والتفسير (06 نقاط)**
-- تفسير ظواهر بيولوجية (03 نقاط)
-- تحليل علاقات بيئية (03 نقاط)
-
-**الوضعية الإدماجية (08 نقاط)**
-- مسألة بيئية أو صحية مركبة
-- حل مشكلة تتطلب فهم متعدد
-- توزيع: 02 + 02 + 02 + 02 نقاط
-""",
-        "التربية الإسلامية": """
-**التمرين الأول: العقيدة والعبادات (06 نقاط)**
-- أسئلة في التوحيد والإيمان (03 نقاط)
-- أحكام فقهية (03 نقاط)
-
-**التمرين الثاني: السيرة والأخلاق (06 نقاط)**- أحداث من السيرة النبوية (03 نقاط)
-- القيم الأخلاقية (03 نقاط)
-
-**الوضعية الإدماجية (08 نقاط)**
-- موقف حياتي يتطلب تطبيقاً شرعياً وأخلاقياً
-- توزيع: 02 + 02 + 02 + 02 نقاط
-""",
-        "التربية المدنية": """
-**التمرين الأول: المواطنة والحقوق (06 نقاط)**
-- مفاهيم المواطنة (03 نقاط)
-- الحقوق والواجبات (03 نقاط)
-
-**التمرين الثاني: المؤسسات والقانون (06 نقاط)**
-- المؤسسات العمومية (03 نقاط)
-- العدالة والقانون (03 نقاط)
-
-**الوضعية الإدماجية (08 نقاط)**
-- موقف مدني يتطلب تحليلاً وحلاً
-- توزيع: 02 + 02 + 02 + 02 نقاط
-""",
-        "التاريخ والجغرافيا": """
-**التمرين الأول: التاريخ (06 نقاط)**
-- تواريخ وأحداث (03 نقاط)
-- تحليل وقائع (03 نقاط)
-
-**التمرين الثاني: الجغرافيا (06 نقاط)**
-- خرائط ومواقع (03 نقاط)
-- تحليل بيئي (03 نقاط)
-
-**الوضعية الإدماجية (08 نقاط)**
-- ربط تاريخي-جغرافي
-- تحليل علاقة الإنسان بالمكان والزمان
-- توزيع: 02 + 02 + 02 + 02 نقاط
-"""
-    }
-
-    return structures.get(subject, """
-**التمرين الأول (06 نقاط)**
-- أسئلة مباشرة على المعارف الأساسية
-
-**التمرين الثاني (06 نقاط)**
-- أسئلة تطبيقية وتحليلية
-
-**الوضعية الإدماجية (08 نقاط)**
-- مسألة مركبة تدمج عدة مفاهيم
-""")
-
-def build_prompt(body: dict) -> str:
-    """بناء التعليمات المحسّنة حسب المادة مع التنوع"""
-    subject = body.get('subject')
-    grade = body.get('grade')
-    semester = body.get('semester')
-    topic = body.get('topic')
-    difficulty = body.get('difficulty', 'متوسط')
-
-    curriculum_context = get_curriculum_context(subject, grade, semester, topic)
-    exam_structure = get_exam_structure(subject)
-
-    difficulty_guidance = {
-        "سهل": "أسئلة مباشرة، لا تتطلب أكثر من خطوتين",
-        "متوسط": "أسئلة تتطلب 2-3 خطوات، بعض التفكير",
-        "صعب": "أسئلة مركبة تتطلب تحليلاً عميقاً، 3-5 خطوات"
-    }.get(difficulty, "متوسط")
-
-    variation = random.choice([
-        "استخدم أرقام مختلفة في كل مرة",
-        "غيّر سياق المسائل (رياضة، حياة يومية، تجارة)",
-        "استخدم أسماء شخصيات مختلفة",
-        "غيّر الأماكن (مدرسة، سوق، بيت)",
-        "استخدم وحدات قياس مختلفة",
-        "اجعل المسائل أكثر/أقل تعقيداً",
-        "استخدم أمثلة من الطبيعة",
-        "استخدم أمثلة من التكنولوجيا"
-    ])
-    random_seed = random.randint(1000, 9999)
-
-    if subject == "اللغة الفرنسية":
-        instruction_lang = "français"
-        content_lang = "français uniquement"
-    elif subject == "اللغة الإنجليزية":
-        instruction_lang = "English"
-        content_lang = "English only"
-    else:
-        instruction_lang = "العربية"
-        content_lang = "العربية الفصحى فقط"
-
-    prompt = f"""أنت مفتش تعليم جزائري متخصص في مادة {subject} للسنوات المتوسطة. مهمتك إنشاء {body.get('examType', 'اختبار')} احترافي يتوافق 100% مع المنهاج الجزائري الرسمي.
-
-=== معلومات الاختبار ===
-المادة: {subject} (ممنوع ذكر أي مادة أخرى)
-المستوى: {grade}
-الفصل الدراسي: {semester or 'غير محدد'}
-السنة الدراسية: {body.get('schoolYear')}
-المدة: {body.get('duration')}
-العلامة الكاملة: 20/20 (ثابتة)
-الموضوع: {topic or 'غير محدد - اختر من المنهاج'}
-مستوى الصعوبة: {difficulty} ({difficulty_guidance})
-تعليمات إضافية: {body.get('extra') or 'لا توجد'}
-=== سياق المنهاج الجزائري ===
-{curriculum_context}
-
-=== هيكل الاختبار الإلزامي (20 نقطة) ===
-{exam_structure}
-
-=== شروط صارمة ===
-1. **ممنوع تماماً**: ذكر أي مادة أخرى غير {subject}
-2. **ممنوع**: أسئلة خارج المنهاج المحدد أعلاه
-3. **ممنوع**: خلط مواضيع من مستويات أو فصول مختلفة
-4. **ممنوع**: وضع الكود داخل علامات markdown (```html)
-5. **ممنوع**: استخدام <input>, <button>, <form>, <script> في HTML
-6. **ممنوع**: خلط اللغات (المحتوى يجب أن يكون بـ {content_lang})
-7. **ممنوع**: أسئلة من نوع اختيار من متعدد (MCQ) - فقط أسئلة مفتوحة
-
-=== تعليمات التنوع (مهمة جداً) ===
-- **المتغير العشوائي #{random_seed}**: {variation}
-- يجب أن تكون هذه الأسئلة **مختلفة تماماً** عن أي اختبار سابق
-- غيّر الأرقام والسياقات في كل توليد
-- استخدم أمثلة حياتية متنوعة (رياضة، تجارة، منزل، مدرسة، طبيعة)
-- لا تكرر نفس المسائل التي تم توليدها سابقاً
-
-=== التنسيق المطلوب (HTML فقط) ===
-
-<div class="exam-container" style="font-family: 'Arial', sans-serif; max-width: 800px; margin: 0 auto; background: white; padding: 40px; direction: rtl;">
-
-    <!-- الترويسة الرسمية -->
-    <div class="header" style="text-align: center; border-bottom: 3px solid #1a5276; padding-bottom: 20px; margin-bottom: 30px;">
-        <h1 style="font-size: 24px; color: #1a5276; margin: 0;">الجمهورية الجزائرية الديمقراطية الشعبية</h1>
-        <h2 style="font-size: 20px; color: #2874a6; margin: 10px 0;">وزارة التربية الوطنية</h2>
-        <div style="background: #eaf2f8; padding: 15px; margin: 15px 0; border-radius: 5px;">
-            <p style="margin: 5px 0; font-size: 16px;"><strong>المادة:</strong> {subject}</p>
-            <p style="margin: 5px 0; font-size: 16px;"><strong>المستوى:</strong> {grade}</p>
-            <p style="margin: 5px 0; font-size: 16px;"><strong>الفصل:</strong> {semester or 'الفصل الدراسي'}</p>
-            <p style="margin: 5px 0; font-size: 16px;"><strong>السنة الدراسية:</strong> {body.get('schoolYear')}</p>
-            <p style="margin: 5px 0; font-size: 16px;"><strong>المدة:</strong> {body.get('duration')}</p>
-            <p style="margin: 5px 0; font-size: 16px;"><strong>العلامة:</strong> 20/20</p>
-        </div>
-    </div>
-
-    <!-- التمرين الأول -->
-    <div class="exercise" style="margin-bottom: 30px;">
-        <h2 style="color: #1a5276; border-right: 4px solid #2874a6; padding-right: 10px;">التمرين الأول (06 نقاط)</h2>
-        <!-- محتوى التمرين الأول -->
-    </div>
-
-    <!-- التمرين الثاني -->
-    <div class="exercise" style="margin-bottom: 30px;">
-        <h2 style="color: #1a5276; border-right: 4px solid #2874a6; padding-right: 10px;">التمرين الثاني (06 نقاط)</h2>
-        <!-- محتوى التمرين الثاني -->    </div>
-
-    <!-- الوضعية الإدماجية -->
-    <div class="exercise integration" style="margin-bottom: 30px; background: #fef9e7; padding: 20px; border-right: 4px solid #f39c12;">
-        <h2 style="color: #b7950b; border-right: 4px solid #f39c12; padding-right: 10px;">الوضعية الإدماجية (08 نقاط)</h2>
-        <!-- محتوى الوضعية الإدماجية -->
-    </div>
-
-    <!-- الإجابة النموذجية -->
-    <div class="answer-key" style="margin-top: 40px; border-top: 3px dashed #1a5276; padding-top: 30px; background: #f8f9fa; padding: 30px;">
-        <h2 style="color: #1a5276; text-align: center;">الإجابة النموذجية وسلّم التنقيط</h2>
-        <!-- الإجابات والتنقيط -->
-    </div>
-</div>
-
-=== تعليمات الجودة ===
-- المحتوى يجب أن يكون بـ {content_lang} فقط
-- اكتب الأرقام بالصيغة الرياضية الصحيحة
-- تأكد من أن الإجابات النموذجية صحيحة 100%
-- اشرح خطوات الحل بوضوح في الإجابة النموذجية
-- اذكر المعايير التي يتم على أساسها منح كل جزء من النقاط
-- **مهم**: اجعل كل سؤال فريداً وغير مكرر
-"""
-    return prompt
-
-def validate_generated_content(content: str, expected_subject: str) -> tuple:
-    """التحقق من جودة المحتوى المولّد وعدم خلط المواد"""
-    errors = []
-    warnings = []
-
-    all_subjects = set(VALID_SUBJECTS)
-    forbidden_subjects = all_subjects - {expected_subject}
-
-    for subject in forbidden_subjects:
-        if subject in content:
-            errors.append(f"❌ اكتشاف مادة أخرى في المحتوى: {subject}")
-
-    if 'الجمهورية الجزائرية' not in content:
-        errors.append("❌ الترويسة الرسمية مفقودة")
-
-    if '20/20' not in content and '20' not in content:
-        warnings.append("⚠️ العلامة الكاملة غير مذكورة بوضوح")
-
-    if 'إجابة' not in content and 'corrigé' not in content.lower() and 'answer' not in content.lower():
-        errors.append("❌ الإجابة النموذجية مفقودة")
-
-    if '```' in content:
-        errors.append("❌ وجود علامات markdown محظورة")
-
-    forbidden_tags = ['<input', '<button', '<form', '<script']    for tag in forbidden_tags:
-        if tag in content:
-            errors.append(f"❌ وجود عنصر HTML محظور: {tag}")
-
-    is_valid = len(errors) == 0
-    return is_valid, errors, warnings
-
-# ============================================================
-# 3. بنك الأسئلة المحلي (ميزة جديدة)
-# ============================================================
-QUESTION_BANK_FILE = 'question_bank.json'
+BANK_FILE = 'question_bank.json'
 
 def load_bank():
-    if os.path.exists(QUESTION_BANK_FILE):
-        with open(QUESTION_BANK_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
+    if os.path.exists(BANK_FILE):
+        try:
+            with open(BANK_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except:
+            return []
     return []
 
-def save_to_bank(new_questions):
+def save_to_bank(entry):
     bank = load_bank()
-    for q in new_questions:
-        q['generated_at'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-        q['id'] = random.randint(10000, 99999)
-    bank.extend(new_questions)
-    with open(QUESTION_BANK_FILE, 'w', encoding='utf-8') as f:
-        json.dump(bank, f, ensure_ascii=False, indent=2)
-    print(f"✅ تم حفظ {len(new_questions)} أسئلة جديدة في البنك.")
+    entry['id'] = random.randint(10000, 99999)
+    entry['date'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    bank.append(entry)
+    # نحتفظ بآخر 100 سؤال فقط لتجنب ضخامة الملف
+    if len(bank) > 100:
+        bank = bank[-100:]
+    with open(BANK_FILE, 'w', encoding='utf-8') as f:        json.dump(bank, f, ensure_ascii=False, indent=2)
 
 # ============================================================
-# 4. نقاط نهاية API (Endpoints)
+# 4. دوال بناء التعليمات (Prompts)
 # ============================================================
+
+def get_exam_structure_prompt(subject):
+    """هيكل الاختبار الإلزامي حسب المادة"""
+    structures = {
+        "الرياضيات": """
+**التمرين الأول (06 نقاط):** مسائل حسابية مباشرة أو هندسية بسيطة.
+**التمرين الثاني (06 نقاط):** مسألة تطبيقية تتطلب خطوتين أو ثلاث.
+**الوضعية الإدماجية (08 نقاط):** مسألة مركبة من واقع الحياة تدمج عدة مفاهيم.
+""",
+        "اللغة العربية": """
+**النص القرائي (06 نقاط):** أسئلة فهم وبناء لغوي.
+**القواعد والإملاء (06 نقاط):** إعراب، تحويل، إملاء.
+**التعبير الكتابي (08 نقاط):** موضوع إنشائي موجه.
+""",
+        "اللغة الفرنسية": """
+**Compréhension (06 points):** Questions sur un texte.
+**Langue (06 points):** Grammaire, conjugaison, vocabulaire.
+**Expression écrite (08 points):** Production écrite guidée.
+""",
+        "اللغة الإنجليزية": """
+**Reading Comprehension (06 points):** Text analysis.
+**Language Mastery (06 points):** Grammar and vocabulary tasks.
+**Written Expression (08 points):** Guided writing task.
+""",
+        "العلوم الفيزيائية": """
+**التمرين الأول (06 نقاط):** أسئلة معرفية وتطبيق مباشر للقوانين.
+**التمرين الثاني (06 نقاط):** تحليل تجربة أو ظاهرة فيزيائية.
+**الوضعية الإدماجية (08 نقاط):** حل مشكلة تقنية أو علمية معقدة.
+""",
+        "علوم الطبيعة والحياة": """
+**التمرين الأول (06 نقاط):** استرجاع المعارف العلمية.
+**التمرين الثاني (06 نقاط):** تحليل وثائق علمية.
+**الوضعية الإدماجية (08 نقاط):** حل وضعية مشكلة صحية أو بيئية.
+""",
+        "التاريخ والجغرافيا": """
+**الجزء الأول: التاريخ (10 نقاط):** دراسة وثائق تاريخية.
+**الجزء الثاني: الجغرافيا (10 نقاط):** دراسة حالة جغرافية.
+""",
+        "التربية الإسلامية": """
+**الجزء الأول: القرآن الكريم والحديث (06 نقاط).**
+**الجزء الثاني: العقيدة والفقه (06 نقاط).**
+**الجزء الثالث: السيرة والتهذيب (08 نقاط).**
+""",
+        "التربية المدنية": """
+**الجزء الأول: المفاهيم والمؤسسات (08 نقاط).****الجزء الثاني: الحقوق والواجبات (06 نقاط).**
+**الجزء الثالث: وضعية إدماجية (06 نقاط).**
+"""
+    }
+    return structures.get(subject, """
+**الجزء الأول (12 نقطة):** أسئلة متنوعة (معارف، تطبيق).
+**الجزء الثاني (08 نقاط):** وضعية إدماجية شاملة.
+""")
+
+def build_full_exam_prompt(data):
+    subject = data['subject']
+    grade = data['grade']
+    semester = data.get('semester', 'الفصل الأول')
+    topic = data.get('topic', '')
+    school = data.get('school', 'متوسطة نموذجية')
+    
+    # جلب المواضيع
+    topics_list = CURRICULUM_DB.get(subject, {}).get(grade, {}).get(semester, [])
+    topics_str = ", ".join(topics_list) if topics_list else "المنهاج العام"
+    
+    structure = get_exam_structure_prompt(subject)
+
+    prompt = f"""
+أنت مفتش تربوي جزائري خبير في مادة: {subject}.
+مهمتك: إنشاء اختبار فصلي احترافي للمستوى: {grade} ({semester}).
+
+=== البيانات التقنية ===
+المؤسسة: {school}
+السنة الدراسية: 2024/2025
+المدة: ساعتان
+العلامة: 20/20
+
+=== المحتوى العلمي ===
+المواضيع المقررة للفصل: {topics_str}
+الموضوع المحدد للتركيز عليه: {topic if topic else 'اختر مواضيع متنوعة من القائمة أعلاه'}
+
+=== هيكل الاختبار المطلوب ===
+{structure}
+
+=== شروط صارمة جداً ===
+1. **التنسيق:** يجب أن يكون المخرج HTML فقط (بدون علامات markdown مثل ```html).
+2. **الترويسة:** ابدأ بـ <div class="header"> تحتوي على "الجمهورية الجزائرية الديمقراطية الشعبية"، "وزارة التربية الوطنية"، واسم المؤسسة.
+3. **اللغة:** استخدم لغة أكاديمية رصينة. إذا كانت المادة لغة أجنبية، فالأسئلة بتلك اللغة فقط.
+4. **التنوع:** غير الأرقام والأسماء والسياقات لتكون فريدة وغير مكررة.
+5. **الإجابة:** ضع الإجابة النموذجية المفصلة في الأسفل داخل <div class="answer-key">.
+6. **المنهاج:** ممنوع الخروج عن مواضيع {grade} المذكورة أعلاه.
+
+ابدأ الآن بكتابة كود HTML للاختبار:
+"""
+    return prompt
+def build_smart_question_prompt(data):
+    subject = data['subject']
+    hint = data.get('hint', '')
+    grade = data['grade']
+    
+    return f"""
+أنت أستاذ خبير في مادة {subject}.
+أنشئ سؤالاً واحداً فريداً ومبتكراً للمستوى {grade}.
+التلميح/الموضوع: {hint}.
+
+أعد النتيجة بصيغة JSON فقط (بدون أي نص إضافي) بالمفاتيح التالية:
+- question_text: نص السؤال كاملاً.
+- answer_key: الإجابة النموذجية مع سلم التنقيط.
+- skills_tested: المهارة المستهدفة (مثال: التحليل، الحفظ، التطبيق).
+- variation_note: شرح بسيط لكيفية جعل هذا السؤال مختلفاً عن النمط التقليدي.
+"""
+
+# ============================================================
+# 5. مسارات التطبيق (Routes)
+# ============================================================
+
+@app.route('/')
+def index():
+    return send_from_directory('.', 'index.html')
 
 @app.route('/api/subjects', methods=['GET'])
 def get_subjects():
-    """جلب قائمة المواد المتاحة"""
     return jsonify({
-        'subjects': VALID_SUBJECTS,
-        'grades': VALID_GRADES,
+        'subjects': VALID_SUBJECTS, 
+        'grades': VALID_GRADES, 
         'semesters': VALID_SEMESTERS
     })
 
 @app.route('/api/topics', methods=['GET'])
 def get_topics():
-    """جلب المواضيع حسب المادة والمستوى والفصل"""
     subject = request.args.get('subject')
     grade = request.args.get('grade')
     semester = request.args.get('semester')
-
-    if not subject or not grade:
-        return jsonify({'error': 'المادة والمستوى مطلوبان'}), 400
-    if subject not in CURRICULUM_DB:
-        return jsonify({'error': 'المادة غير موجودة'}), 404
-
-    grade_data = CURRICULUM_DB[subject].get(grade, {})
-
-    if semester:
-        topics = grade_data.get(semester, [])
-        return jsonify({'semester': semester, 'topics': topics})
-
-    return jsonify({'grade': grade, 'semesters': grade_data})
+    
+    if not subject or not grade: 
+        return jsonify({'error': 'بيانات ناقصة'}), 400
+    
+    topics = CURRICULUM_DB.get(subject, {}).get(grade, {}).get(semester, [])
+    return jsonify({'topics': topics})
 
 @app.route('/api/generate', methods=['POST'])
-def generate():
-    """توليد اختبار كامل (من كودك الأصلي)"""
-    if not request.is_json:
-        return jsonify({'error': 'يجب إرسال البيانات بصيغة JSON'}), 400
-
-    if not api_key:
-        return jsonify({'error': 'مفتاح Groq API غير موجود'}), 500
-
-    try:
-        body = request.get_json()
-
-        is_valid, message = validate_request(body)
-        if not is_valid:
-            return jsonify({'error': message}), 400
-
-        subject = body.get('subject')
-        prompt = build_prompt(body)
-
-        chat_completion = client.chat.completions.create(
-            messages=[
-                {
-                    "role": "system", 
-                    "content": f"أنت مفتش تعليم جزائري خبير في مادة {subject} فقط. تولد اختبارات دقيقة ومنظمة تتوافق مع المنهاج الرسمي الجزائري. ممنوع ذكر أي مادة أخرى غير {subject}. اجعل كل اختبار فريداً وغير مكرر."
-                },
-                {
-                    "role": "user", 
-                    "content": prompt
-                }
-            ],
-            model="llama-3.3-70b-versatile",
-            temperature=0.8,
-            max_tokens=8000,
-            top_p=0.95,
-            frequency_penalty=0.5,
-            presence_penalty=0.3
-        )
-        result = chat_completion.choices[0].message.content
-
-        content_valid, errors, warnings = validate_generated_content(result, subject)
-
-        if not content_valid:
-            return jsonify({
-                'error': 'المحتوى المولّد لا يتوافق مع المعايير',
-                'details': errors,
-                'warnings': warnings,
-                'raw_result': result
-            }), 422
-
-        return jsonify({
-            'success': True,
-            'result': result,
-            'warnings': warnings if warnings else None,
-            'validation': {
-                'subject': subject,
-                'subject_isolation': '✅ لا يوجد خلط مع مواد أخرى',
-                'mark_distribution': '06 + 06 + 08 = 20',
-                'curriculum_aligned': True,
-                'variation_applied': True
-            }
-        })
-
-    except Exception as e:
-        traceback.print_exc()
-        return jsonify({'error': f'فشل التوليد: {str(e)}'}), 500
-
-@app.route('/api/generate_smart_question', methods=['POST'])
-def generate_smart_question():
-    """توليد سؤال ذكي بناءً على تلميح وحفظه في البنك (ميزة جديدة)"""
+def generate_exam():
     if not client:
-        return jsonify({'error': 'API Key missing'}), 500
-
-    data = request.json
-    subject = data.get('subject')
-    grade = data.get('grade')
-    semester = data.get('semester')
-    hint = data.get('hint', '') 
-    difficulty = data.get('difficulty', 'متوسط')
-    exam_type = data.get('exam_type', 'فرض')
-
+        return jsonify({'error': 'مفتاح API غير موجود. تأكد من ملف .env'}), 500    
     try:
-        # برومبت خاص بالسؤال الواحد
-        subject_context = CURRICULUM_DB.get(subject, {}).get(grade, {}).get(semester, [])
-        topics_str = ", ".join(subject_context) if subject_context else "المنهاج العام"
-
-        prompt = f"""
-أنت "الأستاذ الخبير" وعضو لجنة صياغة امتحانات شهادة التعليم المتوسط (BEM) في الجزائر. لديك خبرة 20 عاماً في وضع الفروض والاختبارات.
-**المهمة:** إنشاء سؤال أو تمرين واحد فريد من نوعه لمادة: {subject}.
-**المستوى:** {grade} | **الفصل:** {semester}.
-**نوع الاختبار:** {exam_type}.
-**مستوى الصعوبة:** {difficulty}.
-
-**التوجيهات الذهبية (يجب الالتزام بها حرفياً):**
-1. **محاكاة الواقع:** استرجع أنماط الأسئلة التي ترد في امتحانات السنوات الماضية (2010-2023) من مختلف الولايات.
-2. **التغيير الجذري:** إذا كان السؤال عن "حساب مساحة حديقة"، اجعله هذه المرة عن "حساب مساحة ملعب كرة قدم" أو "قطعة أرض فلاحية". غيّر الأرقام تماماً.
-3. **التلميح المقدم:** المستخدم أعطى تلميحاً: "{hint}". ركز السؤال حول هذا المفهوم ولكن بربطه بمفهوم آخر من المنهاج (تكامل المعارف).
-4. **اللغة:** استخدم لغة عربية أكاديمية رصينة (أو اللغة المناسبة للمادة).
-5. **التنسيق:** أعطني النتيجة بصيغة JSON فقط تحتوي على:
-   - `question_text`: نص السؤال كاملاً.
-   - `answer_key`: الإجابة النموذجية التفصيلية مع سلم التنقيط.
-   - `skills_tested`: المهارات التي يقيسها السؤال.
-   - `variation_note`: ماذا غيرت في هذا السؤال مقارنة بالنمط التقليدي؟
-
-ابدأ الآن بتوليد السؤال بناءً على التلميح: "{hint}"
-"""
+        data = request.json
+        prompt = build_full_exam_prompt(data)
         
-        chat_completion = client.chat.completions.create(
+        completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
             messages=[
-                {"role": "system", "content": "أنت خبير تربوي جزائري. تجيب فقط بصيغة JSON."},
+                {"role": "system", "content": "أنت مولد اختبارات جزائري دقيق. تخرج كود HTML نظيف فقط."},
                 {"role": "user", "content": prompt}
             ],
-            model="llama-3.3-70b-versatile",
-            temperature=0.9,
-            response_format={"type": "json_object"}
+            temperature=0.7,
+            max_tokens=4000
         )
-
-        result_json = json.loads(chat_completion.choices[0].message.content)
         
-        question_entry = {
-            "subject": subject,
-            "grade": grade,
-            "semester": semester,
-            "hint_used": hint,
-            "data": result_json
-        }
+        html_content = completion.choices[0].message.content
+        
+        # تنظيف المخرجات من أي شوائب
+        html_content = html_content.replace('```html', '').replace('```', '').strip()
+        
+        # التحقق الأساسي من وجود الترويسة
+        if "الجمهورية الجزائرية" not in html_content:
+            html_content = f'<div class="header"><h2>الجمهورية الجزائرية الديمقراطية الشعبية</h2><h3>وزارة التربية الوطنية</h3></div>' + html_content
 
-        save_to_bank([question_entry])
-
-        return jsonify({
-            "success": True,
-            "question": result_json
-        })
-
+        return jsonify({'success': True, 'result': html_content})
+        
     except Exception as e:
         traceback.print_exc()
+        return jsonify({'error': f'خطأ في التوليد: {str(e)}'}), 500
+
+@app.route('/api/generate_smart_question', methods=['POST'])
+def generate_smart():
+    if not client:
+        return jsonify({'error': 'مفتاح API غير موجود'}), 500
+        
+    try:
+        data = request.json
+        prompt = build_smart_question_prompt(data)
+        
+        completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": "أنت خبير أسئلة. تجيب بـ JSON صالح فقط."},
+                {"role": "user", "content": prompt}
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.9
+        )
+        
+        result_json = json.loads(completion.choices[0].message.content)        
+        # الحفظ في البنك
+        save_to_bank({
+            'subject': data['subject'],
+            'grade': data['grade'],
+            'hint': data.get('hint', ''),
+            'data': result_json
+        })
+        
+        return jsonify({'success': True, 'question': result_json})
+        
+    except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 @app.route('/api/bank/search', methods=['GET'])
 def search_bank():
-    """البحث في بنك الأسئلة المتراكم"""
-    query = request.args.get('q', '').lower()
-    subject = request.args.get('subject', '')
-    
+    q = request.args.get('q', '').lower()
     bank = load_bank()
-    results = []
-    
-    for item in bank:
-        if subject and item['subject'] != subject:
-            continue
-            
-        q_text = item['data'].get('question_text', '').lower()
-        hint = item.get('hint_used', '').lower()
-        
-        if query in q_text or query in hint:
-            results.append(item)
-            
-    random.shuffle(results)
-    return jsonify({"count": len(results), "questions": results[:10]})
-
-@app.route('/')
-def home():
-    return send_from_directory('.', 'index.html')
+    results = [item for item in bank if q in item.get('hint', '').lower() or q in item['data'].get('question_text', '').lower()]
+    return jsonify({'questions': results[:10]})
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    print("🚀 جاري تشغيل خادم الاختبارات...")
+    print("📂 تأكد من وجود ملف index.html في نفس المجلد")
+    app.run(debug=True, port=5000, host='0.0.0.0')
