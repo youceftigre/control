@@ -3,238 +3,135 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>موسوعة الاختبارات الجزائرية - بنك الأسئلة الذكي</title>
+    <title>مولّد الاختبارات التربوية – المنهاج الجزائري</title>
     <style>
         :root {
-            --primary: #1e3a5f;
-            --secondary: #2c5282;
-            --accent: #d69e2e;
-            --bg: #f8fafc;
+            --primary: #1a1a1a;
+            --accent: #2c5282;
+            --bg: #f5f5f5;
             --card: #ffffff;
-            --text: #2d3748;
-            --border: #e2e8f0;
+            --border: #000000;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
             background: var(--bg);
-            font-family: 'Segoe UI', 'Traditional Arabic', Tahoma, sans-serif;
+            padding: 20px;
+            font-family: 'Traditional Arabic', 'Arial', sans-serif;
             line-height: 1.8;
-            color: var(--text);
+            color: var(--primary);
         }
 
         .container {
             max-width: 900px;
             margin: 0 auto;
-            padding: 20px;
+            background: var(--card);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
         }
 
         /* Header */
-        .main-header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            color: white;
-            padding: 25px;
-            border-radius: 16px;
-            margin-bottom: 25px;
+        .app-header {
             text-align: center;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--accent);
         }
 
-        .main-header h1 {
-            font-size: 1.6rem;
-            margin-bottom: 8px;
+        h1 {
+            font-size: 1.8rem;
+            color: var(--accent);
+            margin-bottom: 10px;
         }
 
-        .developer-info {
-            background: rgba(255,255,255,0.15);
-            padding: 12px;
-            border-radius: 10px;
-            margin-top: 15px;
-            display: inline-block;
-        }
-
-        .developer-info .name {
-            font-size: 1.1rem;
-            font-weight: bold;
-            color: #ffd700;
-        }
-
-        .developer-info .email {
-            font-size: 0.9rem;
-            direction: ltr;
-            margin-top: 3px;
-        }
-
-        /* Search Box - متغير حسب المادة */
-        .search-box {
-            background: #fffaf0;
-            border: 3px dashed var(--accent);
-            padding: 25px;
-            border-radius: 20px;
+        /* Form */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
             margin-bottom: 25px;
-            text-align: center;
-        }
-
-        .search-box h2 {
-            color: var(--primary);
-            margin-bottom: 15px;
-            font-size: 1.2rem;
-        }
-
-        .search-box input {
-            width: 100%;
-            padding: 15px 20px;
-            border: 2px solid var(--border);
-            border-radius: 14px;
-            font-size: 1.1rem;
-            text-align: right;
-            margin-bottom: 15px;
-            transition: all 0.3s;
-        }
-
-        .search-box input:focus {
-            border-color: var(--accent);
-            outline: none;
-            box-shadow: 0 0 0 4px rgba(214, 158, 46, 0.2);
-        }
-
-        /* Tags - متغيرة حسب المادة */
-        .tags-container {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: center;
-            margin-top: 10px;
-        }
-
-        .tag {
-            background: var(--accent);
-            color: white;
-            padding: 8px 18px;
-            border-radius: 25px;
-            font-size: 0.95rem;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: none;
-            font-family: inherit;
-        }
-
-        .tag:hover {
-            background: #b7791f;
-            transform: scale(1.05);
-        }
-
-        .tag.active {
-            background: var(--primary);
-        }
-
-        /* Form Fields */
-        .form-section {
-            background: var(--card);
-            padding: 25px;
-            border-radius: 16px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 20px;
+            background: #fafafa;
+            border-radius: 8px;
         }
 
         .field-group {
-            margin-bottom: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
         }
 
-        .field-group label {
-            display: block;
-            font-weight: 600;
-            color: var(--primary);
-            margin-bottom: 8px;
-            font-size: 1rem;
+        .field-group.full-width {
+            grid-column: 1 / -1;
         }
 
-        .field-group label .icon {
-            margin-left: 8px;
+        label {
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: var(--accent);
         }
 
-        .field-group select,
-        .field-group input {
-            width: 100%;
-            padding: 14px 18px;
-            border: 2px solid var(--border);
-            border-radius: 14px;
-            font-size: 1rem;
-            background: white;
+        input, select, textarea {
+            padding: 10px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 0.95rem;
             font-family: inherit;
-            transition: all 0.2s;
         }
 
-        .field-group select:focus,
-        .field-group input:focus {
-            border-color: var(--secondary);
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--accent);
             outline: none;
         }
 
-        /* Generate Button */
+        /* Button */
         .btn-generate {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            background: var(--accent);
             color: white;
             border: none;
-            padding: 16px 40px;
-            font-size: 1.2rem;
+            padding: 14px 32px;
+            font-size: 1.1rem;
             font-weight: bold;
-            border-radius: 50px;
+            border-radius: 6px;
             cursor: pointer;
             display: block;
-            margin: 25px auto;
-            transition: all 0.3s;
-            box-shadow: 0 6px 20px rgba(30, 58, 95, 0.3);
+            margin: 20px auto;
+            transition: all 0.2s;
         }
 
         .btn-generate:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(30, 58, 95, 0.4);
+            background: #1a365d;
+            transform: translateY(-1px);
         }
 
         .btn-generate:disabled {
-            background: #a0aec0;
+            background: #999;
             cursor: not-allowed;
             transform: none;
         }
 
-        /* Output */
-        .output-section {
-            display: none;
-            margin-top: 25px;
+        /* Status */
+        #status {
+            text-align: center;
+            padding: 10px;
+            margin: 15px 0;
+            border-radius: 4px;
+            background: #e2e8f0;
+            color: var(--accent);
+            font-weight: 500;
         }
 
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-
-        .btn-action {
-            padding: 10px 22px;
-            border: none;
-            border-radius: 25px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 0.95rem;
-        }
-
-        .btn-word { background: #2b579a; color: white; }
-        .btn-pdf { background: #c0392b; color: white; }
-        .btn-edit { background: var(--accent); color: white; }
-
+        /* A4 Paper */
         .a4-paper {
             width: 210mm;
             min-height: 297mm;
             background: white;
-            margin: 0 auto;
+            margin: 20px auto;
             padding: 20mm;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            border: 1px solid #e2e8f0;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border: 1px solid #ddd;
         }
 
         .paper-content {
@@ -242,56 +139,137 @@
             line-height: 1.8;
         }
 
-        /* Footer */
-        .footer {
+        /* Exam Header */
+        .exam-header {
             text-align: center;
-            padding: 25px;
-            margin-top: 40px;
-            background: var(--primary);
-            color: white;
-            border-radius: 16px;
+            margin-bottom: 20px;
         }
 
-        .footer .developer {
-            font-size: 1.1rem;
+        .exam-header .republic {
+            font-size: 14px;
             font-weight: bold;
-            color: #ffd700;
+            margin-bottom: 5px;
         }
 
-        .footer .email {
-            direction: ltr;
-            margin-top: 5px;
-            font-size: 0.9rem;
+        .exam-header .ministry {
+            font-size: 13px;
+            margin-bottom: 10px;
         }
 
-        /* Loading */
-        .loading {
+        .exam-header .exam-info {
+            font-size: 12px;
+            margin: 5px 0;
+        }
+
+        .exam-header .exam-title {
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px 0;
+            text-decoration: underline;
+        }
+
+        .exam-header .level {
+            font-size: 13px;
+        }
+
+        /* Exam Sections */
+        .exam-section {
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-weight: bold;
+            text-decoration: underline;
+            margin-bottom: 15px;
+            font-size: 13pt;
+        }
+
+        .exercise {
+            margin-bottom: 18px;
+        }
+
+        .exercise-title {
+            font-weight: bold;
+            text-decoration: underline;
+            margin-bottom: 10px;
+        }
+
+        .exercise-content {
+            padding-right: 20px;
+        }
+
+        /* Correction Table */
+        .correction-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            font-size: 11pt;
+        }
+
+        .correction-table th,
+        .correction-table td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: right;
+            vertical-align: top;
+        }
+
+        .correction-table th {
+            background-color: #f0f0f0;
+            font-weight: bold;
             text-align: center;
-            padding: 40px;
         }
 
-        .loading-spinner {
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid var(--primary);
-            border-radius: 50%;
-            width: 45px;
-            height: 45px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 15px;
+        .correction-table .points {
+            text-align: center;
+            width: 10%;
         }
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .correction-table .total {
+            text-align: center;
+            width: 10%;
         }
 
-        /* Print */
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .btn-action {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+
+        .btn-word {
+            background: #2b579a;
+            color: white;
+        }
+
+        .btn-pdf {
+            background: #c0392b;
+            color: white;
+        }
+
+        .btn-edit {
+            background: var(--accent);
+            color: white;
+        }
+
+        /* Print Styles */
         @media print {
-            body { background: white; }
-            .main-header, .search-box, .form-section, .btn-generate, .action-buttons, .footer {
+            body { background: white; padding: 0; }
+            .container { box-shadow: none; padding: 0; }
+            .form-grid, .btn-generate, .action-buttons, #status {
                 display: none !important;
             }
-            .output-section { display: block !important; }
             .a4-paper {
                 width: 100%;
                 border: none;
@@ -300,59 +278,53 @@
             }
         }
 
-        @media (max-width: 600px) {
-            .container { padding: 10px; }
-            .main-header h1 { font-size: 1.3rem; }
-            .a4-paper { width: 100%; padding: 15px; }
-            .tags-container { gap: 6px; }
-            .tag { padding: 6px 12px; font-size: 0.85rem; }
+        @media (max-width: 800px) {
+            .a4-paper {
+                width: 100%;
+                padding: 15px;
+            }
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <!-- Header -->
-    <div class="main-header">
-        <h1>📚 موسوعة الاختبارات الجزائرية</h1>
-        <p>بنك الأسئلة الذكي - المنهاج الرسمي</p>
-
-        <div class="developer-info">
-            <div class="name">⚙️ youcef .b</div>
-            <div class="email">📧 youcefbenhamidaa@gmail.com</div>
+    
+    <!-- ─── Developer Info ─── -->
+    <div style="text-align: center; margin-bottom: 20px; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; color: white;">
+        <div style="font-size: 1.3rem; font-weight: bold; margin-bottom: 8px;">
+            ⚙️ تطوير: <span style="color: #ffd700;">youcef .b</span>
+        </div>
+        <div style="font-size: 1rem; direction: ltr;">
+            📧 <a href="mailto:youcefbenhamidaa@gmail.com" style="color: #ffd700; text-decoration: none;">youcefbenhamidaa@gmail.com</a>
+        </div>
+        <div style="font-size: 0.85rem; margin-top: 8px; opacity: 0.9;">
+            © 2025 جميع الحقوق محفوظة
         </div>
     </div>
-
-    <!-- Search Box - Tags تتغير حسب المادة -->
-    <div class="search-box">
-        <h2>🔍 اكتب كلمة أو تلميح للبحث عن سؤال:</h2>
-        <input type="text" id="hintInput" placeholder="مثال: جذر, معادلة, دائرة...">
-
-        <div class="tags-container" id="tagsContainer">
-            <!-- Tags ستتغير حسب المادة المختارة -->
-        </div>
+<div class="app-header">
+        <h1>📋 مولّد الاختبارات التربوية</h1>
+        <p>المنهاج الجزائري - التعليم المتوسط</p>
     </div>
 
-    <!-- Form -->
-    <div class="form-section">
+    <div class="form-grid">
         <div class="field-group">
-            <label><span class="icon">📚</span> المادة</label>
-            <select id="subject" onchange="updateTags()">
+            <label>📚 المادة *</label>
+            <select id="subject">
+                <option value="">اختر...</option>
                 <option value="الرياضيات" selected>الرياضيات</option>
                 <option value="اللغة العربية">اللغة العربية</option>
-                <option value="اللغة الفرنسية">اللغة الفرنسية</option>
-                <option value="اللغة الإنجليزية">اللغة الإنجليزية</option>
-                <option value="العلوم الفيزيائية والتكنولوجيا">العلوم الفيزيائية</option>
-                <option value="علوم الطبيعة والحياة">علوم الطبيعة</option>
-                <option value="التربية الإسلامية">التربية الإسلامية</option>
-                <option value="التاريخ والجغرافيا">التاريخ والجغرافيا</option>
-                <option value="التربية المدنية">التربية المدنية</option>
+                <option value="العلوم الفيزيائية والتكنولوجيا">العلوم الفيزيائية والتكنولوجيا</option>
             </select>
         </div>
 
         <div class="field-group">
-            <label><span class="icon">🎓</span> المستوى</label>
-            <select id="grade" onchange="updateTags()">
+            <label>🎓 المستوى *</label>
+            <select id="grade">
+                <option value="">اختر...</option>
                 <option value="السنة الأولى متوسط">الأولى متوسط</option>
                 <option value="السنة الثانية متوسط">الثانية متوسط</option>
                 <option value="السنة الثالثة متوسط" selected>الثالثة متوسط</option>
@@ -361,8 +333,9 @@
         </div>
 
         <div class="field-group">
-            <label><span class="icon">📖</span> الفصل</label>
-            <select id="semester" onchange="updateTags()">
+            <label>📖 الفصل *</label>
+            <select id="semester">
+                <option value="">اختر...</option>
                 <option value="الفصل الأول">الأول</option>
                 <option value="الفصل الثاني" selected>الثاني</option>
                 <option value="الفصل الثالث">الثالث</option>
@@ -370,345 +343,158 @@
         </div>
 
         <div class="field-group">
-            <label><span class="icon">⚖️</span> الصعوبة</label>
+            <label>🏫 المؤسسة</label>
+            <input type="text" id="school" value="مدرسة التربية لولاية الجزائر شرق">
+        </div>
+
+        <div class="field-group">
+            <label>📅 السنة الدراسية *</label>
+            <input type="text" id="schoolYear" value="2024/2025">
+        </div>
+
+        <div class="field-group">
+            <label>⏱️ المدة *</label>
+            <input type="text" id="duration" value="ساعتان">
+        </div>
+
+        <div class="field-group">
+            <label>📝 نوع الفرض *</label>
+            <select id="examType">
+                <option value="اختبار" selected>اختبار</option>
+                <option value="فرض">فرض</option>
+                <option value="امتحان">امتحان</option>
+            </select>
+        </div>
+
+        <div class="field-group">
+            <label>⚖️ الصعوبة</label>
             <select id="difficulty">
                 <option value="سهل">سهل</option>
                 <option value="متوسط" selected>متوسط</option>
                 <option value="صعب">صعب</option>
             </select>
         </div>
+
+        <div class="field-group full-width">
+            <label>🔖 الموضوع (اختياري)</label>
+            <input type="text" id="topic" placeholder="اتركه فارغاً للاختيار التلقائي">
+        </div>
     </div>
 
-    <!-- Generate Button -->
-    <button class="btn-generate" id="generateBtn" onclick="generateExam()">
-        ✨ توليد الاختبار
-    </button>
+    <button class="btn-generate" onclick="generateExam()">✨ توليد الاختبار</button>
 
-    <!-- Output -->
-    <div class="output-section" id="outputSection">
-        <div class="action-buttons">
-            <button class="btn-action btn-word" onclick="downloadWord()">📄 Word</button>
-            <button class="btn-action btn-pdf" onclick="downloadPDF()">📕 PDF</button>
-            <button class="btn-action btn-edit" onclick="toggleEdit()">✏️ تعديل</button>
-        </div>
+    <div id="status" style="display: none;"></div>
 
-        <div class="a4-paper" id="a4Paper">
-            <div class="paper-content" id="output">
-                <div style="text-align: center; padding: 50px; color: #999;">
-                    <h2>📄 ورقة الاختبار</h2>
-                    <p>املأ الحقول واضغط "توليد الاختبار"</p>
-                </div>
+    <div class="action-buttons" id="actionButtons" style="display: none;">
+        <button class="btn-action btn-word" onclick="downloadWord()">📄 Word</button>
+        <button class="btn-action btn-pdf" onclick="downloadPDF()">📕 PDF</button>
+        <button class="btn-action btn-edit" onclick="toggleEdit()">✏️ تعديل</button>
+    </div>
+
+    <div class="a4-paper" id="a4Paper">
+        <div class="paper-content" id="output">
+            <div style="text-align: center; padding: 50px; color: #999;">
+                <h2>📄 ورقة الاختبار</h2>
+                <p>املأ الحقول واضغط "توليد الاختبار"</p>
             </div>
-        </div>
-    </div>
-
-    <!-- Footer -->
-    <div class="footer">
-        <div class="developer">⚙️ تم التطوير بواسطة: youcef .b</div>
-        <div class="email">📧 youcefbenhamidaa@gmail.com</div>
-        <div style="margin-top: 10px; font-size: 0.85rem;">
-            © 2025 - موسوعة الاختبارات الجزائرية
         </div>
     </div>
 </div>
 
 <script>
-// كلمات البحث حسب المادة والمستوى والفصل
-const TAGS_DATABASE = {
-    "الرياضيات": {
-        "السنة الرابعة متوسط": {
-            "الفصل الأول": ["PGCD", "معادلة", "دائرة", "جذر", "فلاح", "هندسة", "إحصاء"],
-            "الفصل الثاني": ["دالة تآلفية", "دالة تربيعية", "تمثيل بياني", "إحصاء", "احتمال"],
-            "الفصل الثالث": ["هندسة فضاء", "مساحة", "حجم", "تشابه", "متجهات"]
-        },
-        "السنة الثالثة متوسط": {
-            "الفصل الأول": ["أعداد نسبية", "جذر", "عمليات", "تبسيط"],
-            "الفصل الثاني": ["معادلة", "متراجحة", "دالة", "تمثيل بياني"],
-            "الفصل الثالث": ["نسب مثلثية", "متجهات", "هندسة فضاء", "زاوية"]
-        },
-        "السنة الثانية متوسط": {
-            "الفصل الأول": ["أعداد صحيحة", "قوى", "جذور", "ترتيب"],
-            "الفصل الثاني": ["معادلة", "متراجحة", "نسبة", "تناسب"],
-            "الفصل الثالث": ["زوايا", "متوازيات", "مثلثات", "تشابه"]
-        },
-        "السنة الأولى متوسط": {
-            "الفصل الأول": ["أعداد طبيعية", "أولي", "قاسم", "PGCD"],
-            "الفصل الثاني": ["كسور", "نسبة", "تناسب", "معادلة"],
-            "الفصل الثالث": ["زوايا", "مثلث", "دائرة", "محيط"]
-        }
-    },
-    "اللغة العربية": {
-        "السنة الرابعة متوسط": {
-            "الفصل الأول": ["نص قرائي", "استعارة", "تشبيه", "كناية", "إملاء"],
-            "الفصل الثاني": ["نص قرائي", "مجاز", "تورية", "إشارة", "تعبير"],
-            "الفصل الثالث": ["نص قرائي", "بلاغة", "نحو", "صرف", "إنشاء"]
-        }
-    },
-    "اللغة الفرنسية": {
-        "السنة الرابعة متوسط": {
-            "الفصل الأول": ["Compréhension", "Grammaire", "Vocabulaire", "Passé composé"],
-            "الفصل الثاني": ["Expression", "Subjonctif", "Conditionnel", "Futur"],
-            "الفصل الثالث": ["Lecture", "Figures de style", "Concordance", "Essai"]
-        }
-    },
-    "اللغة الإنجليزية": {
-        "السنة الرابعة متوسط": {
-            "الفصل الأول": ["Reading", "Grammar", "Vocabulary", "Present perfect"],
-            "الفصل الثاني": ["Writing", "Conditionals", "Passive voice", "Reported speech"],
-            "الفصل الثالث": ["Comprehension", "Modal verbs", "Phrasal verbs", "Essay"]
-        }
-    },
-    "العلوم الفيزيائية والتكنولوجيا": {
-        "السنة الرابعة متوسط": {
-            "الفصل الأول": ["كهرباء متردد", "محول", "تيار", "جهد"],
-            "الفصل الثاني": ["حركة دائرية", "قمر صناعي", "جاذبية", "سرعة"],
-            "الفصل الثالث": ["طاقة نووية", "تفاعل", "انشطار", "اندماج"]
-        }
-    },
-    "علوم الطبيعة والحياة": {
-        "السنة الرابعة متوسط": {
-            "الفصل الأول": ["بكتيريا", "فيروس", "مناعة", "لقاح"],
-            "الفصل الثاني": ["جهاز مناعي", "أجسام مضادة", "التهاب", "عدوى"],
-            "الفصل الثالث": ["هندسة وراثية", "تكنولوجيا حيوية", "استنساخ", "DNA"]
-        }
-    },
-    "التربية الإسلامية": {
-        "السنة الرابعة متوسط": {
-            "الفصل الأول": ["فقه", "معاملة", "بيع", "رهن"],
-            "الفصل الثاني": ["أسرة", "زواج", "طلاق", "نفقة"],
-            "الفصل الثالث": ["قضاء", "شورى", "مواطنة", "عدل"]
-        }
-    },
-    "التاريخ والجغرافيا": {
-        "السنة الرابعة متوسط": {
-            "الفصل الأول": ["عولمة", "أمم متحدة", "منظمات", "تحديات"],
-            "الفصل الثاني": ["تحرر", "استقلال", "ثورة", "بناء"],
-            "الفصل الثالث": ["متوسط", "شرق أوسط", "إفريقيا", "علاقات"]
-        }
-    },
-    "التربية المدنية": {
-        "السنة الرابعة متوسط": {
-            "الفصل الأول": ["مواطنة رقمية", "أمن سبراني", "معلوماتية"],
-            "الفصل الثاني": ["مشاركة", "تطوع", "مجتمع مدني"],
-            "الفصل الثالث": ["علاقات دولية", "انفتاح", "تعاون"]
-        }
-    }
-};
+const API_BASE = '';
+let isEditMode = false;
 
-// تحديث الـ Tags حسب المادة والمستوى والفصل
-function updateTags() {
-    const subject = document.getElementById('subject').value;
-    const grade = document.getElementById('grade').value;
-    const semester = document.getElementById('semester').value;
-
-    const container = document.getElementById('tagsContainer');
-    container.innerHTML = '';
-
-    // جلب Tags المناسبة
-    let tags = [];
-    if (TAGS_DATABASE[subject] && TAGS_DATABASE[subject][grade] && TAGS_DATABASE[subject][grade][semester]) {
-        tags = TAGS_DATABASE[subject][grade][semester];
-    } else {
-        // Tags افتراضية
-        tags = ["وضعية إدماجية", "تمرين", "مسألة", "سؤال"];
-    }
-
-    // إضافة Tags للواجهة
-    tags.forEach(tag => {
-        const btn = document.createElement('button');
-        btn.className = 'tag';
-        btn.textContent = tag;
-        btn.onclick = () => {
-            document.getElementById('hintInput').value = tag;
-            // إزالة active من الكل
-            document.querySelectorAll('.tag').forEach(t => t.classList.remove('active'));
-            btn.classList.add('active');
-        };
-        container.appendChild(btn);
-    });
-
-    // إضافة tag الوضعية الإدماجية دائماً
-    const integrationBtn = document.createElement('button');
-    integrationBtn.className = 'tag';
-    integrationBtn.style.background = '#e53e3e';
-    integrationBtn.textContent = 'وضعية إدماجية';
-    integrationBtn.onclick = () => {
-        document.getElementById('hintInput').value = 'وضعية إدماجية';
-        document.querySelectorAll('.tag').forEach(t => t.classList.remove('active'));
-        integrationBtn.classList.add('active');
-    };
-    container.appendChild(integrationBtn);
+function get(id) {
+    return document.getElementById(id).value.trim();
 }
 
-// تهيئة أولية
-updateTags();
+function setStatus(msg, type = 'info') {
+    const el = document.getElementById('status');
+    el.textContent = msg;
+    el.style.display = 'block';
+    if (type === 'error') el.style.background = '#fee2e2';
+    else if (type === 'success') el.style.background = '#d1fae5';
+    else el.style.background = '#e2e8f0';
+}
 
-// ============================================================
-// دوال التوليد والتحميل
-// ============================================================
+function validate() {
+    const required = ['subject', 'grade', 'semester', 'schoolYear', 'duration', 'examType'];
+    const missing = [];
+    for (const f of required) {
+        if (!get(f)) missing.push(f);
+    }
+    if (missing.length > 0) {
+        setStatus('الحقول المطلوبة: ' + missing.join(', '), 'error');
+        return false;
+    }
+    return true;
+}
 
 function generateExam() {
-    const btn = document.getElementById('generateBtn');
+    if (!validate()) return;
+
+    const btn = document.querySelector('.btn-generate');
     btn.disabled = true;
-    btn.textContent = '⏳ جاري التوليد...';
+    setStatus('⏳ جاري التوليد...');
 
-    document.getElementById('output').innerHTML = `
-        <div class="loading">
-            <div class="loading-spinner"></div>
-            <p>جاري توليد الاختبار... انتظر قليلاً</p>
-        </div>
-    `;
-    document.getElementById('outputSection').style.display = 'block';
+    const payload = {
+        subject: get('subject'),
+        grade: get('grade'),
+        semester: get('semester'),
+        school: get('school'),
+        schoolYear: get('schoolYear'),
+        duration: get('duration'),
+        examType: get('examType'),
+        difficulty: get('difficulty'),
+        topic: get('topic')
+    };
 
-    // محاكاة الاتصال بالخادم
-    setTimeout(() => {
-        const subject = document.getElementById('subject').value;
-        const grade = document.getElementById('grade').value;
-        const semester = document.getElementById('semester').value;
-        const hint = document.getElementById('hintInput').value;
-
-        // توليد HTML للاختبار
-        const examHTML = generateExamHTML(subject, grade, semester, hint);
-        document.getElementById('output').innerHTML = examHTML;
-
+    fetch(`${API_BASE}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            let html = data.result
+                .replace(/```html/gi, '')
+                .replace(/```/g, '')
+                .trim();
+            document.getElementById('output').innerHTML = html;
+            document.getElementById('actionButtons').style.display = 'flex';
+            setStatus('✅ تم التوليد بنجاح', 'success');
+        } else {
+            setStatus('❌ ' + (data.error || 'فشل التوليد'), 'error');
+        }
+    })
+    .catch(err => {
+        setStatus('❌ خطأ: ' + err.message, 'error');
+    })
+    .finally(() => {
         btn.disabled = false;
-        btn.textContent = '✨ توليد الاختبار';
-    }, 2000);
-}
-
-function generateExamHTML(subject, grade, semester, hint) {
-    const year = new Date().getFullYear();
-    const nextYear = year + 1;
-
-    return `
-        <div style="font-family: 'Traditional Arabic', 'Arial', sans-serif; direction: rtl; padding: 10px;">
-
-            <!-- الترويسة -->
-            <div style="text-align: center; margin-bottom: 20px;">
-                <div style="font-size: 13px; font-weight: bold;">الجمهورية الجزائرية الديمقراطية الشعبية</div>
-                <div style="font-size: 12px;">وزارة التربية الوطنية</div>
-                <div style="margin-top: 8px; font-size: 11px;">
-                    السنة الدراسية: ${year}/${nextYear} | المدة: ساعتان
-                </div>
-                <div style="font-size: 14px; font-weight: bold; margin-top: 8px; text-decoration: underline;">
-                    اختبار ${semester.replace('الفصل ', '')} في مادة ${subject}
-                </div>
-                <div style="font-size: 12px;">المستوى: ${grade}</div>
-            </div>
-
-            <hr style="border: 1px solid black; margin: 15px 0;">
-
-            <!-- الجزء الأول -->
-            <div style="margin-bottom: 20px;">
-                <div style="font-weight: bold; text-decoration: underline; margin-bottom: 15px;">
-                    الجزء الأول (12 نقطة)
-                </div>
-
-                <div style="margin-bottom: 18px;">
-                    <div style="font-weight: bold; text-decoration: underline;">
-                        التمرين الأول: (03 نقاط)
-                    </div>
-                    <div style="margin-top: 8px; padding-right: 15px;">
-                        ${hint ? `سؤال متعلق بـ: <strong>${hint}</strong>` : 'سؤال حسابي مباشر'}
-                    </div>
-                </div>
-
-                <div style="margin-bottom: 18px;">
-                    <div style="font-weight: bold; text-decoration: underline;">
-                        التمرين الثاني: (03 نقاط)
-                    </div>
-                    <div style="margin-top: 8px; padding-right: 15px;">
-                        سؤال تطبيقي
-                    </div>
-                </div>
-
-                <div style="margin-bottom: 18px;">
-                    <div style="font-weight: bold; text-decoration: underline;">
-                        التمرين الثالث: (03 نقاط)
-                    </div>
-                    <div style="margin-top: 8px; padding-right: 15px;">
-                        سؤال تحليلي
-                    </div>
-                </div>
-
-                <div style="margin-bottom: 18px;">
-                    <div style="font-weight: bold; text-decoration: underline;">
-                        التمرين الرابع: (03 نقاط)
-                    </div>
-                    <div style="margin-top: 8px; padding-right: 15px;">
-                        سؤال إثبات
-                    </div>
-                </div>
-            </div>
-
-            <!-- الجزء الثاني -->
-            <div style="margin-bottom: 20px;">
-                <div style="font-weight: bold; text-decoration: underline; margin-bottom: 15px;">
-                    الجزء الثاني (08 نقاط)
-                </div>
-
-                <div style="font-weight: bold; text-decoration: underline;">
-                    الوضعية الإدماجية:
-                </div>
-                <div style="margin-top: 8px; padding-right: 15px;">
-                    ${hint === 'وضعية إدماجية' ? 'وضعية إدماجية شاملة' : 'وضعية إدماجية تجمع عدة مفاهيم'}
-                </div>
-            </div>
-
-            <!-- التصحيح النموذجي -->
-            <div style="margin-top: 30px; page-break-before: always;">
-                <div style="text-align: center; font-weight: bold; font-size: 14px; margin-bottom: 20px; text-decoration: underline;">
-                    التصحيح النموذجي وسلم التنقيط
-                </div>
-
-                <table style="width: 100%; border-collapse: collapse; border: 2px solid black; font-size: 11pt;">
-                    <tr style="background: #f0f0f0;">
-                        <th style="border: 1px solid black; padding: 8px; width: 10%;">نقطة</th>
-                        <th style="border: 1px solid black; padding: 8px; width: 10%;">المجموع</th>
-                        <th style="border: 1px solid black; padding: 8px;">التصحيح النموذجي (سلم التنقيط)</th>
-                    </tr>
-                    <tr>
-                        <td style="border: 1px solid black; padding: 8px; text-align: center;">03</td>
-                        <td style="border: 1px solid black; padding: 8px; text-align: center;" rowspan="4">12</td>
-                        <td style="border: 1px solid black; padding: 8px;">حل التمرين الأول</td>
-                    </tr>
-                    <tr>
-                        <td style="border: 1px solid black; padding: 8px; text-align: center;">03</td>
-                        <td style="border: 1px solid black; padding: 8px;">حل التمرين الثاني</td>
-                    </tr>
-                    <tr>
-                        <td style="border: 1px solid black; padding: 8px; text-align: center;">03</td>
-                        <td style="border: 1px solid black; padding: 8px;">حل التمرين الثالث</td>
-                    </tr>
-                    <tr>
-                        <td style="border: 1px solid black; padding: 8px; text-align: center;">03</td>
-                        <td style="border: 1px solid black; padding: 8px;">حل التمرين الرابع</td>
-                    </tr>
-                    <tr>
-                        <td style="border: 1px solid black; padding: 8px; text-align: center;">08</td>
-                        <td style="border: 1px solid black; padding: 8px; text-align: center;">08</td>
-                        <td style="border: 1px solid black; padding: 8px;">حل الوضعية الإدماجية</td>
-                    </tr>
-                </table>
-            </div>
-
-        </div>
-    `;
+    });
 }
 
 function toggleEdit() {
     const output = document.getElementById('output');
-    const isEditable = output.contentEditable === 'true';
-    output.contentEditable = !isEditable;
-    alert(isEditable ? '✅ تم حفظ التعديلات' : '✏️ وضع التعديل مفعل');
-    if (!isEditable) output.focus();
+    isEditMode = !isEditMode;
+    output.contentEditable = isEditMode;
+    if (isEditMode) {
+        output.focus();
+        setStatus('✏️ وضع التعديل مفعل');
+    } else {
+        setStatus('✅ تم حفظ التعديلات', 'success');
+    }
 }
 
 function downloadWord() {
     const content = document.getElementById('output').innerHTML;
     const html = `
         <html xmlns:o='urn:schemas-microsoft-com:office:office' 
-              xmlns:w='urn:schemas-microsoft-com:office:word'>
+              xmlns:w='urn:schemas-microsoft-com:office:word' 
+              xmlns='http://www.w3.org/TR/REC-html40'>
         <head><meta charset='utf-8'><title>اختبار</title></head>
         <body style="direction: rtl; font-family: 'Traditional Arabic', Arial; padding: 20mm;">
             ${content}
@@ -719,7 +505,7 @@ function downloadWord() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `اختبار_${document.getElementById('subject').value}.doc`;
+    a.download = `اختبار_${get('subject')}_${get('grade')}.doc`;
     a.click();
     URL.revokeObjectURL(url);
 }
