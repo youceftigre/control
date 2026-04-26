@@ -1,0 +1,1063 @@
+
+# تحديث الواجهة الأمامية لتدعم الثلاثة أطوار
+
+updated_html = '''<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="منصة الامتحانات الجزائرية الشاملة - بنك أسئلة ديناميكي + ذكاء اصطناعي">
+  <meta name="theme-color" content="#0f3d2e">
+  <title>منصة الامتحانات الجزائرية | الجيل الثاني</title>
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #1a7a52; --primary-light: #2ecc71; --primary-dark: #0d4a30;
+      --secondary: #2874a6; --accent: #d4a017; --danger: #c0392b;
+      --warning: #f39c12; --success: #27ae60;
+      --bg: #0b1120; --surface: #111827; --card: #1a2332;
+      --card-hover: #1f2d3d; --border: rgba(120,180,220,0.12);
+      --text: #e8f0f8; --text-muted: #8fa8bc; --text-dim: #5a7080;
+      --shadow: 0 4px 24px rgba(0,0,0,0.4); --shadow-lg: 0 8px 40px rgba(0,0,0,0.5);
+      --radius: 16px; --radius-sm: 10px;
+      color-scheme: dark;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Cairo', 'Amiri', sans-serif;
+      background: var(--bg); color: var(--text);
+      min-height: 100vh; display: flex; flex-direction: column;
+      line-height: 1.7;
+    }
+
+    /* Header */
+    header {
+      background: linear-gradient(135deg, rgba(14,22,33,0.98), rgba(10,30,20,0.98));
+      backdrop-filter: blur(20px); border-bottom: 1px solid var(--border);
+      padding: 0 24px; display: flex; align-items: center;
+      justify-content: space-between; flex-wrap: wrap; gap: 15px;
+      min-height: 72px; position: sticky; top: 0; z-index: 100;
+    }
+    .logo { display: flex; align-items: center; gap: 14px; }
+    .logo-icon {
+      width: 48px; height: 48px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius: 14px; display: flex; align-items: center; justify-content: center;
+      font-size: 26px; box-shadow: 0 4px 15px rgba(26,122,82,0.3);
+    }
+    .logo-text h1 { font-size: 19px; font-weight: 900; letter-spacing: -0.3px; }
+    .logo-text span { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+    nav { display: flex; gap: 8px; flex-wrap: wrap; }
+    .nav-tab {
+      padding: 9px 22px; border-radius: 24px; border: 1px solid var(--border);
+      background: transparent; color: var(--text-muted); font-weight: 700;
+      font-size: 14px; cursor: pointer; transition: all 0.3s ease;
+      font-family: inherit;
+    }
+    .nav-tab:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+    .nav-tab[aria-selected="true"] {
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      border-color: transparent; color: white;
+      box-shadow: 0 4px 15px rgba(26,122,82,0.3);
+    }
+
+    /* Stats Bar */
+    .stats-bar {
+      display: flex; justify-content: center; gap: 30px;
+      padding: 14px 20px; background: rgba(26,122,82,0.08);
+      border-bottom: 1px solid var(--border); flex-wrap: wrap;
+    }
+    .stat-item { text-align: center; }
+    .stat-value { font-size: 22px; font-weight: 800; color: var(--primary-light); line-height: 1; }
+    .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; font-weight: 500; }
+
+    /* Main */
+    main { flex: 1; max-width: 1200px; margin: 0 auto; padding: 30px 20px; width: 100%; }
+    .page { display: none; animation: fadeIn 0.4s ease; }
+    .page.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Cards */
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--radius); margin-bottom: 24px; overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+    .card-header {
+      padding: 18px 24px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 800; font-size: 15px; color: #7fc8e8;
+    }
+    .card-header .step-num {
+      width: 28px; height: 28px;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 13px; color: white; font-weight: 700;
+    }
+    .card-body { padding: 24px; }
+
+    /* Stage Selector */
+    .stage-selector {
+      display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .stage-btn {
+      flex: 1; min-width: 140px; padding: 16px;
+      border: 2px solid var(--border); border-radius: var(--radius-sm);
+      background: rgba(255,255,255,0.03); color: var(--text-muted);
+      font-weight: 700; font-size: 15px; cursor: pointer;
+      transition: all 0.3s; font-family: inherit;
+      text-align: center;
+    }
+    .stage-btn:hover { border-color: rgba(26,122,82,0.4); background: rgba(26,122,82,0.08); }
+    .stage-btn[aria-pressed="true"] {
+      border-color: var(--primary);
+      background: linear-gradient(135deg, rgba(26,122,82,0.15), rgba(40,116,166,0.1));
+      color: white; box-shadow: 0 0 20px rgba(26,122,82,0.2);
+    }
+    .stage-btn .stage-icon { font-size: 28px; display: block; margin-bottom: 6px; }
+    .stage-btn .stage-desc { font-size: 11px; font-weight: 400; opacity: 0.7; }
+
+    /* Subject Grid */
+    .subject-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px;
+    }
+    .subject-btn {
+      padding: 18px 12px; border: 2px solid var(--border); border-radius: var(--radius-sm);
+      background: rgba(255,255,255,0.03); color: var(--text-muted);
+      font-weight: 700; font-size: 14px; text-align: center;
+      cursor: pointer; transition: all 0.3s; font-family: inherit;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+    }
+    .subject-btn .subj-icon { font-size: 28px; }
+    .subject-btn .subj-levels { font-size: 10px; font-weight: 400; opacity: 0.6; }
+    .subject-btn:hover {
+      border-color: rgba(26,122,82,0.4); background: rgba(26,122,82,0.08); color: var(--text);
+    }
+    .subject-btn[aria-pressed="true"] {
+      border-color: var(--primary);
+      background: linear-gradient(135deg, rgba(26,122,82,0.15), rgba(40,116,166,0.1));
+      color: white; box-shadow: 0 0 20px rgba(26,122,82,0.2);
+    }
+
+    /* Form Fields */
+    .fields-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px;
+    }
+    label { font-size: 13px; color: var(--text-muted); margin-bottom: 8px; display: block; font-weight: 600; }
+    select, input, textarea {
+      width: 100%; padding: 13px 14px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: rgba(255,255,255,0.04);
+      color: var(--text); font-size: 14px; font-family: inherit; transition: all 0.2s;
+    }
+    select:focus, input:focus, textarea:focus {
+      outline: none; border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(26,122,82,0.15);
+    }
+    select option { background: var(--card); color: var(--text); }
+
+    /* Difficulty */
+    .difficulty-group { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+    .diff-btn {
+      padding: 10px 20px; border-radius: 24px; border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03); color: var(--text-muted);
+      font-weight: 700; font-size: 13px; cursor: pointer;
+      transition: all 0.3s; font-family: inherit;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .diff-btn:hover { background: rgba(255,255,255,0.06); }
+    .diff-btn[aria-pressed="true"] { border-color: transparent; color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    .diff-btn[data-diff="سهل"][aria-pressed="true"] { background: linear-gradient(135deg, #27ae60, #1e8449); }
+    .diff-btn[data-diff="متوسط"][aria-pressed="true"] { background: linear-gradient(135deg, #f39c12, #d68910); }
+    .diff-btn[data-diff="صعب"][aria-pressed="true"] { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+    .diff-btn[data-diff="مختلط"][aria-pressed="true"] { background: linear-gradient(135deg, #8e44ad, #6c3483); }
+
+    /* Buttons */
+    .btn-generate {
+      width: 100%; padding: 18px; border-radius: var(--radius); border: none;
+      background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color: white; font-size: 17px; font-weight: 800; cursor: pointer;
+      margin-top: 12px; transition: all 0.3s; font-family: inherit;
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .btn-generate:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(26,122,82,0.4); }
+    .btn-ai { background: linear-gradient(135deg, #d4a017, #b38711); margin-top: 10px; }
+    .btn-ai:hover { box-shadow: 0 8px 25px rgba(212,160,23,0.4); }
+
+    /* Alerts */
+    .alert {
+      padding: 14px 18px; border-radius: var(--radius-sm); margin: 16px 0;
+      font-size: 14px; font-weight: 600; display: none;
+    }
+    .alert-error { background: rgba(192,57,43,0.15); border: 1px solid rgba(192,57,43,0.3); color: #e74c3c; }
+    .alert-success { background: rgba(39,174,96,0.15); border: 1px solid rgba(39,174,96,0.3); color: #2ecc71; }
+    .alert-info { background: rgba(41,128,185,0.15); border: 1px solid rgba(41,128,185,0.3); color: #5dade2; }
+
+    /* Loading */
+    #loadingScreen { display: none; text-align: center; padding: 50px 20px; }
+    .loader {
+      width: 60px; height: 60px; border: 4px solid rgba(255,255,255,0.1);
+      border-top-color: var(--primary-light); border-radius: 50%;
+      animation: spin 1s linear infinite; margin: 0 auto 20px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Result */
+    #resultSection { display: none; }
+    .result-toolbar {
+      display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap;
+    }
+    .result-toolbar button {
+      padding: 10px 20px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+      background: var(--card); color: var(--text); font-weight: 700;
+      font-size: 13px; cursor: pointer; transition: all 0.2s; font-family: inherit;
+    }
+    .result-toolbar button:hover { background: var(--card-hover); border-color: var(--primary); }
+    .result-frame { background: white; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-lg); }
+
+    /* A4 Exam */
+    .a4-exam {
+      max-width: 21cm; margin: 0 auto; padding: 1.8cm 2cm;
+      font-family: 'Cairo', 'Traditional Arabic', serif;
+      color: #1a2332; background: white; line-height: 1.8; font-size: 14px;
+    }
+    .a4-exam .exam-title {
+      text-align: center; border-bottom: 3px double #1a5276;
+      padding-bottom: 15px; margin-bottom: 20px;
+    }
+    .a4-exam .exam-title h1 { font-size: 20px; color: #1a5276; margin: 0 0 8px; }
+    .a4-exam .exam-title .subtitle { font-size: 13px; color: #555; }
+    .a4-exam .exam-info-bar {
+      display: flex; justify-content: space-between; margin: 15px 0;
+      padding: 10px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; font-size: 12px;
+    }
+    .a4-exam .student-form {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+      margin: 15px 0; padding: 10px; border: 1px solid #ccc;
+    }
+    .a4-exam .student-form label { font-size: 11px; color: #666; }
+    .a4-exam .student-form .field { border-bottom: 1px solid #333; height: 22px; }
+    .a4-exam .question-block {
+      margin: 18px 0; padding: 14px; background: #fafafa;
+      border-right: 4px solid #1a5276; page-break-inside: avoid;
+    }
+    .a4-exam .q-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .a4-exam .q-num { font-weight: 800; color: #1a5276; font-size: 15px; }
+    .a4-exam .q-meta { font-size: 10px; color: #666; background: #e9ecef; padding: 2px 8px; border-radius: 10px; }
+    .a4-exam .q-text { font-size: 13px; margin-bottom: 8px; text-align: justify; }
+    .a4-exam .q-options { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 8px 0; }
+    .a4-exam .q-option { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; }
+    .a4-exam .answer-space { border-bottom: 1px dotted #999; min-height: 28px; margin: 8px 0; }
+    .a4-exam .diff-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-left: 4px; }
+    .a4-exam .diff-1 { background: #28a745; } .a4-exam .diff-2 { background: #ffc107; } .a4-exam .diff-3 { background: #dc3545; }
+
+    @media print {
+      body { background: white; }
+      header, .stats-bar, .btn-generate, .result-toolbar, .card, .nav-tab, .alert, #loadingScreen, .stage-selector { display: none !important; }
+      .result-frame { box-shadow: none; } .a4-exam { padding: 0; max-width: 100%; }
+      #resultSection { display: block !important; }
+    }
+
+    /* Bank Page */
+    .bank-filters { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .bank-filters select { width: auto; min-width: 160px; }
+    .bank-tree { margin-top: 10px; }
+    .bank-subject { margin-bottom: 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+    .bank-subject-header {
+      padding: 14px 18px;
+      background: linear-gradient(135deg, rgba(26,122,82,0.2), rgba(40,116,166,0.15));
+      font-weight: 800; font-size: 15px; cursor: pointer;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .bank-subject-header:hover { background: linear-gradient(135deg, rgba(26,122,82,0.3), rgba(40,116,166,0.2)); }
+    .bank-grade {
+      padding: 10px 18px; background: rgba(255,255,255,0.02);
+      border-top: 1px solid var(--border); font-weight: 700; font-size: 13px;
+      color: var(--text-muted); cursor: pointer;
+      display: flex; justify-content: space-between;
+    }
+    .bank-chapter { padding: 8px 24px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-dim); }
+    .bank-question {
+      padding: 10px 30px; border-top: 1px solid var(--border); font-size: 12px;
+      display: flex; align-items: flex-start; gap: 10px;
+    }
+    .bank-question .q-badge {
+      padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; white-space: nowrap;
+    }
+    .badge-mcq { background: rgba(41,128,185,0.2); color: #5dade2; }
+    .badge-tf { background: rgba(155,89,182,0.2); color: #af7ac5; }
+    .badge-essay { background: rgba(243,156,18,0.2); color: #f5b041; }
+    .badge-app { background: rgba(231,76,60,0.2); color: #ec7063; }
+    .badge-diff-1 { background: rgba(39,174,96,0.2); color: #58d68d; }
+    .badge-diff-2 { background: rgba(243,156,18,0.2); color: #f5b041; }
+    .badge-diff-3 { background: rgba(192,57,43,0.2); color: #ec7063; }
+    .bank-question-text { flex: 1; color: var(--text-muted); }
+    .toggle-icon { transition: transform 0.3s; font-size: 12px; }
+    .toggle-icon.open { transform: rotate(180deg); }
+    .collapsed { display: none; }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      header { padding: 12px 16px; }
+      .logo-text h1 { font-size: 15px; }
+      .subject-grid { grid-template-columns: repeat(2, 1fr); }
+      .fields-grid { grid-template-columns: 1fr; }
+      .a4-exam { padding: 1cm; }
+      .stats-bar { gap: 16px; }
+      .stat-value { font-size: 18px; }
+      .stage-btn { min-width: 100px; }
+    }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--primary-dark); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--primary); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🎓</div>
+    <div class="logo-text">
+      <h1>الامتحانات الجزائرية</h1>
+      <span>الجيل الثاني | ابتدائي + متوسط + ثانوي</span>
+    </div>
+  </div>
+  <nav>
+    <button class="nav-tab" aria-selected="true" data-page="generate">⚡ توليد اختبار</button>
+    <button class="nav-tab" aria-selected="false" data-page="bank">📚 بنك الأسئلة</button>
+    <button class="nav-tab" aria-selected="false" data-page="stats">📊 إحصائيات</button>
+  </nav>
+</header>
+
+<div class="stats-bar">
+  <div class="stat-item"><div class="stat-value" id="statSubjects">10</div><div class="stat-label">مواد</div></div>
+  <div class="stat-item"><div class="stat-value" id="statQuestions">388</div><div class="stat-label">سؤال</div></div>
+  <div class="stat-item"><div class="stat-value" id="statGrades">15</div><div class="stat-label">سنة</div></div>
+  <div class="stat-item"><div class="stat-value" id="statLevels">3</div><div class="stat-label">أطوار</div></div>
+  <div class="stat-item"><div class="stat-value" id="statTypes">4</div><div class="stat-label">أنواع</div></div>
+</div>
+
+<main>
+  <!-- ===== PAGE: GENERATE ===== -->
+  <section id="page-generate" class="page active">
+    <h2 class="sr-only" style="position:absolute;left:-9999px;">توليد اختبار</h2>
+
+    <!-- اختيار الطور -->
+    <div class="card">
+      <div class="card-header"><span class="step-num">1</span> اختر الطور التعليمي</div>
+      <div class="card-body">
+        <div class="stage-selector">
+          <button class="stage-btn" data-stage="primary" onclick="selectStage(this)">
+            <span class="stage-icon">🏫</span>
+            <span>ابتدائي</span>
+            <span class="stage-desc">السنوات 1-5</span>
+          </button>
+          <button class="stage-btn" data-stage="middle" aria-pressed="true" onclick="selectStage(this)">
+            <span class="stage-icon">📚</span>
+            <span>متوسط</span>
+            <span class="stage-desc">السنوات 1-4</span>
+          </button>
+          <button class="stage-btn" data-stage="secondary" onclick="selectStage(this)">
+            <span class="stage-icon">🎓</span>
+            <span>ثانوي</span>
+            <span class="stage-desc">جذع مشترك + 2 + 3</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- اختيار المادة -->
+    <div class="card">
+      <div class="card-header"><span class="step-num">2</span> اختر المادة الدراسية</div>
+      <div class="card-body">
+        <div class="subject-grid" id="subjectGrid"></div>
+        <p style="font-size:12px; color:var(--text-dim); margin-top:12px; text-align:center;">
+          💡 المواد المعروضة تتغير حسب الطور المختار
+        </p>
+      </div>
+    </div>
+
+    <!-- الإعدادات -->
+    <div class="card">
+      <div class="card-header"><span class="step-num">3</span> إعدادات الاختبار</div>
+      <div class="card-body">
+        <div class="fields-grid">
+          <div>
+            <label for="grade">السنة الدراسية</label>
+            <select id="grade"><option value="">-- اختر السنة --</option></select>
+          </div>
+          <div>
+            <label for="semester">الفصل الدراسي</label>
+            <select id="semester">
+              <option value="">-- اختر الفصل --</option>
+              <option>الفصل الأول</option><option>الفصل الثاني</option><option>الفصل الثالث</option>
+            </select>
+          </div>
+          <div>
+            <label for="examType">نوع الاختبار</label>
+            <select id="examType">
+              <option>اختبار فصلي</option><option>فرض محروس</option><option>نموذج شهادة</option><option>اختبار تأهيلي</option>
+            </select>
+          </div>
+          <div>
+            <label for="duration">المدة الزمنية</label>
+            <select id="duration">
+              <option>45 دقيقة</option><option>ساعة واحدة</option><option selected>ساعة ونصف</option><option>ساعتان</option>
+            </select>
+          </div>
+          <div>
+            <label for="qCount">عدد الأسئلة</label>
+            <select id="qCount">
+              <option>3 أسئلة</option><option selected>5 أسئلة</option><option>8 أسئلة</option><option>10 أسئلة</option>
+            </select>
+          </div>
+          <div id="trackField" style="display:none">
+            <label for="track">الشعبة</label>
+            <select id="track">
+              <option value="">-- اختر الشعبة --</option>
+              <option value="sciences">علوم</option>
+              <option value="letters">آداب</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-top:18px">
+          <label>مستوى الصعوبة العام</label>
+          <div class="difficulty-group">
+            <button class="diff-btn" data-diff="سهل">🟢 سهل</button>
+            <button class="diff-btn" data-diff="متوسط" aria-pressed="true">🟡 متوسط</button>
+            <button class="diff-btn" data-diff="صعب">🔴 صعب</button>
+            <button class="diff-btn" data-diff="مختلط">⚡ مختلط</button>
+          </div>
+          <input type="hidden" id="difficulty" value="متوسط">
+        </div>
+      </div>
+    </div>
+
+    <!-- الموضوع -->
+    <div class="card">
+      <div class="card-header"><span class="step-num">4</span> موضوع محدد (اختياري)</div>
+      <div class="card-body">
+        <input type="text" id="topic" placeholder="مثال: المعادلات، الجهاز المناعي، أدب المقاومة...">
+        <p style="font-size:12px; color:var(--text-dim); margin-top:8px;">💡 اتركه فارغاً لتوليد أسئلة من جميع وحدات المادة المختارة</p>
+      </div>
+    </div>
+
+    <!-- رسائل -->
+    <div id="errorBox" class="alert alert-error"></div>
+    <div id="successBox" class="alert alert-success"></div>
+
+    <!-- أزرار التوليد -->
+    <button class="btn-generate" onclick="generateExam('manual')">
+      <span>📋</span> توليد يدوي (من بنك الأسئلة)
+    </button>
+    <button class="btn-generate btn-ai" onclick="generateExam('ai')">
+      <span>🤖</span> توليد بالذكاء الاصطناعي (Groq AI)
+    </button>
+
+    <!-- شاشة التحميل -->
+    <div id="loadingScreen">
+      <div class="loader"></div>
+      <p style="font-size:16px; color:var(--text-muted); margin-bottom:8px;">جاري توليد الاختبار...</p>
+      <p style="font-size:12px; color:var(--text-dim);">قد تستغرق العملية 10-30 ثانية</p>
+    </div>
+
+    <!-- نتيجة -->
+    <div id="resultSection">
+      <div class="result-toolbar">
+        <button onclick="printExam()">🖨️ طباعة / حفظ PDF</button>
+        <button onclick="copyToClipboard()">📋 نسخ النص</button>
+        <button onclick="resetForm()">✏️ تعديل الإعدادات</button>
+      </div>
+      <div class="result-frame"><div id="resultContent"></div></div>
+    </div>
+  </section>
+
+  <!-- ===== PAGE: BANK ===== -->
+  <section id="page-bank" class="page">
+    <div class="card">
+      <div class="card-header">📚 استعراض بنك الأسئلة</div>
+      <div class="card-body">
+        <div class="bank-filters">
+          <select id="bankFilterLevel" onchange="filterBank()">
+            <option value="">جميع الأطوار</option>
+            <option value="ابتدائي">🏫 ابتدائي</option>
+            <option value="متوسط">📚 متوسط</option>
+            <option value="ثانوي">🎓 ثانوي</option>
+          </select>
+          <select id="bankFilterSubject" onchange="filterBank()">
+            <option value="">جميع المواد</option>
+          </select>
+          <select id="bankFilterGrade" onchange="filterBank()">
+            <option value="">جميع السنوات</option>
+          </select>
+          <select id="bankFilterType" onchange="filterBank()">
+            <option value="">جميع الأنواع</option>
+            <option value="mcq">اختيار من متعدد</option>
+            <option value="truefalse">صح / خطأ</option>
+            <option value="essay">مقالي</option>
+            <option value="application">تطبيقي</option>
+          </select>
+          <select id="bankFilterDiff" onchange="filterBank()">
+            <option value="">جميع المستويات</option>
+            <option value="1">سهل 🟢</option>
+            <option value="2">متوسط 🟡</option>
+            <option value="3">صعب 🔴</option>
+          </select>
+        </div>
+        <div id="bankContent">جاري تحميل الأسئلة...</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== PAGE: STATS ===== -->
+  <section id="page-stats" class="page">
+    <div class="card">
+      <div class="card-header">📊 إحصائيات بنك الأسئلة</div>
+      <div class="card-body">
+        <div id="statsContent">جاري تحميل الإحصائيات...</div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+// ========== DATA & CONFIG ==========
+const subjectsConfig = [
+  { name: "رياضيات", icon: "📐", color: "#3498db", levels: ["primary", "middle", "secondary"] },
+  { name: "علوم الطبيعية والحياة", icon: "🔬", color: "#2ecc71", levels: ["primary", "middle", "secondary"] },
+  { name: "اللغة العربية", icon: "📖", color: "#e74c3c", levels: ["primary", "middle", "secondary"] },
+  { name: "الفيزياء والكيمياء", icon: "⚡", color: "#9b59b6", levels: ["middle", "secondary"] },
+  { name: "التاريخ والجغرافيا", icon: "🌍", color: "#f39c12", levels: ["primary", "middle", "secondary"] },
+  { name: "اللغة الفرنسية", icon: "🇫🇷", color: "#1abc9c", levels: ["primary", "middle", "secondary"] },
+  { name: "اللغة الإنجليزية", icon: "🇬🇧", color: "#e67e22", levels: ["primary", "middle", "secondary"] },
+  { name: "التربية الإسلامية", icon: "🕌", color: "#27ae60", levels: ["primary", "middle", "secondary"] },
+  { name: "التربية المدنية", icon: "🏛️", color: "#34495e", levels: ["primary"] },
+  { name: "الفلسفة", icon: "🤔", color: "#8e44ad", levels: ["secondary"] }
+];
+
+const gradeOptions = {
+  primary: ["السنة الأولى ابتدائي", "السنة الثانية ابتدائي", "السنة الثالثة ابتدائي", "السنة الرابعة ابتدائي", "السنة الخامسة ابتدائي"],
+  middle: ["السنة الأولى متوسط", "السنة الثانية متوسط", "السنة الثالثة متوسط", "السنة الرابعة متوسط"],
+  secondary: ["جذع مشترك علوم", "جذع مشترك آداب", "السنة 2 علوم", "السنة 2 آداب", "السنة 3 علوم", "السنة 3 آداب"]
+};
+
+const typeLabels = {
+  mcq: { label: "اختيار من متعدد", badgeClass: "badge-mcq" },
+  truefalse: { label: "صح/خطأ", badgeClass: "badge-tf" },
+  essay: { label: "مقالي", badgeClass: "badge-essay" },
+  application: { label: "تطبيقي", badgeClass: "badge-app" },
+  problem: { label: "مسألة", badgeClass: "badge-app" }
+};
+
+const diffLabels = {
+  1: { label: "سهل", badgeClass: "badge-diff-1", dotClass: "diff-1" },
+  2: { label: "متوسط", badgeClass: "badge-diff-2", dotClass: "diff-2" },
+  3: { label: "صعب", badgeClass: "badge-diff-3", dotClass: "diff-3" }
+};
+
+let selectedStage = "middle";
+let selectedSubject = "";
+let selectedTrack = "";
+let questionBank = {};
+
+// ========== INIT ==========
+async function init() {
+  await loadBank();
+  renderSubjects();
+  updateGradeSelect();
+  populateBankFilters();
+}
+
+async function loadBank() {
+  try {
+    const resp = await fetch('/questions');
+    questionBank = await resp.json();
+    console.log("✅ تم تحميل البنك:", Object.keys(questionBank).length, "مواد");
+  } catch(e) {
+    console.error("⚠️ فشل تحميل البنك:", e);
+  }
+}
+
+// ========== STAGE SELECTOR ==========
+function selectStage(btn) {
+  document.querySelectorAll('.stage-btn').forEach(b => b.setAttribute('aria-pressed', 'false'));
+  btn.setAttribute('aria-pressed', 'true');
+  selectedStage = btn.dataset.stage;
+  
+  // Show/hide track field for secondary
+  const trackField = document.getElementById('trackField');
+  if (selectedStage === 'secondary') {
+    trackField.style.display = 'block';
+  } else {
+    trackField.style.display = 'none';
+    document.getElementById('track').value = '';
+  }
+  
+  renderSubjects();
+  updateGradeSelect();
+  selectedSubject = "";
+}
+
+// ========== SUBJECTS ==========
+function renderSubjects() {
+  const grid = document.getElementById('subjectGrid');
+  const filtered = subjectsConfig.filter(s => s.levels.includes(selectedStage));
+  
+  grid.innerHTML = filtered.map(s => `
+    <button class="subject-btn" data-subject="${s.name}" onclick="selectSubject(this)">
+      <span class="subj-icon">${s.icon}</span>
+      <span>${s.name}</span>
+      <span class="subj-levels">${s.levels.map(l => ({primary:'ابتدائي',middle:'متوسط',secondary:'ثانوي'}[l])).join(' + ')}</span>
+    </button>
+  `).join('');
+}
+
+function selectSubject(btn) {
+  document.querySelectorAll('.subject-btn').forEach(b => b.setAttribute('aria-pressed','false'));
+  btn.setAttribute('aria-pressed','true');
+  selectedSubject = btn.dataset.subject;
+}
+
+// ========== GRADE SELECT ==========
+function updateGradeSelect() {
+  const gradeSelect = document.getElementById('grade');
+  const options = gradeOptions[selectedStage] || [];
+  gradeSelect.innerHTML = '<option value="">-- اختر السنة --</option>' + 
+    options.map(g => `<option>${g}</option>`).join('');
+}
+
+// ========== TRACK SELECT ==========
+document.getElementById('track').addEventListener('change', function() {
+  selectedTrack = this.value;
+});
+
+// ========== DIFFICULTY ==========
+document.addEventListener('click', function(e) {
+  if (e.target.classList.contains('diff-btn')) {
+    document.querySelectorAll('.diff-btn').forEach(b => b.setAttribute('aria-pressed','false'));
+    e.target.setAttribute('aria-pressed','true');
+    document.getElementById('difficulty').value = e.target.dataset.diff;
+  }
+});
+
+// ========== GENERATE EXAM ==========
+async function generateExam(mode) {
+  const grade = document.getElementById('grade').value;
+  const semester = document.getElementById('semester').value;
+  
+  if (!selectedSubject || !grade || !semester) {
+    showAlert('errorBox', '⚠️ يرجى ملء جميع الحقول المطلقة (المادة، السنة، الفصل)');
+    return;
+  }
+  
+  hideAlert('errorBox'); hideAlert('successBox');
+  document.getElementById('resultSection').style.display = 'none';
+  document.getElementById('loadingScreen').style.display = 'block';
+  
+  let questions;
+  try {
+    if (mode === 'ai') {
+      const resp = await fetch('/generate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          subject: selectedSubject,
+          grade: grade,
+          semester: semester,
+          examType: document.getElementById('examType').value,
+          topic: document.getElementById('topic').value,
+          difficulty: document.getElementById('difficulty').value
+        })
+      });
+      const data = await resp.json();
+      if (data.error) { showAlert('errorBox', '❌ ' + data.error); document.getElementById('loadingScreen').style.display = 'none'; return; }
+      questions = data.questions;
+    } else {
+      questions = selectFromBank(selectedSubject, grade, document.getElementById('topic').value);
+      if (questions.length === 0) {
+        showAlert('errorBox', '⚠️ لا توجد أسئلة متاحة في البنك لهذه المعايير. جرب الذكاء الاصطناعي أو غيّر الموضوع.');
+        document.getElementById('loadingScreen').style.display = 'none';
+        return;
+      }
+    }
+    
+    const examHTML = buildExamHTML(selectedSubject, grade, semester, questions, mode);
+    document.getElementById('resultContent').innerHTML = examHTML;
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('resultSection').style.display = 'block';
+    if (window.MathJax) MathJax.typesetPromise();
+    showAlert('successBox', `✅ تم توليد الاختبار بنجاح! (${questions.length} أسئلة)`);
+    
+  } catch (err) {
+    showAlert('errorBox', '❌ حدث خطأ: ' + err.message);
+    document.getElementById('loadingScreen').style.display = 'none';
+  }
+}
+
+function selectFromBank(subject, grade, topic) {
+  let pool = [];
+  if (questionBank[subject] && questionBank[subject][grade]) {
+    for (let chapter in questionBank[subject][grade]) {
+      if (!topic || chapter.includes(topic)) {
+        pool = pool.concat(questionBank[subject][grade][chapter]);
+      }
+    }
+  }
+  if (pool.length === 0) return [];
+  
+  let selected = [];
+  const types = ['mcq', 'truefalse', 'essay', 'application'];
+  types.forEach(t => {
+    const typeQs = pool.filter(q => q.type === t || (t === 'application' && q.type === 'problem'));
+    if (typeQs.length > 0) {
+      const pick = typeQs[Math.floor(Math.random() * typeQs.length)];
+      if (!selected.includes(pick)) selected.push(pick);
+    }
+  });
+  
+  while (selected.length < 5 && pool.length > selected.length) {
+    const extra = pool[Math.floor(Math.random() * pool.length)];
+    if (!selected.includes(extra)) selected.push(extra);
+  }
+  return selected.slice(0, 5);
+}
+
+// ========== BUILD A4 ==========
+function buildExamHTML(subject, grade, semester, questions, mode) {
+  const totalPoints = questions.reduce((sum, q) => sum + (q.points || 0), 0);
+  
+  let html = `<div class="a4-exam">
+    <div class="exam-title">
+      <h1>الجمهورية الجزائرية الديمقراطية الشعبية</h1>
+      <div class="subtitle">وزارة التربية الوطنية - المنهاج الجيل الثاني</div>
+      <div style="margin-top:12px; font-size:20px; font-weight:900; color:#1a2332;">${subject} - ${grade}</div>
+      <div class="subtitle">${document.getElementById('examType').value} - ${semester}</div>
+    </div>
+    <div class="exam-info-bar">
+      <div><strong>المادة:</strong> ${subject}</div>
+      <div><strong>المدة:</strong> ${document.getElementById('duration').value}</div>
+      <div><strong>النقطة:</strong> ${totalPoints}/20</div>
+      <div><strong>التاريخ:</strong> _____________</div>
+    </div>
+    <div class="student-form">
+      <div><label>اللقب والاسم:</label><div class="field"></div></div>
+      <div><label>القسم / الشعبة:</label><div class="field"></div></div>
+      <div><label>الرقم:</label><div class="field"></div></div>
+      <div><label>العلامة / 20:</label><div class="field"></div></div>
+    </div>
+    <div style="background:#fff3cd; padding:10px; border-radius:5px; margin:15px 0; font-size:12px; border:1px solid #ffeaa7;">
+      <strong>تعليمات:</strong> اجب عن جميع الأسئلة. اكتب إجاباتك بوضوح وبتنظيم. ${mode === 'ai' ? 'تم توليد هذا الاختبار بالذكاء الاصطناعي.' : 'تم اختيار الأسئلة من بنك الأسئلة المعتمد.'}
+    </div>`;
+  
+  questions.forEach((q, i) => {
+    const diff = diffLabels[q.difficulty || 2];
+    const typeInfo = typeLabels[q.type] || { label: q.type, badgeClass: "badge-mcq" };
+    html += `<div class="question-block">
+      <div class="q-header">
+        <span class="q-num">السؤال ${toArabicNum(i+1)} <span class="diff-dot ${diff.dotClass}"></span></span>
+        <span class="q-meta">${typeInfo.label} | ${q.points || 2} نقطة${q.points > 1 ? 'ت' : ''} | ${diff.label}</span>
+      </div>
+      <div class="q-text">${q.text}</div>`;
+    
+    if (q.type === 'mcq' && q.options) {
+      html += `<div class="q-options">`;
+      q.options.forEach((opt, idx) => {
+        const letter = ['أ', 'ب', 'ج', 'د', 'ه', 'و'][idx] || String.fromCharCode(65+idx);
+        html += `<div class="q-option">${letter}) ${opt}</div>`;
+      });
+      html += `</div>`;
+    } else if (q.type === 'truefalse') {
+      html += `<div style="display:flex; gap:30px; margin-top:10px;">
+        <span style="border:1px solid #333; padding:6px 24px; border-radius:5px; font-size:12px;">صحيح</span>
+        <span style="border:1px solid #333; padding:6px 24px; border-radius:5px; font-size:12px;">خطأ</span>
+      </div>`;
+    } else {
+      const lines = q.type === 'essay' ? 5 : (q.difficulty === 3 ? 8 : 6);
+      html += `<div class="answer-lines">`;
+      for (let l = 0; l < lines; l++) html += `<div class="answer-space"></div>`;
+      html += `</div>`;
+    }
+    html += `</div>`;
+  });
+  
+  html += `<div style="margin-top:30px; padding-top:15px; border-top:1px solid #ccc; font-size:11px; color:#666; text-align:center;">
+    بالتوفيق والنجاح | يُمنع استخدام الهاتف النقال أثناء الاختبار
+  </div></div>`;
+  return html;
+}
+
+function toArabicNum(n) {
+  const map = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
+  return String(n).split('').map(d => map[parseInt(d)] || d).join('');
+}
+
+// ========== BANK PAGE ==========
+function populateBankFilters() {
+  const subjSelect = document.getElementById('bankFilterSubject');
+  subjectsConfig.forEach(s => {
+    subjSelect.innerHTML += `<option value="${s.name}">${s.icon} ${s.name}</option>`;
+  });
+}
+
+async function renderBank() {
+  const div = document.getElementById('bankContent');
+  if (!Object.keys(questionBank).length) await loadBank();
+  
+  const filterLevel = document.getElementById('bankFilterLevel').value;
+  const filterSubj = document.getElementById('bankFilterSubject').value;
+  const filterGrade = document.getElementById('bankFilterGrade').value;
+  const filterType = document.getElementById('bankFilterType').value;
+  const filterDiff = document.getElementById('bankFilterDiff').value;
+  
+  let content = ""; let totalShown = 0;
+  
+  for (let subj in questionBank) {
+    if (filterSubj && subj !== filterSubj) continue;
+    
+    let subjContent = ""; let subjCount = 0;
+    
+    for (let grade in questionBank[subj]) {
+      if (filterGrade && grade !== filterGrade) continue;
+      if (filterLevel) {
+        const level = grade.includes('ابتدائي') ? 'ابتدائي' : grade.includes('متوسط') ? 'متوسط' : 'ثانوي';
+        if (level !== filterLevel) continue;
+      }
+      
+      let gradeContent = ""; let gradeCount = 0;
+      
+      for (let chapter in questionBank[subj][grade]) {
+        let chapterQuestions = questionBank[subj][grade][chapter];
+        if (filterType) chapterQuestions = chapterQuestions.filter(q => q.type === filterType || (filterType === 'application' && q.type === 'problem'));
+        if (filterDiff) chapterQuestions = chapterQuestions.filter(q => String(q.difficulty) === filterDiff);
+        
+        if (chapterQuestions.length === 0) continue;
+        gradeCount += chapterQuestions.length;
+        gradeContent += `<div class="bank-chapter">📂 ${chapter} (${chapterQuestions.length} سؤال)</div>`;
+        
+        chapterQuestions.forEach(q => {
+          const t = typeLabels[q.type] || { label: q.type, badgeClass: "badge-mcq" };
+          const d = diffLabels[q.difficulty || 2];
+          subjCount++; totalShown++;
+          gradeContent += `<div class="bank-question">
+            <span class="q-badge ${t.badgeClass}">${t.label}</span>
+            <span class="q-badge ${d.badgeClass}">${d.label}</span>
+            <span class="bank-question-text">${q.text.substring(0, 120)}${q.text.length > 120 ? '...' : ''}</span>
+            <span style="color:var(--text-dim); font-size:11px; white-space:nowrap;">${q.points || 2}ن</span>
+          </div>`;
+        });
+      }
+      
+      if (gradeCount > 0) {
+        subjContent += `<div class="bank-grade" onclick="this.nextElementSibling.classList.toggle('collapsed')">
+          <span>🎓 ${grade}</span><span>${gradeCount} سؤال</span>
+        </div><div>${gradeContent}</div>`;
+      }
+    }
+    
+    if (subjCount > 0) {
+      const subjIcon = subjectsConfig.find(s => s.name === subj)?.icon || '📚';
+      content += `<div class="bank-subject">
+        <div class="bank-subject-header" onclick="toggleSubject(this)">
+          <span>${subjIcon} ${subj}</span>
+          <span style="font-size:12px; color:var(--text-muted);">${subjCount} سؤال <span class="toggle-icon">▼</span></span>
+        </div>
+        <div class="bank-subject-body">${subjContent}</div>
+      </div>`;
+    }
+  }
+  
+  div.innerHTML = content || `<div style="text-align:center; padding:40px; color:var(--text-dim);">لا توجد أسئلة مطابقة للفلاتر المحددة</div>`;
+  updateGradeFilter();
+}
+
+function toggleSubject(header) {
+  const body = header.nextElementSibling;
+  const icon = header.querySelector('.toggle-icon');
+  body.classList.toggle('collapsed');
+  icon.classList.toggle('open');
+}
+
+function updateGradeFilter() {
+  const subj = document.getElementById('bankFilterSubject').value;
+  const level = document.getElementById('bankFilterLevel').value;
+  const gradeSelect = document.getElementById('bankFilterGrade');
+  const currentVal = gradeSelect.value;
+  
+  gradeSelect.innerHTML = '<option value="">جميع السنوات</option>';
+  
+  let grades = new Set();
+  if (subj && questionBank[subj]) {
+    Object.keys(questionBank[subj]).forEach(g => grades.add(g));
+  } else {
+    Object.values(questionBank).forEach(s => Object.keys(s).forEach(g => grades.add(g)));
+  }
+  
+  if (level) {
+    grades = new Set([...grades].filter(g => {
+      const l = g.includes('ابتدائي') ? 'ابتدائي' : g.includes('متوسط') ? 'متوسط' : 'ثانوي';
+      return l === level;
+    }));
+  }
+  
+  [...grades].sort().forEach(g => {
+    gradeSelect.innerHTML += `<option value="${g}">${g}</option>`;
+  });
+  gradeSelect.value = currentVal;
+}
+
+function filterBank() { renderBank(); }
+
+// ========== STATS PAGE ==========
+async function renderStats() {
+  const div = document.getElementById('statsContent');
+  if (!Object.keys(questionBank).length) await loadBank();
+  
+  let stats = { total: 0, byType: {}, byDiff: {1:0, 2:0, 3:0}, byLevel: {}, bySubject: {} };
+  
+  for (let subj in questionBank) {
+    stats.bySubject[subj] = 0;
+    for (let grade in questionBank[subj]) {
+      const level = grade.includes('ابتدائي') ? 'ابتدائي' : grade.includes('متوسط') ? 'متوسط' : 'ثانوي';
+      stats.byLevel[level] = (stats.byLevel[level] || 0) + 0;
+      
+      for (let chapter in questionBank[subj][grade]) {
+        questionBank[subj][grade][chapter].forEach(q => {
+          stats.total++;
+          stats.bySubject[subj]++;
+          stats.byLevel[level] = (stats.byLevel[level] || 0) + 1;
+          stats.byType[q.type] = (stats.byType[q.type] || 0) + 1;
+          stats.byDiff[q.difficulty || 2] = (stats.byDiff[q.difficulty || 2] || 0) + 1;
+        });
+      }
+    }
+  }
+  
+  const easyPct = stats.total ? Math.round(stats.byDiff[1]/stats.total*100) : 0;
+  const medPct = stats.total ? Math.round(stats.byDiff[2]/stats.total*100) : 0;
+  const hardPct = stats.total ? Math.round(stats.byDiff[3]/stats.total*100) : 0;
+  
+  let html = `
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:24px;">
+      <div style="background:linear-gradient(135deg, rgba(26,122,82,0.2), rgba(40,116,166,0.15)); padding:20px; border-radius:12px; text-align:center; border:1px solid var(--border);">
+        <div style="font-size:32px; font-weight:900; color:var(--primary-light);">${stats.total}</div>
+        <div style="font-size:13px; color:var(--text-muted); margin-top:4px;">إجمالي الأسئلة</div>
+      </div>
+      <div style="background:linear-gradient(135deg, rgba(46,204,113,0.1), rgba(39,174,96,0.1)); padding:20px; border-radius:12px; text-align:center; border:1px solid var(--border);">
+        <div style="font-size:32px; font-weight:900; color:#58d68d;">${Object.keys(stats.byType).length}</div>
+        <div style="font-size:13px; color:var(--text-muted); margin-top:4px;">أنواع الأسئلة</div>
+      </div>
+      <div style="background:linear-gradient(135deg, rgba(243,156,18,0.1), rgba(211,84,0,0.1)); padding:20px; border-radius:12px; text-align:center; border:1px solid var(--border);">
+        <div style="font-size:32px; font-weight:900; color:#f5b041;">${Object.keys(questionBank).length}</div>
+        <div style="font-size:13px; color:var(--text-muted); margin-top:4px;">المواد المغطاة</div>
+      </div>
+    </div>
+    
+    <h3 style="margin:20px 0 12px; color:var(--text-muted); font-size:15px;">📚 توزيع حسب الطور</h3>
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin-bottom:20px;">`;
+  
+  for (let level in stats.byLevel) {
+    const pct = Math.round(stats.byLevel[level]/stats.total*100);
+    const icon = level === 'ابتدائي' ? '🏫' : level === 'متوسط' ? '📚' : '🎓';
+    html += `<div style="background:var(--surface); padding:14px; border-radius:10px; border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-weight:700;">${icon} ${level}</span>
+      <div style="text-align:left;">
+        <div style="font-size:18px; font-weight:800; color:var(--primary-light);">${stats.byLevel[level]}</div>
+        <div style="font-size:11px; color:var(--text-dim);">${pct}%</div>
+      </div>
+    </div>`;
+  }
+  
+  html += `</div>
+    <h3 style="margin:20px 0 12px; color:var(--text-muted); font-size:15px;">📊 توزيع الصعوبة</h3>
+    <div style="background:var(--surface); padding:16px; border-radius:12px; border:1px solid var(--border); margin-bottom:20px;">
+      <div style="display:flex; height:28px; border-radius:8px; overflow:hidden; margin-bottom:10px;">
+        <div style="width:${easyPct}%; background:linear-gradient(90deg, #27ae60, #2ecc71); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:white;">${easyPct}%</div>
+        <div style="width:${medPct}%; background:linear-gradient(90deg, #f39c12, #f1c40f); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:white;">${medPct}%</div>
+        <div style="width:${hardPct}%; background:linear-gradient(90deg, #e74c3c, #c0392b); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:white;">${hardPct}%</div>
+      </div>
+      <div style="display:flex; justify-content:space-between; font-size:12px;">
+        <span><span style="color:#2ecc71;">●</span> سهل: ${stats.byDiff[1] || 0}</span>
+        <span><span style="color:#f1c40f;">●</span> متوسط: ${stats.byDiff[2] || 0}</span>
+        <span><span style="color:#e74c3c;">●</span> صعب: ${stats.byDiff[3] || 0}</span>
+      </div>
+    </div>
+    
+    <h3 style="margin:20px 0 12px; color:var(--text-muted); font-size:15px;">📖 توزيع المواد</h3>
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap:12px;">`;
+  
+  for (let subj in stats.bySubject) {
+    const pct = Math.round(stats.bySubject[subj] / stats.total * 100);
+    const icon = subjectsConfig.find(s => s.name === subj)?.icon || '📚';
+    html += `<div style="background:var(--surface); padding:14px; border-radius:10px; border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-weight:700;">${icon} ${subj}</span>
+      <div style="text-align:left;">
+        <div style="font-size:18px; font-weight:800; color:var(--primary-light);">${stats.bySubject[subj]}</div>
+        <div style="font-size:11px; color:var(--text-dim);">${pct}%</div>
+      </div>
+    </div>`;
+  }
+  
+  html += `</div>`;
+  div.innerHTML = html;
+}
+
+// ========== UTILITIES ==========
+function showAlert(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg; el.style.display = 'block';
+  setTimeout(() => hideAlert(id), 8000);
+}
+function hideAlert(id) { document.getElementById(id).style.display = 'none'; }
+function printExam() { window.print(); }
+function copyToClipboard() {
+  const text = document.getElementById('resultContent').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    showAlert('successBox', '✅ تم نسخ نص الاختبار إلى الحافظة');
+  });
+}
+function resetForm() {
+  document.getElementById('resultSection').style.display = 'none';
+  hideAlert('errorBox'); hideAlert('successBox');
+}
+
+// ========== NAVIGATION ==========
+document.querySelectorAll('.nav-tab').forEach(tab => {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.nav-tab').forEach(t => t.setAttribute('aria-selected', 'false'));
+    this.setAttribute('aria-selected', 'true');
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-' + this.dataset.page).classList.add('active');
+    if (this.dataset.page === 'bank') renderBank();
+    if (this.dataset.page === 'stats') renderStats();
+  });
+});
+
+// ========== BOOT ==========
+window.addEventListener('DOMContentLoaded', init);
+</script>
+
+</body>
+</html>'''
+
+with open('/mnt/agents/output/index_full.html', 'w', encoding='utf-8') as f:
+    f.write(updated_html)
+
+print("✅ تم تحديث الواجهة الأمامية لتدعم الثلاثة أطوار")
+print(f"📄 الملف: index_full.html ({len(updated_html):,} حرف)")
+print("\nالميزات الجديدة:")
+print("   - اختيار الطور (ابتدائي/متوسط/ثانوي)")
+print("   - المواد تتغير حسب الطور المختار")
+print("   - السنوات تتغير حسب الطور")
+print("   - حقل الشعبة (علوم/آداب) للثانوي")
+print("   - فلترة بنك الأسئلة حسب الطور")
+print("   - إحصائيات منفصلة حسب الطور")
