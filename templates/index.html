@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <meta name="description" content="منصة الامتحانات الجزائرية الشاملة – توليد اختبارات A4 بالذكاء الاصطناعي وبنك أسئلة ديناميكي">
+  <meta name="theme-color" content="#1a2a3a">
+  <title>منصة الامتحانات | ذكاء اصطناعي + JSON</title>
+
+  <!-- === MathJax === -->
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #1a7a52;
+      --primary-dark: #0f5c3b;
+      --secondary: #2874a6;
+      --accent: #d4a017;
+      --bg: #0e1621;
+      --surface: #162232;
+      --card: #1e2f42;
+      --border: rgba(120,180,220,0.15);
+      --text: #e0eaf2;
+      --text-muted: #8aacbc;
+      --danger: #c0392b;
+      color-scheme: dark;
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Cairo', 'Amiri', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .dev-bar { background:rgba(0,0,0,0.4); text-align:center; padding:4px; font-size:12px; color:var(--accent); }
+    header {
+      background:rgba(14,22,33,0.94); backdrop-filter:blur(12px);
+      border-bottom:1px solid var(--border); padding:0 20px;
+      display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap;
+      gap:15px; min-height:70px;
+    }
+    .logo { display:flex; align-items:center; gap:12px; }
+    .logo-icon {
+      width:44px; height:44px; background:linear-gradient(135deg, var(--primary), var(--secondary));
+      border-radius:12px; display:flex; align-items:center; justify-content:center;
+      font-size:24px; color:white;
+    }
+    .logo-text h1 { font-size:18px; font-weight:800; }
+    .logo-text span { font-size:11px; color:var(--text-muted); }
+
+    nav { display:flex; gap:8px; flex-wrap:wrap; }
+    .nav-tab {
+      padding:8px 20px; border-radius:24px; border:1px solid var(--border);
+      background:transparent; color:var(--text-muted); font-weight:700; cursor:pointer;
+    }
+    .nav-tab[aria-selected="true"] {
+      background:linear-gradient(135deg, var(--primary), var(--primary-dark));
+      border-color:transparent; color:white;
+    }
+
+    main { flex:1; max-width:1100px; margin:0 auto; padding:30px 20px; width:100%; }
+    .page { display:none; }
+    .page.active { display:block; }
+
+    .card { background:var(--card); border:1px solid var(--border); border-radius:16px; margin-bottom:22px; }
+    .card-header { padding:16px 22px; border-bottom:1px solid var(--border); color:#7fc8e8; font-weight:700; }
+    .card-body { padding:22px; }
+
+    .subject-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr)); gap:12px; }
+    .subject-btn {
+      padding:16px; border:2px solid var(--border); border-radius:12px;
+      background:rgba(255,255,255,0.03); color:var(--text-muted); font-weight:700; text-align:center; cursor:pointer;
+    }
+    .subject-btn[aria-pressed="true"] { border-color:var(--primary); background:rgba(26,122,82,0.12); color:white; }
+
+    .fields-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:16px; }
+    label { font-size:13px; color:var(--text-muted); margin-bottom:6px; display:block; }
+    select, input, textarea {
+      width:100%; padding:12px; border-radius:10px; border:1px solid var(--border);
+      background:rgba(255,255,255,0.05); color:var(--text); font-size:14px;
+    }
+    .btn-generate {
+      width:100%; padding:16px; border-radius:14px; border:none;
+      background:linear-gradient(135deg, var(--primary), var(--primary-dark));
+      color:white; font-size:18px; font-weight:800; cursor:pointer; margin-top:10px;
+    }
+    .btn-ai {
+      background:linear-gradient(135deg, #d4a017, #b38711);
+    }
+    .result-frame { background:white; border-radius:16px; overflow:hidden; margin-top:20px; }
+    .a4-exam {
+      max-width:21cm; margin:0 auto; padding:1.8cm 2cm;
+      font-family:'Cairo','Traditional Arabic',serif; color:#1a2332;
+      background:white; line-height:1.6;
+    }
+    @media print {
+      body{background:white;}
+      .dev-bar, header, .btn-generate, .result-toolbar, .card, .nav-tab {display:none;}
+      .result-frame{box-shadow:none;}
+      .a4-exam{padding:0; max-width:100%;}
+    }
+  </style>
+</head>
+<body>
+<div class="dev-bar">👨‍💻 المطور:يوسف | بنك أسئلة JSON + ذكاء اصطناعي</div>
+<header>
+  <div class="logo">
+    <div class="logo-icon">🎓</div>
+    <div class="logo-text">
+      <h1>الامتحانات الجزائرية</h1>
+      <span>قابل للتحديث عبر JSON</span>
+    </div>
+  </div>
+  <nav>
+    <button class="nav-tab" aria-selected="true" data-page="generate">⚡ توليد</button>
+    <button class="nav-tab" aria-selected="false" data-page="bank">📚 بنك الأسئلة</button>
+  </nav>
+</header>
+
+<main>
+  <section id="page-generate" class="page active">
+    <h2 class="sr-only">توليد اختبار</h2>
+    <!-- شبكة المواد -->
+    <div class="card">
+      <div class="card-header">① اختر المادة</div>
+      <div class="card-body">
+        <div class="subject-grid" id="subjectGrid"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">② الإعدادات</div>
+      <div class="card-body">
+        <div class="fields-grid">
+          <div><label for="stage">الطور</label><select id="stage" onchange="updateYears()"><option value="">-- اختر --</option><option value="primary">ابتدائي</option><option value="middle">متوسط</option><option value="secondary">ثانوي</option></select></div>
+          <div id="yearField" style="display:none"><label for="grade">السنة</label><select id="grade"></select></div>
+          <div><label for="semester">الفصل</label><select id="semester"><option value="">-- اختر --</option><option>الفصل الأول</option><option>الفصل الثاني</option><option>الفصل الثالث</option></select></div>
+          <div><label for="examType">النوع</label><select id="examType"><option>اختبار فصلي</option><option>فرض محروس</option><option>نموذج شهادة</option></select></div>
+          <div><label for="duration">المدة</label><select id="duration"><option>ساعة واحدة</option><option selected>ساعة ونصف</option><option>ساعتان</option></select></div>
+        </div>
+        <div style="margin-top:16px">
+          <span>الصعوبة</span>
+          <div class="difficulty-group">
+            <button class="diff-btn" data-diff="سهل">🟢 سهل</button>
+            <button class="diff-btn" data-diff="متوسط" aria-pressed="true">🟡 متوسط</button>
+            <button class="diff-btn" data-diff="صعب">🔴 صعب</button>
+          </div>
+          <input type="hidden" id="difficulty" value="متوسط">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">③ موضوع (اختياري)</div>
+      <div class="card-body">
+        <input type="text" id="topic" placeholder="مثال: المعادلات، المناعة...">
+      </div>
+    </div>
+
+    <div id="errorBox" class="alert" style="display:none;"></div>
+
+    <button class="btn-generate" onclick="generateExam('manual')">📋 توليد يدوي (من البنك)</button>
+    <button class="btn-generate btn-ai" onclick="generateExam('ai')">🤖 توليد بالذكاء الاصطناعي</button>
+
+    <div id="loadingScreen" style="display:none; text-align:center; padding:40px;">
+      <div class="loader"></div>
+      <p>جاري التوليد...</p>
+    </div>
+
+    <div id="resultSection" style="display:none;">
+      <div class="result-toolbar" style="display:flex; gap:10px; margin-bottom:15px;">
+        <button onclick="printExam()">🖨️ طباعة</button>
+        <button onclick="resetForm()">✏️ تعديل</button>
+      </div>
+      <div class="result-frame"><div id="resultContent"></div></div>
+    </div>
+  </section>
+
+  <section id="page-bank" class="page">
+    <h2>بنك الأسئلة</h2>
+    <div id="bankContent">جاري تحميل الأسئلة...</div>
+  </section>
+</main>
+
+<script>
+  // ========== الثوابت والمتغيرات ==========
+  const subjects = ["رياضيات","عربية","فرنسية","إنجليزية","فيزياء","علوم","إسلامية","اجتماعيات","فلسفة"];
+  let selectedSubject = "";
+  let questionBank = {}; // سيتم تحميله من الخادم
+
+  // ========== تحميل بنك الأسئلة ==========
+  async function loadBank() {
+    try {
+      const resp = await fetch('/questions');
+      questionBank = await resp.json();
+      console.log("تم تحميل بنك الأسئلة");
+    } catch(e) {
+      console.error("فشل تحميل البنك", e);
+    }
+  }
+
+  // ========== الشبكة ==========
+  function renderSubjects() {
+    const grid = document.getElementById('subjectGrid');
+    grid.innerHTML = subjects.map(s => `
+      <button class="subject-btn" data-subject="${s}">${s}</button>
+    `).join('');
+  }
+
+  // ========== اختيار المادة ==========
+  document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('subject-btn')) {
+      document.querySelectorAll('.subject-btn').forEach(b => b.setAttribute('aria-pressed','false'));
+      e.target.setAttribute('aria-pressed','true');
+      selectedSubject = e.target.dataset.subject;
+    }
+    if (e.target.classList.contains('diff-btn')) {
+      document.querySelectorAll('.diff-btn').forEach(b => b.setAttribute('aria-pressed','false'));
+      e.target.setAttribute('aria-pressed','true');
+      document.getElementById('difficulty').value = e.target.dataset.diff;
+    }
+  });
+
+  // ========== تحديث السنوات ==========
+  function updateYears() {
+    const stage = document.getElementById('stage').value;
+    const yearField = document.getElementById('yearField');
+    const gradeSelect = document.getElementById('grade');
+    gradeSelect.innerHTML = '<option value="">-- اختر --</option>';
+    if (stage === 'primary') {
+      yearField.style.display = 'block';
+      for (let i=1; i<=5; i++) gradeSelect.innerHTML += `<option>السنة ${i} ابتدائي</option>`;
+    } else if (stage === 'middle') {
+      yearField.style.display = 'block';
+      for (let i=1; i<=4; i++) gradeSelect.innerHTML += `<option>السنة ${i} متوسط</option>`;
+    } else if (stage === 'secondary') {
+      yearField.style.display = 'block';
+      ["جذع مشترك علوم","السنة 2 علوم","السنة 3 علوم"].forEach(o => gradeSelect.innerHTML += `<option>${o}</option>`);
+    } else yearField.style.display = 'none';
+  }
+
+  // ========== توليد الاختبار ==========
+  async function generateExam(mode) {
+    const grade = document.getElementById('grade').value;
+    const stage = document.getElementById('stage').value;
+    const semester = document.getElementById('semester').value;
+    if (!selectedSubject || !stage || !grade || !semester) {
+      alert("املأ جميع الحقول");
+      return;
+    }
+
+    document.getElementById('resultSection').style.display = 'none';
+    document.getElementById('loadingScreen').style.display = 'block';
+
+    let questions;
+    if (mode === 'ai') {
+      // استدعاء الذكاء الاصطناعي
+      const resp = await fetch('/generate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          subject: selectedSubject,
+          grade: grade,
+          semester: semester,
+          examType: document.getElementById('examType').value,
+          topic: document.getElementById('topic').value,
+          difficulty: document.getElementById('difficulty').value
+        })
+      });
+      const data = await resp.json();
+      if (data.error) {
+        alert(data.error);
+        document.getElementById('loadingScreen').style.display = 'none';
+        return;
+      }
+      questions = data.questions;
+    } else {
+      // استخدام البنك المحمل
+      questions = selectFromBank(selectedSubject, grade, document.getElementById('topic').value);
+    }
+
+    // بناء بطاقة الاختبار
+    const examHTML = buildExamHTML(selectedSubject, grade, semester, questions);
+    document.getElementById('resultContent').innerHTML = examHTML;
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('resultSection').style.display = 'block';
+
+    // إعادة تنضيد MathJax
+    if (window.MathJax) MathJax.typesetPromise();
+  }
+
+  // ========== اختيار أسئلة من البنك ==========
+  function selectFromBank(subject, grade, topic) {
+    let pool = [];
+    if (questionBank[subject] && questionBank[subject][grade]) {
+      for (let chapter in questionBank[subject][grade]) {
+        if (!topic || chapter.includes(topic)) {
+          pool = pool.concat(questionBank[subject][grade][chapter]);
+        }
+      }
+    }
+    if (pool.length === 0) return []; // سؤال افتراضي لاحقاً
+    // اختيار عشوائي لـ 4 أسئلة مع تنويع الأنواع
+    let selected = [];
+    let mcq = pool.filter(q => q.type === 'mcq');
+    let tf = pool.filter(q => q.type === 'truefalse');
+    let app = pool.filter(q => q.type === 'application' || q.type === 'problem');
+    let ess = pool.filter(q => q.type === 'essay');
+
+    function pick(arr, count) {
+      return arr.sort(() => Math.random() - 0.5).slice(0, count);
+    }
+
+    selected.push(...pick(mcq, 1));
+    selected.push(...pick(tf, 1));
+    selected.push(...pick(app, 1));
+    selected.push(...pick(ess, 1));
+    // إذا نقص نضيف أي شيء
+    while (selected.length < 4 && pool.length) {
+      let extra = pool[Math.floor(Math.random() * pool.length)];
+      if (!selected.includes(extra)) selected.push(extra);
+    }
+    return selected.slice(0,4);
+  }
+
+  // ========== بناء صفحة A4 ==========
+  function buildExamHTML(subject, grade, semester, questions) {
+    let html = `<div class="a4-exam">
+      <div style="text-align:center;margin-bottom:20px;">
+        <h1>${subject} - ${grade}</h1>
+        <p>الفصل: ${semester}</p>
+      </div>`;
+    questions.forEach((q, i) => {
+      html += `<div style="margin-bottom:20px;"><p><strong>${i+1}. ${q.text}</strong> (${q.points} ن)</p>`;
+      if (q.options) {
+        html += q.options.map((opt, idx) => `<div>${String.fromCharCode(65+idx)}. ${opt}</div>`).join('');
+      }
+      html += `<div style="border-bottom:1px dotted #ccc; height:40px;"></div></div>`;
+    });
+    html += `</div>`;
+    return html;
+  }
+
+  // ========== طباعة ==========
+  window.printExam = () => window.print();
+  window.resetForm = () => document.getElementById('resultSection').style.display = 'none';
+
+  // ========== بنك الأسئلة المعروض ==========
+  async function renderBank() {
+    const div = document.getElementById('bankContent');
+    if (!Object.keys(questionBank).length) await loadBank();
+    let content = "";
+    for (let subj in questionBank) {
+      content += `<h3>${subj}</h3>`;
+      for (let grade in questionBank[subj]) {
+        content += `<p><strong>${grade}</strong></p>`;
+      }
+    }
+    div.innerHTML = content || "لا توجد أسئلة بعد";
+  }
+
+  // ========== بدء التشغيل ==========
+  document.querySelectorAll('.nav-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.nav-tab').forEach(t=>t.setAttribute('aria-selected','false'));
+      this.setAttribute('aria-selected','true');
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+      document.getElementById('page-'+this.dataset.page).classList.add('active');
+      if (this.dataset.page === 'bank') renderBank();
+    });
+  });
+
+  window.onload = async function() {
+    await loadBank();
+    renderSubjects();
+  };
+</script>
+</body>
+</html>
