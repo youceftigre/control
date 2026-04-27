@@ -221,7 +221,7 @@
     .result-toolbar button:hover { background: var(--card-hover); border-color: var(--primary); }
     .result-frame { background: #e2e8f0; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-lg); padding: 30px 20px; }
     
-    /* خاصية التحرير: إطار متقطع عند التحرير */
+    /* خاصية التحرير */
     .result-frame.editing {
       outline: 3px solid var(--primary);
       outline-offset: 2px;
@@ -230,7 +230,7 @@
       cursor: text;
     }
 
-    /* A4 Exam - STYLES مطابقة لـ a4.html */
+    /* A4 Exam - مطابق تماماً لـ a4.html */
     .a4-exam {
       max-width: 1100px;
       margin: 0 auto;
@@ -326,11 +326,6 @@
     .a4-exam .q-options input[type="radio"] {
       margin-left: 8px;
       vertical-align: middle;
-    }
-    .a4-exam .answer-space {
-      border-bottom: 1px dotted #999;
-      min-height: 28px;
-      margin: 8px 0;
     }
 
     @media print {
@@ -553,7 +548,6 @@
         <button onclick="printExam()">🖨️ طباعة / حفظ PDF</button>
         <button onclick="copyToClipboard()">📋 نسخ النص</button>
         <button onclick="resetForm()">✏️ تعديل الإعدادات</button>
-        <!-- الأزرار الجديدة -->
         <button id="toggleEditBtn" onclick="toggleExamEditing()">✏️ تفعيل التحرير</button>
         <button onclick="changeFontSize(1.1)">🔍 + تكبير الخط</button>
         <button onclick="changeFontSize(0.9)">🔍 - تصغير الخط</button>
@@ -773,11 +767,7 @@ async function generateExam(mode) {
     if (window.MathJax) MathJax.typesetPromise();
     showAlert('successBox', `✅ تم توليد الاختبار بنجاح! (${questions.length} أسئلة)`);
     
-    // Reset editing mode when new exam is generated
-    if (window.isEditingActive) {
-      toggleExamEditing(); // turn off editing
-    }
-    // Reset font size
+    if (window.isEditingActive) toggleExamEditing();
     resetFontSize();
     
   } catch (err) {
@@ -820,7 +810,7 @@ function ordinalArabic(num) {
   return ordinals[num] || num;
 }
 
-// ========== BUILD A4 (مطابق لـ a4.html) ==========
+// ========== BUILD A4 (مطابق تماماً لـ a4.html - بدون خطوط إجابة) ==========
 function buildExamHTML(subject, grade, semester, questions, mode) {
   const examType = document.getElementById('examType').value;
   const duration = document.getElementById('duration').value;
@@ -873,10 +863,9 @@ function buildExamHTML(subject, grade, semester, questions, mode) {
         <span style="border:1px solid #333; padding:6px 24px; border-radius:5px; font-size:14px;">صحيح</span>
         <span style="border:1px solid #333; padding:6px 24px; border-radius:5px; font-size:14px;">خطأ</span>
       </div>`;
-    } else {
-      const lines = (q.type === 'essay') ? 5 : (q.difficulty === 3 ? 8 : 6);
-      for (let l = 0; l < lines; l++) html += `<div class="answer-space"></div>`;
     }
+    // تم إزالة answer-space ليطابق a4.html
+    
     html += `</div>`;
   });
   
