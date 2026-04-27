@@ -1,7 +1,4 @@
-
-# تحديث الواجهة الأمامية لتدعم الثلاثة أطوار
-
-updated_html = '''<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8">
@@ -18,6 +15,7 @@ updated_html = '''<!DOCTYPE html>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
 
   <style>
+    /* جميع الأنماط السابقة كما هي - لم يتم تغييرها */
     :root {
       --primary: #1a7a52; --primary-light: #2ecc71; --primary-dark: #0d4a30;
       --secondary: #2874a6; --accent: #d4a017; --danger: #c0392b;
@@ -214,50 +212,120 @@ updated_html = '''<!DOCTYPE html>
     #resultSection { display: none; }
     .result-toolbar {
       display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
     }
     .result-toolbar button {
-      padding: 10px 20px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+      padding: 8px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border);
       background: var(--card); color: var(--text); font-weight: 700;
       font-size: 13px; cursor: pointer; transition: all 0.2s; font-family: inherit;
     }
     .result-toolbar button:hover { background: var(--card-hover); border-color: var(--primary); }
     .result-frame { background: white; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow-lg); }
+    
+    /* خاصية التحرير: إطار متقطع عند التحرير */
+    .result-frame.editing {
+      outline: 3px solid var(--primary);
+      outline-offset: 2px;
+    }
+    .a4-exam[contenteditable="true"] {
+      cursor: text;
+    }
 
-    /* A4 Exam */
+    /* A4 Exam - STYLES MODIFIÉS (comme demandé) */
     .a4-exam {
       max-width: 21cm; margin: 0 auto; padding: 1.8cm 2cm;
       font-family: 'Cairo', 'Traditional Arabic', serif;
       color: #1a2332; background: white; line-height: 1.8; font-size: 14px;
+      transition: font-size 0.2s ease;
     }
-    .a4-exam .exam-title {
-      text-align: center; border-bottom: 3px double #1a5276;
-      padding-bottom: 15px; margin-bottom: 20px;
+    /* الدباجة الرسمية (الوسط) */
+    .a4-exam .official-header {
+      text-align: center;
+      margin-bottom: 15px;
     }
-    .a4-exam .exam-title h1 { font-size: 20px; color: #1a5276; margin: 0 0 8px; }
-    .a4-exam .exam-title .subtitle { font-size: 13px; color: #555; }
-    .a4-exam .exam-info-bar {
-      display: flex; justify-content: space-between; margin: 15px 0;
-      padding: 10px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 5px; font-size: 12px;
+    .a4-exam .republic {
+      font-size: 18px;
+      font-weight: bold;
     }
-    .a4-exam .student-form {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-      margin: 15px 0; padding: 10px; border: 1px solid #ccc;
+    .a4-exam .ministry {
+      font-size: 16px;
+      font-weight: bold;
+      margin-top: 5px;
     }
-    .a4-exam .student-form label { font-size: 11px; color: #666; }
-    .a4-exam .student-form .field { border-bottom: 1px solid #333; height: 22px; }
+    /* معلومات جانبية (يمين/يسار) */
+    .a4-exam .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      font-size: 13px;
+      margin: 10px 0 15px;
+    }
+    .a4-exam .right-info {
+      text-align: right;
+      line-height: 1.8;
+    }
+    .a4-exam .left-info {
+      text-align: left;
+      line-height: 1.8;
+    }
+    /* عنوان الامتحان مع خط تحته */
+    .a4-exam .exam-header {
+      text-align: center;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #1a5276;
+      padding-bottom: 8px;
+    }
+    .a4-exam .exam-header h1 {
+      font-size: 22px;
+      color: #1a5276;
+      margin: 0;
+    }
+    /* كتل التمارين - مسافة سطر واحد */
     .a4-exam .question-block {
-      margin: 18px 0; padding: 14px; background: #fafafa;
-      border-right: 4px solid #1a5276; page-break-inside: avoid;
+      margin: 0 0 14px 0;
+      padding: 10px 14px;
+      background: #fafafa;
+      border-right: 4px solid #1a5276;
+      page-break-inside: avoid;
     }
-    .a4-exam .q-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-    .a4-exam .q-num { font-weight: 800; color: #1a5276; font-size: 15px; }
-    .a4-exam .q-meta { font-size: 10px; color: #666; background: #e9ecef; padding: 2px 8px; border-radius: 10px; }
-    .a4-exam .q-text { font-size: 13px; margin-bottom: 8px; text-align: justify; }
-    .a4-exam .q-options { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 8px 0; }
-    .a4-exam .q-option { padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; }
-    .a4-exam .answer-space { border-bottom: 1px dotted #999; min-height: 28px; margin: 8px 0; }
-    .a4-exam .diff-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-left: 4px; }
-    .a4-exam .diff-1 { background: #28a745; } .a4-exam .diff-2 { background: #ffc107; } .a4-exam .diff-3 { background: #dc3545; }
+    .a4-exam .q-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+      border-bottom: 1px dashed #ccc;
+      padding-bottom: 5px;
+    }
+    .a4-exam .q-num {
+      font-size: 17px;
+      font-weight: bold;
+      color: #1a5276;
+    }
+    .a4-exam .q-text {
+      font-size: 14px;
+      line-height: 1.7;
+      margin: 12px 0 8px;
+      text-align: justify;
+    }
+    .a4-exam .q-options {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin: 8px 0;
+    }
+    .a4-exam .q-option {
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .a4-exam .answer-space {
+      border-bottom: 1px dotted #999;
+      min-height: 28px;
+      margin: 8px 0;
+    }
 
     @media print {
       body { background: white; }
@@ -477,8 +545,16 @@ updated_html = '''<!DOCTYPE html>
         <button onclick="printExam()">🖨️ طباعة / حفظ PDF</button>
         <button onclick="copyToClipboard()">📋 نسخ النص</button>
         <button onclick="resetForm()">✏️ تعديل الإعدادات</button>
+        <button id="toggleEditBtn" onclick="toggleExamEditing()">✏️ تفعيل التحرير</button>
+        <!-- تحكم حجم الخط الجديد كما في الصورة -->
+        <span style="margin-right: 8px; font-weight: bold;">حجم الخط:</span>
+        <button onclick="decreaseFontSize()">−</button>
+        <span id="fontSizeValue" style="min-width: 40px; display: inline-block; text-align: center;">14</span>
+        <button onclick="increaseFontSize()">+</button>
       </div>
-      <div class="result-frame"><div id="resultContent"></div></div>
+      <div class="result-frame" id="resultFrame">
+        <div id="resultContent"></div>
+      </div>
     </div>
   </section>
 
@@ -559,12 +635,6 @@ const typeLabels = {
   problem: { label: "مسألة", badgeClass: "badge-app" }
 };
 
-const diffLabels = {
-  1: { label: "سهل", badgeClass: "badge-diff-1", dotClass: "diff-1" },
-  2: { label: "متوسط", badgeClass: "badge-diff-2", dotClass: "diff-2" },
-  3: { label: "صعب", badgeClass: "badge-diff-3", dotClass: "diff-3" }
-};
-
 let selectedStage = "middle";
 let selectedSubject = "";
 let selectedTrack = "";
@@ -594,7 +664,6 @@ function selectStage(btn) {
   btn.setAttribute('aria-pressed', 'true');
   selectedStage = btn.dataset.stage;
   
-  // Show/hide track field for secondary
   const trackField = document.getElementById('trackField');
   if (selectedStage === 'secondary') {
     trackField.style.display = 'block';
@@ -698,6 +767,15 @@ async function generateExam(mode) {
     if (window.MathJax) MathJax.typesetPromise();
     showAlert('successBox', `✅ تم توليد الاختبار بنجاح! (${questions.length} أسئلة)`);
     
+    // Reset editing mode when new exam is generated
+    if (window.isEditingActive) {
+      toggleExamEditing(); // turn off editing
+    }
+    // Reset font size display and actual size
+    const examDiv = document.getElementById('printableExam');
+    if (examDiv) examDiv.style.fontSize = '';
+    document.getElementById('fontSizeValue').innerText = '14';
+    
   } catch (err) {
     showAlert('errorBox', '❌ حدث خطأ: ' + err.message);
     document.getElementById('loadingScreen').style.display = 'none';
@@ -732,47 +810,57 @@ function selectFromBank(subject, grade, topic) {
   return selected.slice(0, 5);
 }
 
-// ========== BUILD A4 ==========
+// ========== ORDINAL ARABIC FUNCTION ==========
+function ordinalArabic(num) {
+  const ordinals = ["", "الأول", "الثاني", "الثالث", "الرابع", "الخامس", "السادس", "السابع", "الثامن", "التاسع", "العاشر"];
+  return ordinals[num] || num;
+}
+
+// ========== BUILD A4 (NEW VERSION) ==========
 function buildExamHTML(subject, grade, semester, questions, mode) {
-  const totalPoints = questions.reduce((sum, q) => sum + (q.points || 0), 0);
+  const examType = document.getElementById('examType').value;
+  const duration = document.getElementById('duration').value;
+  const directorate = "مديرية التربية لولاية الجزائر";
+  const level = grade;
+  const school = "المؤسسة";
+  const academicYear = "2024/2025";
   
-  let html = `<div class="a4-exam">
-    <div class="exam-title">
-      <h1>الجمهورية الجزائرية الديمقراطية الشعبية</h1>
-      <div class="subtitle">وزارة التربية الوطنية - المنهاج الجيل الثاني</div>
-      <div style="margin-top:12px; font-size:20px; font-weight:900; color:#1a2332;">${subject} - ${grade}</div>
-      <div class="subtitle">${document.getElementById('examType').value} - ${semester}</div>
+  let html = `<div class="a4-exam" id="printableExam">
+    <div class="official-header">
+      <div class="republic">الجمهورية الجزائرية الديمقراطية الشعبية</div>
+      <div class="ministry">وزارة التربية الوطنية</div>
     </div>
-    <div class="exam-info-bar">
-      <div><strong>المادة:</strong> ${subject}</div>
-      <div><strong>المدة:</strong> ${document.getElementById('duration').value}</div>
-      <div><strong>النقطة:</strong> ${totalPoints}/20</div>
-      <div><strong>التاريخ:</strong> _____________</div>
+    <div class="info-row">
+      <div class="right-info">
+        <div><strong>المديرية:</strong> ${directorate}</div>
+        <div><strong>المستوى:</strong> ${level}</div>
+        <div><strong>المادة:</strong> ${subject}</div>
+      </div>
+      <div class="left-info">
+        <div><strong>المؤسسة:</strong> ${school}</div>
+        <div><strong>السنة الدراسية:</strong> ${academicYear}</div>
+        <div><strong>المدة:</strong> ${duration}</div>
+      </div>
     </div>
-    <div class="student-form">
-      <div><label>اللقب والاسم:</label><div class="field"></div></div>
-      <div><label>القسم / الشعبة:</label><div class="field"></div></div>
-      <div><label>الرقم:</label><div class="field"></div></div>
-      <div><label>العلامة / 20:</label><div class="field"></div></div>
-    </div>
-    <div style="background:#fff3cd; padding:10px; border-radius:5px; margin:15px 0; font-size:12px; border:1px solid #ffeaa7;">
-      <strong>تعليمات:</strong> اجب عن جميع الأسئلة. اكتب إجاباتك بوضوح وبتنظيم. ${mode === 'ai' ? 'تم توليد هذا الاختبار بالذكاء الاصطناعي.' : 'تم اختيار الأسئلة من بنك الأسئلة المعتمد.'}
+    <div class="exam-header">
+      <h1>${examType}</h1>
     </div>`;
-  
-  questions.forEach((q, i) => {
-    const diff = diffLabels[q.difficulty || 2];
-    const typeInfo = typeLabels[q.type] || { label: q.type, badgeClass: "badge-mcq" };
+
+  questions.forEach((q, idx) => {
+    let exerciseTitle = (q.type === 'situation') ? `الوضعية الإدماجية` : `التمرين ${ordinalArabic(idx+1)}`;
+    let pointsFormatted = q.points || 2;
+    let pointsWord = (pointsFormatted === 1) ? 'نقطة' : 'نقاط';
+    
     html += `<div class="question-block">
       <div class="q-header">
-        <span class="q-num">السؤال ${toArabicNum(i+1)} <span class="diff-dot ${diff.dotClass}"></span></span>
-        <span class="q-meta">${typeInfo.label} | ${q.points || 2} نقطة${q.points > 1 ? 'ت' : ''} | ${diff.label}</span>
+        <span class="q-num">${exerciseTitle} (${pointsFormatted} ${pointsWord})</span>
       </div>
       <div class="q-text">${q.text}</div>`;
     
     if (q.type === 'mcq' && q.options) {
       html += `<div class="q-options">`;
-      q.options.forEach((opt, idx) => {
-        const letter = ['أ', 'ب', 'ج', 'د', 'ه', 'و'][idx] || String.fromCharCode(65+idx);
+      q.options.forEach((opt, optIdx) => {
+        const letter = ['أ', 'ب', 'ج', 'د', 'ه', 'و'][optIdx] || String.fromCharCode(65+optIdx);
         html += `<div class="q-option">${letter}) ${opt}</div>`;
       });
       html += `</div>`;
@@ -782,10 +870,8 @@ function buildExamHTML(subject, grade, semester, questions, mode) {
         <span style="border:1px solid #333; padding:6px 24px; border-radius:5px; font-size:12px;">خطأ</span>
       </div>`;
     } else {
-      const lines = q.type === 'essay' ? 5 : (q.difficulty === 3 ? 8 : 6);
-      html += `<div class="answer-lines">`;
+      const lines = (q.type === 'essay') ? 5 : (q.difficulty === 3 ? 8 : 6);
       for (let l = 0; l < lines; l++) html += `<div class="answer-space"></div>`;
-      html += `</div>`;
     }
     html += `</div>`;
   });
@@ -796,9 +882,41 @@ function buildExamHTML(subject, grade, semester, questions, mode) {
   return html;
 }
 
-function toArabicNum(n) {
-  const map = ['٠','١','٢','٣','٤','٥','٦','٧','٨','٩'];
-  return String(n).split('').map(d => map[parseInt(d)] || d).join('');
+// ========== EDITING & FONT SIZE CONTROLS ==========
+let isEditingActive = false;
+
+function toggleExamEditing() {
+  const examDiv = document.getElementById('printableExam');
+  const btn = document.getElementById('toggleEditBtn');
+  if (!examDiv) return;
+  
+  if (isEditingActive) {
+    examDiv.setAttribute('contenteditable', 'false');
+    document.getElementById('resultFrame').classList.remove('editing');
+    btn.innerHTML = '✏️ تفعيل التحرير';
+    btn.style.background = '';
+    isEditingActive = false;
+  } else {
+    examDiv.setAttribute('contenteditable', 'true');
+    document.getElementById('resultFrame').classList.add('editing');
+    btn.innerHTML = '💾 إيقاف التحرير';
+    btn.style.background = 'linear-gradient(135deg, #d4a017, #b38711)';
+    isEditingActive = true;
+  }
+}
+
+function increaseFontSize() { adjustFontSize(1); }
+function decreaseFontSize() { adjustFontSize(-1); }
+
+function adjustFontSize(delta) {
+  const examDiv = document.getElementById('printableExam');
+  if (!examDiv) return;
+  let currentSize = parseFloat(window.getComputedStyle(examDiv).fontSize);
+  let newSize = currentSize + delta;
+  if (newSize < 12) newSize = 12;
+  if (newSize > 32) newSize = 32;
+  examDiv.style.fontSize = newSize + 'px';
+  document.getElementById('fontSizeValue').innerText = Math.round(newSize);
 }
 
 // ========== BANK PAGE ==========
@@ -846,11 +964,12 @@ async function renderBank() {
         
         chapterQuestions.forEach(q => {
           const t = typeLabels[q.type] || { label: q.type, badgeClass: "badge-mcq" };
-          const d = diffLabels[q.difficulty || 2];
+          const d = {1:"سهل",2:"متوسط",3:"صعب"}[q.difficulty] || "متوسط";
+          const diffClass = q.difficulty === 1 ? "badge-diff-1" : (q.difficulty === 2 ? "badge-diff-2" : "badge-diff-3");
           subjCount++; totalShown++;
           gradeContent += `<div class="bank-question">
             <span class="q-badge ${t.badgeClass}">${t.label}</span>
-            <span class="q-badge ${d.badgeClass}">${d.label}</span>
+            <span class="q-badge ${diffClass}">${d}</span>
             <span class="bank-question-text">${q.text.substring(0, 120)}${q.text.length > 120 ? '...' : ''}</span>
             <span style="color:var(--text-dim); font-size:11px; white-space:nowrap;">${q.points || 2}ن</span>
           </div>`;
@@ -1020,14 +1139,28 @@ function showAlert(id, msg) {
 function hideAlert(id) { document.getElementById(id).style.display = 'none'; }
 function printExam() { window.print(); }
 function copyToClipboard() {
-  const text = document.getElementById('resultContent').innerText;
-  navigator.clipboard.writeText(text).then(() => {
-    showAlert('successBox', '✅ تم نسخ نص الاختبار إلى الحافظة');
-  });
+  const examDiv = document.getElementById('printableExam');
+  if (examDiv) {
+    const wasEditing = examDiv.getAttribute('contenteditable') === 'true';
+    if (wasEditing) examDiv.setAttribute('contenteditable', 'false');
+    const text = examDiv.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      showAlert('successBox', '✅ تم نسخ نص الاختبار إلى الحافظة');
+      if (wasEditing) examDiv.setAttribute('contenteditable', 'true');
+    }).catch(() => {
+      if (wasEditing) examDiv.setAttribute('contenteditable', 'true');
+    });
+  } else {
+    const text = document.getElementById('resultContent').innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      showAlert('successBox', '✅ تم نسخ نص الاختبار إلى الحافظة');
+    });
+  }
 }
 function resetForm() {
   document.getElementById('resultSection').style.display = 'none';
   hideAlert('errorBox'); hideAlert('successBox');
+  if (window.isEditingActive) toggleExamEditing();
 }
 
 // ========== NAVIGATION ==========
@@ -1047,17 +1180,4 @@ window.addEventListener('DOMContentLoaded', init);
 </script>
 
 </body>
-</html>'''
-
-with open('/mnt/agents/output/index_full.html', 'w', encoding='utf-8') as f:
-    f.write(updated_html)
-
-print("✅ تم تحديث الواجهة الأمامية لتدعم الثلاثة أطوار")
-print(f"📄 الملف: index_full.html ({len(updated_html):,} حرف)")
-print("\nالميزات الجديدة:")
-print("   - اختيار الطور (ابتدائي/متوسط/ثانوي)")
-print("   - المواد تتغير حسب الطور المختار")
-print("   - السنوات تتغير حسب الطور")
-print("   - حقل الشعبة (علوم/آداب) للثانوي")
-print("   - فلترة بنك الأسئلة حسب الطور")
-print("   - إحصائيات منفصلة حسب الطور")
+</html>
