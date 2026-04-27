@@ -15,7 +15,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Amiri:wght@400;700&display=swap" rel="stylesheet">
 
   <style>
-    /* جميع الأنماط السابقة كما هي - لم يتم تغييرها */
     :root {
       --primary: #1a7a52; --primary-light: #2ecc71; --primary-dark: #0d4a30;
       --secondary: #2874a6; --accent: #d4a017; --danger: #c0392b;
@@ -213,10 +212,9 @@
     .result-toolbar {
       display: flex; gap: 12px; margin-bottom: 18px; flex-wrap: wrap;
       justify-content: center;
-      align-items: center;
     }
     .result-toolbar button {
-      padding: 8px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+      padding: 10px 20px; border-radius: var(--radius-sm); border: 1px solid var(--border);
       background: var(--card); color: var(--text); font-weight: 700;
       font-size: 13px; cursor: pointer; transition: all 0.2s; font-family: inherit;
     }
@@ -545,12 +543,10 @@
         <button onclick="printExam()">🖨️ طباعة / حفظ PDF</button>
         <button onclick="copyToClipboard()">📋 نسخ النص</button>
         <button onclick="resetForm()">✏️ تعديل الإعدادات</button>
+        <!-- الأزرار الجديدة -->
         <button id="toggleEditBtn" onclick="toggleExamEditing()">✏️ تفعيل التحرير</button>
-        <!-- تحكم حجم الخط الجديد كما في الصورة -->
-        <span style="margin-right: 8px; font-weight: bold;">حجم الخط:</span>
-        <button onclick="decreaseFontSize()">−</button>
-        <span id="fontSizeValue" style="min-width: 40px; display: inline-block; text-align: center;">14</span>
-        <button onclick="increaseFontSize()">+</button>
+        <button onclick="changeFontSize(1.1)">🔍 + تكبير الخط</button>
+        <button onclick="changeFontSize(0.9)">🔍 - تصغير الخط</button>
       </div>
       <div class="result-frame" id="resultFrame">
         <div id="resultContent"></div>
@@ -771,10 +767,8 @@ async function generateExam(mode) {
     if (window.isEditingActive) {
       toggleExamEditing(); // turn off editing
     }
-    // Reset font size display and actual size
-    const examDiv = document.getElementById('printableExam');
-    if (examDiv) examDiv.style.fontSize = '';
-    document.getElementById('fontSizeValue').innerText = '14';
+    // Reset font size
+    resetFontSize();
     
   } catch (err) {
     showAlert('errorBox', '❌ حدث خطأ: ' + err.message);
@@ -905,18 +899,19 @@ function toggleExamEditing() {
   }
 }
 
-function increaseFontSize() { adjustFontSize(1); }
-function decreaseFontSize() { adjustFontSize(-1); }
-
-function adjustFontSize(delta) {
+function changeFontSize(factor) {
   const examDiv = document.getElementById('printableExam');
   if (!examDiv) return;
   let currentSize = parseFloat(window.getComputedStyle(examDiv).fontSize);
-  let newSize = currentSize + delta;
-  if (newSize < 12) newSize = 12;
-  if (newSize > 32) newSize = 32;
+  let newSize = currentSize * factor;
+  if (newSize > 30) newSize = 30;
+  if (newSize < 10) newSize = 10;
   examDiv.style.fontSize = newSize + 'px';
-  document.getElementById('fontSizeValue').innerText = Math.round(newSize);
+}
+
+function resetFontSize() {
+  const examDiv = document.getElementById('printableExam');
+  if (examDiv) examDiv.style.fontSize = '';
 }
 
 // ========== BANK PAGE ==========
@@ -1141,6 +1136,7 @@ function printExam() { window.print(); }
 function copyToClipboard() {
   const examDiv = document.getElementById('printableExam');
   if (examDiv) {
+    // Temporarily remove contenteditable to copy plain text? Actually we copy innerText
     const wasEditing = examDiv.getAttribute('contenteditable') === 'true';
     if (wasEditing) examDiv.setAttribute('contenteditable', 'false');
     const text = examDiv.innerText;
