@@ -126,7 +126,7 @@ def setup_rate_limit_handlers(app: Flask, limiter: Limiter):
     get_logger("app").info("✅ Rate Limiting handlers configured")
 
 # ====================== index.html ======================
-@app.route(")
+@app.route("/")
 def index():
     return
     render_eemplate("index.html")
