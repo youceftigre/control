@@ -2,132 +2,35 @@ import os
 import json
 import time
 import uuid
+import re
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Union, Any, Optional
 
-# Flask & Extensions
 from flask import Flask, request, jsonify, g, send_file
 from flask_sqlalchemy import SQLAlchemy
+from pydantic import BaseModel, Field, model_validator, ValidationError
+from enum import Enum
+
+import structlog
+from structlog import get_logger
+from groq import Groq
+from pylatex import Document, Section, Subsection, Command, NoEscape, Package
+from pylatex.utils import bold, escape_latex
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-# Pydantic for Data Validation
-from pydantic import BaseModel, Field, model_validator
-from enum import Enum
-
-# Logging
-import structlog
-from structlog import get_logger
-
-# AI Client
-from groq import Groq
-
-# PDF Generation
-from pylatex import Document, Section, Command, NoEscape, Package
-from pylatex.utils import bold
-
 # ====================== إعداد التطبيق ======================
 app = Flask(__name__)
-
-# --- إعداد قاعدة البيانات ---
-# استخدام متغير بيئة لتحديد قاعدة البيانات، مع SQLite كخيار افتراضي للتطوير
-db_uri = os.getenv('DATABASE_URL', 'sqlite:///exams.db')
-app.config['SQLALCHEMY_DATABASE_URI'] = db_uri
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///exams.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
 
-# --- إعداد عميل Groq ---
-api_key = os.getenv("GROQ_API_KEY")
-if not api_key:
-    raise ValueError("❌ GROQ_API_KEY is required but not set in environment variables.")
-groq_client = Groq(api_key=api_key)
+# ====================== Groq Client ======================
+groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
-# ====================== Pydantic Models ======================
-
-class QuestionType(str, Enum):
-    MCQ = "mcq"    TRUEFALSE = "truefalse"
-    ESSAY = "essay"
-    APPLICATION = "application"
-    PROBLEM = "problem"
-
-class BaseQuestion(BaseModel):
-    type: QuestionType
-    difficulty: int = Field(..., ge=1, le=3)
-    text: str = Field(..., min_length=15)
-    points: float = Field(..., gt=0)
-    competence: Optional[str] = None
-
-class MCQQuestion(BaseQuestion):
-    type: QuestionType = QuestionType.MCQ
-    options: List[str]
-    answer: str
-
-    @model_validator(mode='after')
-    def answer_in_options(self):
-        if self.answer not in self.options:
-            raise ValueError("الإجابة يجب أن تكون موجودة ضمن الخيارات")
-        return self
-
-class TrueFalseQuestion(BaseQuestion):
-    type: QuestionType = QuestionType.TRUEFALSE
-    answer: bool
-
-class EssayQuestion(BaseQuestion):
-    type: QuestionType = QuestionType.ESSAY
-
-# تم تقسيم النموذج السابق إلى نوعين منفصلين لزيادة الوضوح والدقة
-class ApplicationQuestion(BaseQuestion):
-    type: QuestionType = QuestionType.APPLICATION
-
-class ProblemQuestion(BaseQuestion):
-    type: QuestionType = QuestionType.PROBLEM
-
-# تعريف نوع السؤال كمجموعة من الأنواع المحددة
-Question = Union[MCQQuestion, TrueFalseQuestion, EssayQuestion, ApplicationQuestion, ProblemQuestion]
-
-class ModelAnswer(BaseModel):
-    question_index: int
-    question_text: str
-    correct_answer: Any
-    detailed_solution: str
-    justification: Optional[str] = None
-    competence: Optional[str] = None
-    common_mistakes: List[str] = Field(default_factory=list)
-    points_breakdown: Optional[dict] = None
-class FullGeneratedExam(BaseModel):
-    questions: List[Question]
-    model_answers: List[ModelAnswer]
-    total_points: float
-    metadata: dict
-
-    @model_validator(mode='after')
-    def calculate_total(self):
-        self.total_points = round(sum(q.points for q in self.questions), 2)
-        return self
-
-# ====================== نموذج قاعدة البيانات ======================
-
-class GeneratedExam(db.Model):
-    __tablename__ = 'generated_exams'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    subject = db.Column(db.String(100), nullable=False, index=True) # إضافة مؤشر للبحث السريع
-    grade = db.Column(db.String(50), nullable=False, index=True)   # إضافة مؤشر للبحث السريع
-    semester = db.Column(db.String(50))
-    topic = db.Column(db.String(200), nullable=False, index=True)  # إضافة مؤشر للبحث السريع
-    exam_type = db.Column(db.String(100))
-    difficulty = db.Column(db.String(20))
-    total_points = db.Column(db.Float)
-    questions = db.Column(db.Text)
-    model_answers = db.Column(db.Text)
-    metadata_info = db.Column(db.Text)
-    generated_at = db.Column(db.DateTime, default=datetime.utcnow)
-    ip_address = db.Column(db.String(50))
-
-# ====================== إعداد Structlog ======================
-
+# ====================== إعداد structlog مبكراً ======================
 def setup_structlog(app: Flask):
     log_dir = 'logs'
     if not os.path.exists(log_dir):
@@ -144,8 +47,8 @@ def setup_structlog(app: Flask):
         structlog.processors.UnicodeDecoder(),
     ]
 
-    # اختيار المخرجات بناءً على وضع التصحيح
-    if app.debug:        processors = shared_processors + [
+    if app.debug:
+        processors = shared_processors + [
             structlog.dev.set_exc_info,
             structlog.dev.ConsoleRenderer(colors=True)
         ]
@@ -182,19 +85,21 @@ def setup_structlog(app: Flask):
     def after_request_logging(response):
         if hasattr(g, 'start_time'):
             duration_ms = round((time.time() - g.start_time) * 1000, 2)
-            logger.info("Request completed", 
+            logger.info("Request completed",
                         event="request_completed",
                         status_code=response.status_code,
                         duration_ms=duration_ms)
         return response
 
-    logger.info("✅ Structured Logging initialized successfully")
+    logger.info("✅ structlog Structured Logging initialized successfully")
     return app
 
-# ====================== Rate Limiting ======================
+app = setup_structlog(app)  # التهيئة الفورية
 
+# ====================== Rate Limiting ======================
 def setup_rate_limiting(app):
-    storage_uri = os.getenv('RATE_LIMIT_STORAGE', 'memory://')    
+    storage_uri = os.getenv('RATE_LIMIT_STORAGE', 'memory://')
+    
     limiter = Limiter(
         key_func=get_remote_address,
         app=app,
@@ -210,8 +115,8 @@ def setup_rate_limiting(app):
     @app.errorhandler(429)
     def ratelimit_handler(e):
         logger = get_logger("app")
-        logger.warning("Rate limit exceeded", 
-                      ip=get_remote_address(), 
+        logger.warning("Rate limit exceeded",
+                      ip=get_remote_address(),
                       path=request.path)
         
         return jsonify({
@@ -223,27 +128,99 @@ def setup_rate_limiting(app):
     app.logger.info("✅ Rate Limiting activated successfully")
     return limiter
 
-# إعداد Rate Limiting
 limiter = setup_rate_limiting(app)
 
-# ====================== Health Check ======================
+# ====================== Pydantic Models ======================
+class QuestionType(str, Enum):
+    MCQ = "mcq"
+    TRUEFALSE = "truefalse"
+    ESSAY = "essay"
+    APPLICATION = "application"
+    PROBLEM = "problem"
 
+class BaseQuestion(BaseModel):
+    type: QuestionType
+    difficulty: int = Field(..., ge=1, le=3)
+    text: str = Field(..., min_length=15)
+    points: float = Field(..., gt=0)
+    competence: Optional[str] = None
+
+class MCQQuestion(BaseQuestion):
+    type: QuestionType = QuestionType.MCQ
+    options: List[str]
+    answer: str
+
+    @model_validator(mode='after')
+    def answer_in_options(self):
+        if self.answer not in self.options:
+            raise ValueError("الإجابة يجب أن تكون موجودة ضمن الخيارات")
+        return self
+
+class TrueFalseQuestion(BaseQuestion):
+    type: QuestionType = QuestionType.TRUEFALSE
+    answer: bool
+
+class EssayQuestion(BaseQuestion):
+    type: QuestionType = QuestionType.ESSAY
+
+class ApplicationOrProblem(BaseQuestion):
+    type: QuestionType
+
+Question = Union[MCQQuestion, TrueFalseQuestion, EssayQuestion, ApplicationOrProblem]
+
+class ModelAnswer(BaseModel):
+    question_index: int
+    question_text: str
+    correct_answer: Any
+    detailed_solution: str
+    justification: Optional[str] = None
+    competence: Optional[str] = None
+    common_mistakes: List[str] = Field(default_factory=list)
+    points_breakdown: Optional[dict] = None
+
+class FullGeneratedExam(BaseModel):
+    questions: List[Question]
+    model_answers: List[ModelAnswer]
+    total_points: float
+    metadata: dict
+
+    @model_validator(mode='after')
+    def calculate_total(self):
+        self.total_points = round(sum(q.points for q in self.questions), 2)
+        return self
+
+# ====================== نموذج قاعدة البيانات ======================
+class GeneratedExam(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    subject = db.Column(db.String(100), nullable=False)
+    grade = db.Column(db.String(50), nullable=False)
+    semester = db.Column(db.String(50))
+    topic = db.Column(db.String(200), nullable=False)
+    exam_type = db.Column(db.String(100))
+    difficulty = db.Column(db.String(20))
+    total_points = db.Column(db.Float)
+    questions = db.Column(db.Text)
+    model_answers = db.Column(db.Text)
+    metadata_info = db.Column(db.Text)
+    generated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    ip_address = db.Column(db.String(50))
+
+# ====================== Health Check ======================
 @app.route("/health", methods=["GET"])
 def health_check():
-    """نقطة للتحقق من حالة التطبيق (مفيدة للـ monitoring)"""
     return jsonify({
         "status": "healthy",
         "service": "exam_generator",
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now(timezone.utc).isoformat()
     })
 
 # ====================== الدالة الرئيسية (مع Retry) ======================
-
 @app.route("/generate_full_exam", methods=["POST"])
 @limiter.limit("5 per minute")
 def generate_full_exam():
     logger = get_logger("app")
-    start_time = time.time()    client_ip = request.remote_addr
+    start_time = time.time()
+    client_ip = request.remote_addr
 
     data = request.get_json() or {}
     
@@ -262,11 +239,11 @@ def generate_full_exam():
     model_name = "llama-3.3-70b-versatile"
     max_retries = 2
 
-    logger.info("بدء توليد اختبار جديد", 
-                subject=subject, 
-                grade=grade, 
-                topic=topic, 
-                num_questions=num_questions, 
+    logger.info("بدء توليد اختبار جديد",
+                subject=subject,
+                grade=grade,
+                topic=topic,
+                num_questions=num_questions,
                 difficulty=difficulty)
 
     system_prompt = """أنت أستاذ جزائري خبير في تطوير الاختبارات التعليمية وفق المنهاج الجزائري. 
@@ -292,7 +269,8 @@ def generate_full_exam():
 
 أعد الرد بتنسيق JSON صارم يتبع هذا الهيكل:
 {{
-  "questions": [    {{
+  "questions": [
+    {{
       "type": "mcq",
       "difficulty": 1,
       "text": "نص السؤال بالعربية",
@@ -322,8 +300,7 @@ def generate_full_exam():
     "difficulty": "{difficulty}",
     "generated_for": "المنهاج الجزائري",
     "notes": "أي ملاحظات إضافية"
-  }}
-}}
+  }}}}
 
 ملاحظات:
 - total_points يتم حسابه تلقائياً من مجموع points
@@ -341,23 +318,21 @@ def generate_full_exam():
                 temperature=0.7,
                 max_tokens=4000,
                 response_format={"type": "json_object"}
-            )            
+            )
+            
             raw_content = response.choices[0].message.content
             
-            # تنظيف JSON إذا لزم الأمر
-            raw_content = raw_content.strip()
-            if raw_content.startswith("```json"):
-                raw_content = raw_content[7:]
-            if raw_content.startswith("```"):
-                raw_content = raw_content[3:]
-            if raw_content.endswith("```"):
-                raw_content = raw_content[:-3]
-            raw_content = raw_content.strip()
+            # تنظيف JSON باستخدام regex أكثر أماناً
+            raw_content = re.sub(r'^```(?:json)?\s*|\s*```$', '', raw_content.strip(), flags=re.DOTALL).strip()
             
             raw_data = json.loads(raw_content)
             
-            # التحقق من صحة البيانات
-            full_exam = FullGeneratedExam.model_validate(raw_data)
+            # التحقق من صحة البيانات – مع معالجة منفصلة لأخطاء النموذج
+            try:
+                full_exam = FullGeneratedExam.model_validate(raw_data)
+            except ValidationError as ve:
+                logger.error("بيانات غير صالحة من النموذج", errors=ve.errors())
+                return jsonify({"error": "بيانات غير صالحة من الذكاء الاصطناعي", "details": ve.errors()}), 400
 
             # حفظ في قاعدة البيانات
             new_exam = GeneratedExam(
@@ -378,7 +353,7 @@ def generate_full_exam():
 
             duration = round(time.time() - start_time, 2)
 
-            logger.info("تم توليد الاختبار بنجاح", 
+            logger.info("تم توليد الاختبار بنجاح",
                         db_id=new_exam.id,
                         total_questions=len(full_exam.questions),
                         total_points=full_exam.total_points,
@@ -390,7 +365,8 @@ def generate_full_exam():
                 "status": "success",
                 "attempt": attempt + 1,
                 "db_id": new_exam.id,
-                "duration_seconds": duration            }
+                "duration_seconds": duration
+            }
             response_data["links"] = {
                 "view_exam": f"/exam/{new_exam.id}",
                 "my_exams": "/my_exams",
@@ -402,9 +378,9 @@ def generate_full_exam():
             return jsonify(response_data)
 
         except Exception as e:
-            logger.error("فشل في توليد الاختبار", 
-                         attempt=attempt + 1, 
-                         error=str(e), 
+            logger.error("فشل في توليد الاختبار",
+                         attempt=attempt + 1,
+                         error=str(e),
                          exc_info=True)
             
             if attempt == max_retries - 1:
@@ -415,13 +391,10 @@ def generate_full_exam():
     return jsonify({"error": "خطأ غير متوقع"}), 500
 
 # ====================== عرض الاختبارات ======================
-
 @app.route("/my_exams", methods=["GET"])
 @limiter.limit("30 per minute")
 def get_my_exams():
-    """عرض الاختبارات المولدة سابقاً مع إمكانية التصفية"""
     logger = get_logger("app")
-    
     try:
         subject = request.args.get("subject")
         grade = request.args.get("grade")
@@ -439,7 +412,8 @@ def get_my_exams():
         exams_list = []
         for exam in exams:
             exams_list.append({
-                "id": exam.id,                "subject": exam.subject,
+                "id": exam.id,
+                "subject": exam.subject,
                 "grade": exam.grade,
                 "semester": exam.semester,
                 "topic": exam.topic,
@@ -457,9 +431,9 @@ def get_my_exams():
                 }
             })
         
-        logger.info("تم جلب قائمة الاختبارات", 
-                    count=len(exams_list), 
-                    subject_filter=subject, 
+        logger.info("تم جلب قائمة الاختبارات",
+                    count=len(exams_list),
+                    subject_filter=subject,
                     grade_filter=grade)
         
         return jsonify({
@@ -473,11 +447,9 @@ def get_my_exams():
         return jsonify({"error": "حدث خطأ أثناء جلب الاختبارات"}), 500
 
 # ====================== جلب اختبار واحد ======================
-
 @app.route("/exam/<int:exam_id>", methods=["GET"])
 @limiter.limit("30 per minute")
 def get_exam_by_id(exam_id: int):
-    """جلب اختبار واحد كاملاً (الأسئلة + الإجابات النموذجية)"""
     logger = get_logger("app")
     
     try:
@@ -488,7 +460,8 @@ def get_exam_by_id(exam_id: int):
             "subject": exam.subject,
             "grade": exam.grade,
             "semester": exam.semester,
-            "topic": exam.topic,            "exam_type": exam.exam_type,
+            "topic": exam.topic,
+            "exam_type": exam.exam_type,
             "difficulty": exam.difficulty,
             "total_points": exam.total_points,
             "generated_at": exam.generated_at.isoformat(),
@@ -511,11 +484,9 @@ def get_exam_by_id(exam_id: int):
         return jsonify({"error": "لم يتم العثور على الاختبار"}), 404
 
 # ====================== تصدير Aiken ======================
-
 @app.route("/export/aiken/<int:exam_id>", methods=["GET"])
 @limiter.limit("15 per minute")
 def export_aiken(exam_id: int):
-    """تصدير الأسئلة الموضوعية (MCQ + True/False) بصيغة Aiken لـ Moodle"""
     logger = get_logger("app")
     
     try:
@@ -537,10 +508,11 @@ def export_aiken(exam_id: int):
                 answer = "TRUE" if q.get("answer") else "FALSE"
                 aiken_content.append(f"ANSWER: {answer}")
                 aiken_content.append("")
-                aiken_text = "\n".join(aiken_content)
+        
+        aiken_text = "\n".join(aiken_content)
         filename = f"exam_{exam_id}_aiken.txt"
         
-        logger.info("تم تصدير Aiken", exam_id=exam_id, 
+        logger.info("تم تصدير Aiken", exam_id=exam_id,
                     mcq_count=len([q for q in questions if q.get("type") == "mcq"]))
         
         return jsonify({
@@ -556,11 +528,9 @@ def export_aiken(exam_id: int):
         return jsonify({"error": "فشل في تصدير Aiken"}), 500
 
 # ====================== تصدير GIFT ======================
-
 @app.route("/export/gift/<int:exam_id>", methods=["GET"])
 @limiter.limit("15 per minute")
 def export_gift(exam_id: int):
-    """تصدير الأسئلة بصيغة GIFT (أكثر شمولاً) لـ Moodle"""
     logger = get_logger("app")
     
     try:
@@ -586,7 +556,8 @@ def export_gift(exam_id: int):
                 gift_content.append("")
         
         gift_text = "\n".join(gift_content)
-        filename = f"exam_{exam_id}_gift.txt"        
+        filename = f"exam_{exam_id}_gift.txt"
+        
         logger.info("تم تصدير GIFT", exam_id=exam_id)
         
         return jsonify({
@@ -602,11 +573,13 @@ def export_gift(exam_id: int):
         return jsonify({"error": "فشل في تصدير GIFT"}), 500
 
 # ====================== تصدير PDF ======================
+def _escape_latex(text: str) -> str:
+    """هروب الرموز الخاصة بـ LaTeX مع إبقاء النص العربي آمناً"""
+    return escape_latex(text)
 
 @app.route("/export/pdf/<int:exam_id>", methods=["GET"])
 @limiter.limit("20 per minute")
 def export_pdf(exam_id: int):
-    """تصدير الاختبار كـ PDF احترافي مع هيدر رسمي"""
     logger = get_logger("app")
     teacher_version = request.args.get("teacher", "false").lower() == "true"
     
@@ -617,93 +590,93 @@ def export_pdf(exam_id: int):
 
         doc = Document(
             documentclass='article',
-            geometry_options={'margin': '1.8cm', 'a4paper': True}
+            geometry_options={'margin': '1.8cm', 'a4paper': True},
+            inputenc=None,  # سنستخدم xelatex
         )
 
-        doc.packages.append(Package('arabtex'))
-        doc.packages.append(Package('utf8', 'inputenc'))
-        doc.packages.append(Package('fontenc'))
+        # إعداد الخطوط واللغة العربية
+        doc.packages.append(Package('polyglossia'))
+        doc.preamble.append(Command('setdefaultlanguage', 'arabic'))
+        doc.preamble.append(Command('setotherlanguage', 'english'))
+        doc.packages.append(Package('fontspec'))
+        doc.preamble.append(Command('setmainfont', 'Amiri'))  # تأكد من تثبيته أو استبدله بخط موجود
         doc.packages.append(Package('fancyhdr'))
         doc.packages.append(Package('lastpage'))
 
         doc.preamble.append(Command('pagestyle', 'fancy'))
         doc.preamble.append(Command('fancyhf', ''))
-        doc.preamble.append(Command('rhead', 'وزارة التربية الوطنية'))
-        doc.preamble.append(Command('lhead', f'{exam.subject} - {exam.grade}'))
-        doc.preamble.append(Command('chead', exam.topic))
+        doc.preamble.append(Command('rhead', _escape_latex('وزارة التربية الوطنية')))
+        doc.preamble.append(Command('lhead', _escape_latex(f'{exam.subject} - {exam.grade}')))
+        doc.preamble.append(Command('chead', _escape_latex(exam.topic)))
         doc.preamble.append(Command('rfoot', 'صفحة \\thepage / \\pageref{LastPage}'))
 
-        doc.append(NoEscape(r'\begin{center}'))
-        doc.append(NoEscape(r'\Large\textbf{' + f'{exam.exam_type} - {exam.subject}' + r'}'))
-        doc.append(NoEscape(r'\\'))        doc.append(NoEscape(r'\large{' + f'{exam.grade} | {exam.semester or ""}' + r'}'))
-        doc.append(NoEscape(r'\\'))
-        doc.append(NoEscape(r'\normalsize{' + f'الموضوع: {exam.topic}' + r'}'))
-        doc.append(NoEscape(r'\end{center}'))
-        doc.append(NoEscape(r'\vspace{1.2cm}'))
+        with doc.create(Section(_escape_latex(f"{exam.exam_type} - {exam.subject}"), numbering=False)):
+            doc.append(NoEscape(r'\vspace{-1em}'))
+            doc.append(NoEscape(r'\begin{center}'))
+            doc.append(NoEscape(r'\large ' + _escape_latex(f'{exam.grade} | {exam.semester or ""}')))
+            doc.append(NoEscape(r'\end{center}'))
+            doc.append(NoEscape(r'\vspace{0.5cm}'))
+            doc.append(NoEscape(r'\normalsize ' + _escape_latex(f'الموضوع: {exam.topic}')))
 
         for i, q in enumerate(questions):
-            with doc.create(Section(f"السؤال {i+1} \quad ({q.get('points', 1)} نقطة)", numbering=True)):
-                doc.append(NoEscape(q["text"]))
-                doc.append(NoEscape(r'\\'))
+            section_title = _escape_latex(f"السؤال {i+1} ({q.get('points', 1)} نقطة)")
+            with doc.create(Subsection(section_title, numbering=True)):
+                doc.append(NoEscape(_escape_latex(q["text"])))
+                doc.append(NoEscape(r'\\\\[0.3cm]'))
                 
                 if q.get("type") == "mcq" and q.get("options"):
                     doc.append(NoEscape(r'\begin{enumerate}[label=\arabic*.]'))
                     for opt in q.get("options", []):
-                        doc.append(NoEscape(f'\item {opt}'))
+                        doc.append(NoEscape(r'\item ' + _escape_latex(opt)))
                     doc.append(NoEscape(r'\end{enumerate}'))
                 
                 if teacher_version and model_answers and i < len(model_answers):
                     ans = model_answers[i]
-                    doc.append(NoEscape(r'\vspace{0.8cm}'))
-                    with doc.create(Section("التصحيح النموذجي \quad (للمعلم فقط)", numbering=False)):
+                    doc.append(NoEscape(r'\vspace{0.5cm}'))
+                    with doc.create(Subsection("التصحيح النموذجي \\quad (للمعلم فقط)", numbering=False)):
                         doc.append(bold("الإجابة: "))
-                        doc.append(str(ans.get("correct_answer", "")))
-                        doc.append(NoEscape(r'\\'))
+                        doc.append(_escape_latex(str(ans.get("correct_answer", ""))))
+                        doc.append(NoEscape(r'\\\\[0.2cm]'))
                         
                         doc.append(bold("الحل التفصيلي:"))
-                        doc.append(NoEscape(ans.get("detailed_solution", "لا يوجد حل مفصل")))
+                        doc.append(NoEscape(_escape_latex(ans.get("detailed_solution", "لا يوجد حل مفصل"))))
                         
                         if ans.get("common_mistakes"):
-                            doc.append(NoEscape(r'\\'))
+                            doc.append(NoEscape(r'\\\\[0.2cm]'))
                             doc.append(bold("الأخطاء الشائعة:"))
                             for mistake in ans["common_mistakes"]:
-                                doc.append(f"• {mistake}\n")
-        
+                                doc.append(NoEscape(r'\textbullet~' + _escape_latex(mistake) + r'\\'))
+
         with tempfile.TemporaryDirectory() as tmpdirname:
             version = "مع_التصحيح" if teacher_version else "للتلميذ"
-            filename = f"{exam.subject}_{exam.grade}_{exam.topic}_{version}.pdf".replace(" ", "_")
-            filepath = os.path.join(tmpdirname, filename)
+            base_name = f"{exam.subject}_{exam.grade}_{exam.topic}_{version}"
+            safe_name = re.sub(r'[\\/*?:"<>| ]', '_', base_name) + '.pdf'
+            filepath = os.path.join(tmpdirname, safe_name)
             
             try:
-                doc.generate_pdf(filepath, clean_tex=True)
+                doc.generate_pdf(filepath, clean_tex=True, compiler='xelatex')
             except Exception as latex_error:
-                logger.warning("خطأ في pdflatex، محاولة بدون clean_tex", error=str(latex_error))
-                doc.generate_pdf(filepath, clean_tex=False)
+                logger.warning("خطأ في xelatex، محاولة بدون clean_tex", error=str(latex_error))
+                doc.generate_pdf(filepath, clean_tex=False, compiler='xelatex')
 
-            logger.info("تم تصدير PDF بنجاح", 
-                        exam_id=exam_id, 
-                        teacher_version=teacher_version, 
-                        filename=filename)
+            logger.info("تم تصدير PDF بنجاح",
+                        exam_id=exam_id,
+                        teacher_version=teacher_version,
+                        filename=safe_name)
+
             return send_file(
                 filepath,
                 as_attachment=True,
-                download_name=filename,
+                download_name=safe_name,
                 mimetype='application/pdf'
             )
 
     except Exception as e:
         logger.error("خطأ في تصدير PDF", exam_id=exam_id, error=str(e), exc_info=True)
-        return jsonify({"error": "فشل في إنشاء ملف PDF. تأكد من تثبيت LaTeX على السيرفر"}), 500
+        return jsonify({"error": "فشل في إنشاء ملف PDF. تأكد من تثبيت XeLaTeX وخط Amiri على السيرفر"}), 500
 
 # ====================== تشغيل التطبيق ======================
-
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-    
-    # إعداد logging فقط عند التشغيل المباشر
-    app = setup_structlog(app)
-    
-    # تجنب تشغيل debug=True في الإنتاج
-    is_debug = os.getenv('FLASK_DEBUG', '0').lower() == '1'
-    app.run(debug=is_debug)
+    app.run(debug=True)
