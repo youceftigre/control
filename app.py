@@ -15,8 +15,6 @@ from enum import Enum
 import structlog
 from structlog import get_logger
 from groq import Groq
-from pylatex import Document, Section, Subsection, Command, NoEscape, Package
-from pylatex.utils import bold, escape_latex
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
@@ -99,7 +97,7 @@ app = setup_structlog(app)  # التهيئة الفورية
 # ====================== Rate Limiting ======================
 def setup_rate_limiting(app):
     storage_uri = os.getenv('RATE_LIMIT_STORAGE', 'memory://')
-    
+
     limiter = Limiter(
         key_func=get_remote_address,
         app=app,
@@ -118,7 +116,7 @@ def setup_rate_limiting(app):
         logger.warning("Rate limit exceeded",
                       ip=get_remote_address(),
                       path=request.path)
-        
+
         return jsonify({
             "error": "تم تجاوز الحد المسموح به من الطلبات",
             "message": "يرجى الانتظار قليلاً قبل المحاولة مرة أخرى",
@@ -223,7 +221,7 @@ def generate_full_exam():
     client_ip = request.remote_addr
 
     data = request.get_json() or {}
-    
+
     subject = data.get("subject", "").strip()
     grade = data.get("grade", "").strip()
     semester = data.get("semester", "").strip()
@@ -319,14 +317,14 @@ def generate_full_exam():
                 max_tokens=4000,
                 response_format={"type": "json_object"}
             )
-            
+
             raw_content = response.choices[0].message.content
-            
+
             # تنظيف JSON باستخدام regex أكثر أماناً
             raw_content = re.sub(r'^```(?:json)?\s*|\s*```$', '', raw_content.strip(), flags=re.DOTALL).strip()
-            
+
             raw_data = json.loads(raw_content)
-            
+
             # التحقق من صحة البيانات – مع معالجة منفصلة لأخطاء النموذج
             try:
                 full_exam = FullGeneratedExam.model_validate(raw_data)
@@ -372,7 +370,7 @@ def generate_full_exam():
                 "my_exams": "/my_exams",
                 "export_aiken": f"/export/aiken/{new_exam.id}",
                 "export_gift": f"/export/gift/{new_exam.id}",
-                "export_pdf": f"/export/pdf/{new_exam.id}"
+                # تمت إزالة رابط PDF
             }
 
             return jsonify(response_data)
@@ -382,10 +380,10 @@ def generate_full_exam():
                          attempt=attempt + 1,
                          error=str(e),
                          exc_info=True)
-            
+
             if attempt == max_retries - 1:
                 return jsonify({"error": "فشل بعد محاولتين", "details": str(e)}), 500
-            
+
             time.sleep(1.5)
 
     return jsonify({"error": "خطأ غير متوقع"}), 500
@@ -399,16 +397,16 @@ def get_my_exams():
         subject = request.args.get("subject")
         grade = request.args.get("grade")
         limit = int(request.args.get("limit", 20))
-        
+
         query = GeneratedExam.query.order_by(GeneratedExam.generated_at.desc())
-        
+
         if subject:
             query = query.filter(GeneratedExam.subject.ilike(f"%{subject}%"))
         if grade:
             query = query.filter(GeneratedExam.grade.ilike(f"%{grade}%"))
-        
+
         exams = query.limit(limit).all()
-        
+
         exams_list = []
         for exam in exams:
             exams_list.append({
@@ -425,23 +423,23 @@ def get_my_exams():
                 "links": {
                     "view": f"/exam/{exam.id}",
                     "download_json": f"/exam/{exam.id}",
-                    "download_pdf": f"/export/pdf/{exam.id}",
+                    # "download_pdf": ...   # تمت إزالته
                     "export_aiken": f"/export/aiken/{exam.id}",
                     "export_gift": f"/export/gift/{exam.id}"
                 }
             })
-        
+
         logger.info("تم جلب قائمة الاختبارات",
                     count=len(exams_list),
                     subject_filter=subject,
                     grade_filter=grade)
-        
+
         return jsonify({
             "success": True,
             "total": len(exams_list),
             "exams": exams_list
         })
-        
+
     except Exception as e:
         logger.error("خطأ في جلب الاختبارات", error=str(e), exc_info=True)
         return jsonify({"error": "حدث خطأ أثناء جلب الاختبارات"}), 500
@@ -451,10 +449,10 @@ def get_my_exams():
 @limiter.limit("30 per minute")
 def get_exam_by_id(exam_id: int):
     logger = get_logger("app")
-    
+
     try:
         exam = GeneratedExam.query.get_or_404(exam_id)
-        
+
         response = {
             "id": exam.id,
             "subject": exam.subject,
@@ -471,14 +469,14 @@ def get_exam_by_id(exam_id: int):
             "links": {
                 "export_aiken": f"/export/aiken/{exam.id}",
                 "export_gift": f"/export/gift/{exam.id}",
-                "export_pdf": f"/export/pdf/{exam.id}"
+                # رابط PDF محذوف
             }
         }
-        
+
         logger.info("تم جلب اختبار كامل", exam_id=exam_id, subject=exam.subject)
-        
+
         return jsonify(response)
-        
+
     except Exception as e:
         logger.error("خطأ في جلب الاختبار", exam_id=exam_id, error=str(e))
         return jsonify({"error": "لم يتم العثور على الاختبار"}), 404
@@ -488,13 +486,13 @@ def get_exam_by_id(exam_id: int):
 @limiter.limit("15 per minute")
 def export_aiken(exam_id: int):
     logger = get_logger("app")
-    
+
     try:
         exam = GeneratedExam.query.get_or_404(exam_id)
         questions = json.loads(exam.questions)
-        
+
         aiken_content = []
-        
+
         for i, q in enumerate(questions):
             if q.get("type") == "mcq":
                 aiken_content.append(q["text"])
@@ -502,19 +500,19 @@ def export_aiken(exam_id: int):
                     aiken_content.append(option)
                 aiken_content.append(f"ANSWER: {q.get('answer', '')}")
                 aiken_content.append("")
-                
+
             elif q.get("type") == "truefalse":
                 aiken_content.append(q["text"])
                 answer = "TRUE" if q.get("answer") else "FALSE"
                 aiken_content.append(f"ANSWER: {answer}")
                 aiken_content.append("")
-        
+
         aiken_text = "\n".join(aiken_content)
         filename = f"exam_{exam_id}_aiken.txt"
-        
+
         logger.info("تم تصدير Aiken", exam_id=exam_id,
                     mcq_count=len([q for q in questions if q.get("type") == "mcq"]))
-        
+
         return jsonify({
             "success": True,
             "format": "Aiken",
@@ -522,7 +520,7 @@ def export_aiken(exam_id: int):
             "content": aiken_text,
             "instructions": "في Moodle: Question Bank → Import → اختر صيغة Aiken Format ثم الصق المحتوى"
         })
-        
+
     except Exception as e:
         logger.error("خطأ في تصدير Aiken", exam_id=exam_id, error=str(e))
         return jsonify({"error": "فشل في تصدير Aiken"}), 500
@@ -532,13 +530,13 @@ def export_aiken(exam_id: int):
 @limiter.limit("15 per minute")
 def export_gift(exam_id: int):
     logger = get_logger("app")
-    
+
     try:
         exam = GeneratedExam.query.get_or_404(exam_id)
         questions = json.loads(exam.questions)
-        
+
         gift_content = []
-        
+
         for i, q in enumerate(questions):
             if q.get("type") == "mcq":
                 gift_content.append(f"::Q{i+1}:: {q['text']} {{")
@@ -549,17 +547,17 @@ def export_gift(exam_id: int):
                         gift_content.append(f"~{opt}")
                 gift_content.append("}")
                 gift_content.append("")
-                
+
             elif q.get("type") == "truefalse":
                 answer = "TRUE" if q.get("answer") else "FALSE"
                 gift_content.append(f"::Q{i+1}:: {q['text']} {{ {answer} }}")
                 gift_content.append("")
-        
+
         gift_text = "\n".join(gift_content)
         filename = f"exam_{exam_id}_gift.txt"
-        
+
         logger.info("تم تصدير GIFT", exam_id=exam_id)
-        
+
         return jsonify({
             "success": True,
             "format": "GIFT",
@@ -567,113 +565,10 @@ def export_gift(exam_id: int):
             "content": gift_text,
             "instructions": "في Moodle: Question Bank → Import → اختر صيغة GIFT ثم ارفع الملف أو الصق المحتوى"
         })
-        
+
     except Exception as e:
         logger.error("خطأ في تصدير GIFT", exam_id=exam_id, error=str(e))
         return jsonify({"error": "فشل في تصدير GIFT"}), 500
-
-# ====================== تصدير PDF ======================
-def _escape_latex(text: str) -> str:
-    """هروب الرموز الخاصة بـ LaTeX مع إبقاء النص العربي آمناً"""
-    return escape_latex(text)
-
-@app.route("/export/pdf/<int:exam_id>", methods=["GET"])
-@limiter.limit("20 per minute")
-def export_pdf(exam_id: int):
-    logger = get_logger("app")
-    teacher_version = request.args.get("teacher", "false").lower() == "true"
-    
-    try:
-        exam = GeneratedExam.query.get_or_404(exam_id)
-        questions = json.loads(exam.questions)
-        model_answers = json.loads(exam.model_answers) if teacher_version and exam.model_answers else None
-
-        doc = Document(
-            documentclass='article',
-            geometry_options={'margin': '1.8cm', 'a4paper': True},
-            inputenc=None,  # سنستخدم xelatex
-        )
-
-        # إعداد الخطوط واللغة العربية
-        doc.packages.append(Package('polyglossia'))
-        doc.preamble.append(Command('setdefaultlanguage', 'arabic'))
-        doc.preamble.append(Command('setotherlanguage', 'english'))
-        doc.packages.append(Package('fontspec'))
-        doc.preamble.append(Command('setmainfont', 'Amiri'))  # تأكد من تثبيته أو استبدله بخط موجود
-        doc.packages.append(Package('fancyhdr'))
-        doc.packages.append(Package('lastpage'))
-
-        doc.preamble.append(Command('pagestyle', 'fancy'))
-        doc.preamble.append(Command('fancyhf', ''))
-        doc.preamble.append(Command('rhead', _escape_latex('وزارة التربية الوطنية')))
-        doc.preamble.append(Command('lhead', _escape_latex(f'{exam.subject} - {exam.grade}')))
-        doc.preamble.append(Command('chead', _escape_latex(exam.topic)))
-        doc.preamble.append(Command('rfoot', 'صفحة \\thepage / \\pageref{LastPage}'))
-
-        with doc.create(Section(_escape_latex(f"{exam.exam_type} - {exam.subject}"), numbering=False)):
-            doc.append(NoEscape(r'\vspace{-1em}'))
-            doc.append(NoEscape(r'\begin{center}'))
-            doc.append(NoEscape(r'\large ' + _escape_latex(f'{exam.grade} | {exam.semester or ""}')))
-            doc.append(NoEscape(r'\end{center}'))
-            doc.append(NoEscape(r'\vspace{0.5cm}'))
-            doc.append(NoEscape(r'\normalsize ' + _escape_latex(f'الموضوع: {exam.topic}')))
-
-        for i, q in enumerate(questions):
-            section_title = _escape_latex(f"السؤال {i+1} ({q.get('points', 1)} نقطة)")
-            with doc.create(Subsection(section_title, numbering=True)):
-                doc.append(NoEscape(_escape_latex(q["text"])))
-                doc.append(NoEscape(r'\\\\[0.3cm]'))
-                
-                if q.get("type") == "mcq" and q.get("options"):
-                    doc.append(NoEscape(r'\begin{enumerate}[label=\arabic*.]'))
-                    for opt in q.get("options", []):
-                        doc.append(NoEscape(r'\item ' + _escape_latex(opt)))
-                    doc.append(NoEscape(r'\end{enumerate}'))
-                
-                if teacher_version and model_answers and i < len(model_answers):
-                    ans = model_answers[i]
-                    doc.append(NoEscape(r'\vspace{0.5cm}'))
-                    with doc.create(Subsection("التصحيح النموذجي \\quad (للمعلم فقط)", numbering=False)):
-                        doc.append(bold("الإجابة: "))
-                        doc.append(_escape_latex(str(ans.get("correct_answer", ""))))
-                        doc.append(NoEscape(r'\\\\[0.2cm]'))
-                        
-                        doc.append(bold("الحل التفصيلي:"))
-                        doc.append(NoEscape(_escape_latex(ans.get("detailed_solution", "لا يوجد حل مفصل"))))
-                        
-                        if ans.get("common_mistakes"):
-                            doc.append(NoEscape(r'\\\\[0.2cm]'))
-                            doc.append(bold("الأخطاء الشائعة:"))
-                            for mistake in ans["common_mistakes"]:
-                                doc.append(NoEscape(r'\textbullet~' + _escape_latex(mistake) + r'\\'))
-
-        with tempfile.TemporaryDirectory() as tmpdirname:
-            version = "مع_التصحيح" if teacher_version else "للتلميذ"
-            base_name = f"{exam.subject}_{exam.grade}_{exam.topic}_{version}"
-            safe_name = re.sub(r'[\\/*?:"<>| ]', '_', base_name) + '.pdf'
-            filepath = os.path.join(tmpdirname, safe_name)
-            
-            try:
-                doc.generate_pdf(filepath, clean_tex=True, compiler='xelatex')
-            except Exception as latex_error:
-                logger.warning("خطأ في xelatex، محاولة بدون clean_tex", error=str(latex_error))
-                doc.generate_pdf(filepath, clean_tex=False, compiler='xelatex')
-
-            logger.info("تم تصدير PDF بنجاح",
-                        exam_id=exam_id,
-                        teacher_version=teacher_version,
-                        filename=safe_name)
-
-            return send_file(
-                filepath,
-                as_attachment=True,
-                download_name=safe_name,
-                mimetype='application/pdf'
-            )
-
-    except Exception as e:
-        logger.error("خطأ في تصدير PDF", exam_id=exam_id, error=str(e), exc_info=True)
-        return jsonify({"error": "فشل في إنشاء ملف PDF. تأكد من تثبيت XeLaTeX وخط Amiri على السيرفر"}), 500
 
 # ====================== تشغيل التطبيق ======================
 if __name__ == "__main__":
