@@ -7,7 +7,7 @@ import tempfile
 from datetime import datetime, timezone
 from typing import List, Union, Any, Optional
 
-from flask import Flask, request, jsonify, g, send_file
+from flask import Flask, request, jsonify, g
 from flask_sqlalchemy import SQLAlchemy
 from pydantic import BaseModel, Field, model_validator, ValidationError
 from enum import Enum
@@ -92,7 +92,7 @@ def setup_structlog(app: Flask):
     logger.info("✅ structlog Structured Logging initialized successfully")
     return app
 
-app = setup_structlog(app)  # التهيئة الفورية
+app = setup_structlog(app)
 
 # ====================== Rate Limiting ======================
 def setup_rate_limiting(app):
@@ -212,7 +212,7 @@ def health_check():
         "timestamp": datetime.now(timezone.utc).isoformat()
     })
 
-# ====================== الدالة الرئيسية (مع Retry) ======================
+# ====================== الدالة الرئيسية ======================
 @app.route("/generate_full_exam", methods=["POST"])
 @limiter.limit("5 per minute")
 def generate_full_exam():
@@ -319,20 +319,15 @@ def generate_full_exam():
             )
 
             raw_content = response.choices[0].message.content
-
-            # تنظيف JSON باستخدام regex أكثر أماناً
             raw_content = re.sub(r'^```(?:json)?\s*|\s*```$', '', raw_content.strip(), flags=re.DOTALL).strip()
-
             raw_data = json.loads(raw_content)
 
-            # التحقق من صحة البيانات – مع معالجة منفصلة لأخطاء النموذج
             try:
                 full_exam = FullGeneratedExam.model_validate(raw_data)
             except ValidationError as ve:
                 logger.error("بيانات غير صالحة من النموذج", errors=ve.errors())
                 return jsonify({"error": "بيانات غير صالحة من الذكاء الاصطناعي", "details": ve.errors()}), 400
 
-            # حفظ في قاعدة البيانات
             new_exam = GeneratedExam(
                 subject=subject,
                 grade=grade,
@@ -350,7 +345,6 @@ def generate_full_exam():
             db.session.commit()
 
             duration = round(time.time() - start_time, 2)
-
             logger.info("تم توليد الاختبار بنجاح",
                         db_id=new_exam.id,
                         total_questions=len(full_exam.questions),
@@ -369,10 +363,8 @@ def generate_full_exam():
                 "view_exam": f"/exam/{new_exam.id}",
                 "my_exams": "/my_exams",
                 "export_aiken": f"/export/aiken/{new_exam.id}",
-                "export_gift": f"/export/gift/{new_exam.id}",
-                # تمت إزالة رابط PDF
+                "export_gift": f"/export/gift/{new_exam.id}"
             }
-
             return jsonify(response_data)
 
         except Exception as e:
@@ -380,10 +372,8 @@ def generate_full_exam():
                          attempt=attempt + 1,
                          error=str(e),
                          exc_info=True)
-
             if attempt == max_retries - 1:
                 return jsonify({"error": "فشل بعد محاولتين", "details": str(e)}), 500
-
             time.sleep(1.5)
 
     return jsonify({"error": "خطأ غير متوقع"}), 500
@@ -397,14 +387,11 @@ def get_my_exams():
         subject = request.args.get("subject")
         grade = request.args.get("grade")
         limit = int(request.args.get("limit", 20))
-
         query = GeneratedExam.query.order_by(GeneratedExam.generated_at.desc())
-
         if subject:
             query = query.filter(GeneratedExam.subject.ilike(f"%{subject}%"))
         if grade:
             query = query.filter(GeneratedExam.grade.ilike(f"%{grade}%"))
-
         exams = query.limit(limit).all()
 
         exams_list = []
@@ -423,25 +410,14 @@ def get_my_exams():
                 "links": {
                     "view": f"/exam/{exam.id}",
                     "download_json": f"/exam/{exam.id}",
-                    # "download_pdf": ...   # تمت إزالته
                     "export_aiken": f"/export/aiken/{exam.id}",
                     "export_gift": f"/export/gift/{exam.id}"
                 }
             })
-
-        logger.info("تم جلب قائمة الاختبارات",
-                    count=len(exams_list),
-                    subject_filter=subject,
-                    grade_filter=grade)
-
-        return jsonify({
-            "success": True,
-            "total": len(exams_list),
-            "exams": exams_list
-        })
-
+        logger.info("تم جلب قائمة الاختبارات", count=len(exams_list))
+        return jsonify({"success": True, "total": len(exams_list), "exams": exams_list})
     except Exception as e:
-        logger.error("خطأ في جلب الاختبارات", error=str(e), exc_info=True)
+        logger.error("خطأ في جلب الاختبارات", error=str(e))
         return jsonify({"error": "حدث خطأ أثناء جلب الاختبارات"}), 500
 
 # ====================== جلب اختبار واحد ======================
@@ -449,10 +425,8 @@ def get_my_exams():
 @limiter.limit("30 per minute")
 def get_exam_by_id(exam_id: int):
     logger = get_logger("app")
-
     try:
         exam = GeneratedExam.query.get_or_404(exam_id)
-
         response = {
             "id": exam.id,
             "subject": exam.subject,
@@ -468,15 +442,11 @@ def get_exam_by_id(exam_id: int):
             "metadata": json.loads(exam.metadata_info) if exam.metadata_info else {},
             "links": {
                 "export_aiken": f"/export/aiken/{exam.id}",
-                "export_gift": f"/export/gift/{exam.id}",
-                # رابط PDF محذوف
+                "export_gift": f"/export/gift/{exam.id}"
             }
         }
-
-        logger.info("تم جلب اختبار كامل", exam_id=exam_id, subject=exam.subject)
-
+        logger.info("تم جلب اختبار كامل", exam_id=exam_id)
         return jsonify(response)
-
     except Exception as e:
         logger.error("خطأ في جلب الاختبار", exam_id=exam_id, error=str(e))
         return jsonify({"error": "لم يتم العثور على الاختبار"}), 404
@@ -486,13 +456,10 @@ def get_exam_by_id(exam_id: int):
 @limiter.limit("15 per minute")
 def export_aiken(exam_id: int):
     logger = get_logger("app")
-
     try:
         exam = GeneratedExam.query.get_or_404(exam_id)
         questions = json.loads(exam.questions)
-
         aiken_content = []
-
         for i, q in enumerate(questions):
             if q.get("type") == "mcq":
                 aiken_content.append(q["text"])
@@ -500,27 +467,20 @@ def export_aiken(exam_id: int):
                     aiken_content.append(option)
                 aiken_content.append(f"ANSWER: {q.get('answer', '')}")
                 aiken_content.append("")
-
             elif q.get("type") == "truefalse":
                 aiken_content.append(q["text"])
                 answer = "TRUE" if q.get("answer") else "FALSE"
                 aiken_content.append(f"ANSWER: {answer}")
                 aiken_content.append("")
-
         aiken_text = "\n".join(aiken_content)
-        filename = f"exam_{exam_id}_aiken.txt"
-
-        logger.info("تم تصدير Aiken", exam_id=exam_id,
-                    mcq_count=len([q for q in questions if q.get("type") == "mcq"]))
-
+        logger.info("تم تصدير Aiken", exam_id=exam_id)
         return jsonify({
             "success": True,
             "format": "Aiken",
-            "filename": filename,
+            "filename": f"exam_{exam_id}_aiken.txt",
             "content": aiken_text,
             "instructions": "في Moodle: Question Bank → Import → اختر صيغة Aiken Format ثم الصق المحتوى"
         })
-
     except Exception as e:
         logger.error("خطأ في تصدير Aiken", exam_id=exam_id, error=str(e))
         return jsonify({"error": "فشل في تصدير Aiken"}), 500
@@ -530,13 +490,10 @@ def export_aiken(exam_id: int):
 @limiter.limit("15 per minute")
 def export_gift(exam_id: int):
     logger = get_logger("app")
-
     try:
         exam = GeneratedExam.query.get_or_404(exam_id)
         questions = json.loads(exam.questions)
-
         gift_content = []
-
         for i, q in enumerate(questions):
             if q.get("type") == "mcq":
                 gift_content.append(f"::Q{i+1}:: {q['text']} {{")
@@ -547,25 +504,19 @@ def export_gift(exam_id: int):
                         gift_content.append(f"~{opt}")
                 gift_content.append("}")
                 gift_content.append("")
-
             elif q.get("type") == "truefalse":
                 answer = "TRUE" if q.get("answer") else "FALSE"
                 gift_content.append(f"::Q{i+1}:: {q['text']} {{ {answer} }}")
                 gift_content.append("")
-
         gift_text = "\n".join(gift_content)
-        filename = f"exam_{exam_id}_gift.txt"
-
         logger.info("تم تصدير GIFT", exam_id=exam_id)
-
         return jsonify({
             "success": True,
             "format": "GIFT",
-            "filename": filename,
+            "filename": f"exam_{exam_id}_gift.txt",
             "content": gift_text,
             "instructions": "في Moodle: Question Bank → Import → اختر صيغة GIFT ثم ارفع الملف أو الصق المحتوى"
         })
-
     except Exception as e:
         logger.error("خطأ في تصدير GIFT", exam_id=exam_id, error=str(e))
         return jsonify({"error": "فشل في تصدير GIFT"}), 500
