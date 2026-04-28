@@ -2,12 +2,11 @@ import os
 import json
 import time
 import uuid
-import re
 import tempfile
 from datetime import datetime
 from typing import List, Union, Any, Optional
 
-from flask import Flask, request, jsonify, g, send_file, render_template
+from flask import Flask, request, jsonify, g, send_file
 from flask_sqlalchemy import SQLAlchemy
 from pydantic import BaseModel, Field, model_validator
 from enum import Enum
@@ -28,7 +27,11 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 # ====================== Groq Client ======================
-groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+# تأكد من وجود GROQ_API_KEY في متغيرات البيئة
+groq_api_key = os.getenv("GROQ_API_KEY")
+if not groq_api_key:
+    raise RuntimeError("❌ يجب تعيين GROQ_API_KEY في متغيرات البيئة قبل تشغيل التطبيق")
+groq_client = Groq(api_key=groq_api_key)
 
 # ====================== Pydantic Models ======================
 class QuestionType(str, Enum):
@@ -81,7 +84,7 @@ class ModelAnswer(BaseModel):
 class FullGeneratedExam(BaseModel):
     questions: List[Question]
     model_answers: List[ModelAnswer]
-    total_points: float
+    total_points: float = 0.0
     metadata: dict
 
     @model_validator(mode='after')
@@ -236,7 +239,7 @@ def generate_full_exam():
         logger.warning("طلب غير مكتمل - حقول مفقودة")
         return jsonify({"error": "الحقول subject, grade, topic مطلوبة"}), 400
 
-    model_name = "llama-3.3-70b-versatile"
+    model_name = "llama-3.3-70b-versatile"  # نموذج Groq المستخدم
     max_retries = 2
 
     logger.info("بدء توليد اختبار جديد", 
