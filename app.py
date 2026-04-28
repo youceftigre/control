@@ -230,7 +230,8 @@ def setup_rate_limiting(app):
             "retry_after": str(e.description)
         }), 429
 
-    app.logger.info(event="rate_limiting_activated")
+    app.logger.info("Rate limiting activated", event="rate_limiting_activated")
+
     return limiter
 
 limiter = setup_rate_limiting(app)
