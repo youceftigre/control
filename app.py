@@ -47,7 +47,8 @@ class DataManager:
         """تحميل بنك الأسئلة والمواد"""
         try:
             # تحميل بنك الأسئلة
-            if os.path.exists('data/questions_full_bank.json'):                with open('data/questions_full_bank.json', 'r', encoding='utf-8') as f:
+if os.path.exists('data/questions_full_bank.json'):
+    with open('data/questions_full_bank.json', 'r', encoding='utf-8') as f:
                     self.question_bank = json.load(f)
                 logger.info(f"✅ تم تحميل {len(self.question_bank)} مادة")
             else:
