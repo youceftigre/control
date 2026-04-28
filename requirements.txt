@@ -1,8 +1,0 @@
-Flask
-Flask-SQLAlchemy
-Flask-Limiter
-pydantic
-gunicorn
-structlog
-groq
-pylatex
