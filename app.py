@@ -127,10 +127,10 @@ def setup_rate_limit_handlers(app: Flask, limiter: Limiter):
 # ====================== index.html ======================
 @app.route("/")
 def index():
-    try:
-    return render_template("index.html")
+try:
+        return render_template("index.html")
 except Exception as e:
- return f"حطأ في تحميل الواجهة:
+        return f"حطأ في تحميل الواجهة:
  {str(e)}", 500
 # ====================== Pydantic Models ======================
 class QuestionType(str, Enum):
