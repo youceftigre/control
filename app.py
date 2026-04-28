@@ -47,7 +47,8 @@ groq_client = Groq(api_key=api_key)
 
 class QuestionType(str, Enum):
     MCQ = "mcq"
-    TRUEFALSE = "truefalse"    ESSAY = "essay"
+TRUEFALSE = "truefalse"
+ESSAY = "essay"
     APPLICATION = "application"
     PROBLEM = "problem"
 
