@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import List, Union, Any, Optional
 
 from flask import Flask, request, jsonify, g, send_file
-render_template
+render_template("index.html")
 from flask_sqlalchemy import SQLAlchemy
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
