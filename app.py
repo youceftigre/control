@@ -361,7 +361,18 @@ def export_pdf(exam_id: int):
     return send_file(filepath, as_attachment=True, download_name=filename)
 
 # باقي الـ routes: my_exams, exam/<id>, aiken, gift (انسخ من الكود الأصلي مع الإصلاحات)
-
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({
+        "service": "مولّد الاختبارات الجزائرية",
+        "endpoints": {
+            "health": "/health",
+            "generate": "/generate_full_exam (POST)",
+            "my_exams": "/my_exams",
+            "exam/<id>": "/exam/1"
+        },
+        "docs": "استخدم POST لتوليد اختبارات!"
+    })
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
