@@ -47,8 +47,7 @@ groq_client = Groq(api_key=api_key)
 
 class QuestionType(str, Enum):
     MCQ = "mcq"
-TRUEFALSE = "truefalse"
-ESSAY = "essay"
+    TRUEFALSE = "truefalse"    ESSAY = "essay"
     APPLICATION = "application"
     PROBLEM = "problem"
 
@@ -173,7 +172,7 @@ def setup_structlog(app: Flask):
             method=request.method,
             path=request.path
         )
-        logger.info(event="request_started")  # ← تم التصحيح هنا
+        logger.info(event="request_started")
 
     @app.after_request
     def after_request_logging(response):
@@ -183,7 +182,7 @@ def setup_structlog(app: Flask):
                 event="request_completed",
                 status_code=response.status_code,
                 duration_ms=duration_ms
-            )  # ← تم التصحيح هنا
+            )
         return response
 
     logger.info(event="structured_logging_initialized")
