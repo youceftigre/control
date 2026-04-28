@@ -1,8 +1,7 @@
 flask
-flask_sqlalchemy
-groq
-flask_limiter
+flask-sqlalchemy
+pydantic
 structlog
-pdfkit
+groq
+flask-limiter
 gunicorn
-python-dotenv
