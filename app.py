@@ -1,4 +1,4 @@
-
+import os
 final_code = '''import os
 import json
 import time
@@ -692,3 +692,15 @@ with open(output_path, "w", encoding="utf-8") as f:
 
 print(f"✅ تم حفظ الملف في: {output_path}")
 print(f"📏 حجم الملف: {len(final_code)} حرف")
+
+output_path = "/mnt/agents/output/app.py"
+
+# قم بإنشاء المجلدات الوالدة إذا لم تكن موجودة
+output_dir = os.path.dirname(output_path)
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
+
+# الآن يمكنك فتح الملف بأمان
+with open(output_path, "w", encoding="utf-8") as f:
+    # اكتب المحتوى هنا
+    pass
