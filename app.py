@@ -5,8 +5,7 @@ import uuid
 from datetime import datetime
 from typing import List, Union, Any, Optional
 
-from flask import Flask, request, jsonify, g, send_file
-render_template("index.html")
+from flask import Flask, request, jsonify, g, send_file, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -129,7 +128,7 @@ def setup_rate_limit_handlers(app: Flask, limiter: Limiter):
 @app.route("/")
 def index():
     return
-    render_eemplate("index.html")
+    render_template("index.html")
 # ====================== Pydantic Models ======================
 class QuestionType(str, Enum):
     MCQ         = "mcq"
