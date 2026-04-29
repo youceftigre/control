@@ -15,7 +15,15 @@ from flask_limiter.util import get_remote_address
 from flask_sqlalchemy import SQLAlchemy
 
 # Pydantic for Data Validation
-from pydantic import BaseModel, Field, ValidationError, model_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
+
+# Algerian curriculum catalog (subjects × grades × stages)
+from curriculum import (
+    CurriculumMatch,
+    get_exam_structure,
+    load_curriculum,
+    validate_subject_grade,
+)
 
 # Logging
 import structlog
@@ -85,6 +93,17 @@ class MCQQuestion(BaseQuestion):
     options: List[str] = Field(..., min_length=2)
     answer: str
 
+    @field_validator("options")
+    @classmethod
+    def options_must_be_unique(cls, v: List[str]) -> List[str]:
+        """خيارات MCQ يجب أن تكون متميّزة بعد حذف الفراغات المحيطة."""
+        cleaned = [opt.strip() for opt in v]
+        if len(set(cleaned)) != len(cleaned):
+            raise ValueError("خيارات MCQ يجب أن تكون متميّزة دون تكرار")
+        if any(not c for c in cleaned):
+            raise ValueError("خيارات MCQ لا يجوز أن تحوي على خيار فارغ")
+        return cleaned
+
     @model_validator(mode="after")
     def answer_in_options(self):
         if self.answer not in self.options:
@@ -142,9 +161,36 @@ class FullGeneratedExam(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
-    def calculate_total(self):
-        # Always recompute from the actual question points to avoid trusting the LLM.
+    def validate_consistency(self):
+        """
+        تحقّقات عبر-حقليّة:
+
+        1. إعادة حساب ``total_points`` من مجموع نقاط الأسئلة فعلياً
+           (لا نثق في رقم الـ LLM).
+        2. عدد عناصر ``model_answers`` يجب أن يساوي عدد الأسئلة.
+        3. ``question_index`` داخل كلّ تصحيح يجب أن يكون فريداً وضمن النطاق.
+        """
         self.total_points = round(sum(q.points for q in self.questions), 2)
+
+        if len(self.model_answers) != len(self.questions):
+            raise ValueError(
+                f"عدد التصحيحات ({len(self.model_answers)}) يجب أن يساوي عدد الأسئلة "
+                f"({len(self.questions)})"
+            )
+
+        seen_indices: set[int] = set()
+        n = len(self.questions)
+        for ans in self.model_answers:
+            if ans.question_index < 0 or ans.question_index >= n:
+                raise ValueError(
+                    f"question_index={ans.question_index} خارج النطاق [0, {n - 1}]"
+                )
+            if ans.question_index in seen_indices:
+                raise ValueError(
+                    f"question_index={ans.question_index} مكرّر في model_answers"
+                )
+            seen_indices.add(ans.question_index)
+
         return self
 
 
@@ -329,6 +375,63 @@ def get_questions_bank():
         return jsonify({})
 
 
+# ====================== كتالوج المنهاج الجزائري ======================
+
+@app.route("/curriculum", methods=["GET"])
+@limiter.limit("60 per minute")
+def get_curriculum():
+    """
+    أعِد كتالوج المنهاج الجزائري (المراحل، الشُّعب، المواد، أنواع الاختبارات…).
+
+    يستعمله الـ frontend لتعبئة قوائم الاختيار وضمان عدم إرسال توليفات غير
+    صالحة. الكتالوج مُخزَّن في ``data/algeria_curriculum.json``.
+    """
+    logger = get_logger("app")
+    try:
+        catalog = load_curriculum()
+        return jsonify(catalog)
+    except FileNotFoundError:
+        logger.warning(event="curriculum_file_missing")
+        return jsonify({"error": "ملف كتالوج المنهاج غير موجود"}), 503
+    except json.JSONDecodeError as e:
+        logger.error(event="curriculum_invalid_json", error=str(e))
+        return jsonify({"error": "ملف كتالوج المنهاج غير صالح JSON"}), 500
+
+
+@app.route("/curriculum/validate", methods=["POST"])
+@limiter.limit("60 per minute")
+def validate_curriculum_request():
+    """
+    تحقّق سريعاً من توافق توليفة (subject, grade) مع الكتالوج دون توليد اختبار.
+
+    Body: ``{"subject": "...", "grade": "..."}``.
+
+    Returns:
+        ``{"is_exact": bool, "stage": str|null, "exam_total": float,
+            "coefficient": int|null, "subject_canonical": str,
+            "warnings": [str]}``
+    """
+    payload = request.get_json(silent=True) or {}
+    subject = (payload.get("subject") or "").strip()
+    grade = (payload.get("grade") or "").strip()
+    if not subject or not grade:
+        return jsonify({"error": "subject و grade مطلوبان"}), 400
+    try:
+        catalog = load_curriculum()
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        return jsonify({"error": f"تعذّر تحميل الكتالوج: {e}"}), 503
+
+    match = validate_subject_grade(catalog, subject, grade)
+    return jsonify({
+        "is_exact": match.is_exact,
+        "stage": match.stage,
+        "exam_total": match.exam_total,
+        "coefficient": match.coefficient,
+        "subject_canonical": match.subject_canonical,
+        "warnings": match.warnings,
+    })
+
+
 # ====================== التوليد المختصر للواجهة ======================
 # الواجهة تستدعي `POST /generate` وتتوقع {questions: [...]}.
 # هذا الـ endpoint غلاف رفيع حول /generate_full_exam: يحفظ في الـ DB و يعيد
@@ -351,6 +454,7 @@ def generate_for_ui():
         "subject": data.get("subject", ""),
         "grade": data.get("grade", ""),
         "semester": data.get("semester", ""),
+        "branch": data.get("branch", ""),
         "examType": data.get("examType", "اختبار فصلي"),
         "topic": (data.get("topic") or "").strip() or data.get("subject", ""),
         "difficulty": data.get("difficulty", "متوسط"),
@@ -363,97 +467,127 @@ def generate_for_ui():
             "error": "يرجى ملء الحقول الإلزامية: المادة، السنة، الفصل",
         }), 400
 
-    # نعيد استخدام نفس المنطق عبر test_request_context (أبسط من refactor كبير)
-    # لكن لأن الدوال في Flask تعتمد على request الحالي، سنستدعي الدالة بالطريقة المباشرة:
-    # نحفظ الجسم الأصلي للـ request ثم نستدعي دالة التوليد الداخلية.
     result = _generate_exam_internal(payload, client_ip=request.remote_addr)
-    if isinstance(result[0], dict):  # حالة الخطأ: (error_dict, status_code)
+    # حالة الخطأ: ``result`` يكون (error_dict, status_code)
+    if isinstance(result[0], dict):
         return jsonify(result[0]), result[1]
 
     full_exam, db_id = result
     questions_only = [q.model_dump(mode="json") for q in full_exam.questions]
 
     logger.info(event="ui_generate_completed", db_id=db_id, count=len(questions_only))
-    return jsonify({
+    response_body = {
         "success": True,
         "questions": questions_only,
         "db_id": db_id,
         "total_points": full_exam.total_points,
-    })
+        "metadata": full_exam.metadata,
+    }
+    warnings = (full_exam.metadata or {}).get("curriculum_warnings")
+    if warnings:
+        response_body["warnings"] = warnings
+    return jsonify(response_body)
 
 
 # ====================== الدالة الرئيسية (مع Retry) ======================
 
-def _generate_exam_internal(
-    data: Dict[str, Any],
-    client_ip: Optional[str] = None,
-):
+# الحدّ الأعلى لـ ``num_questions``. عدد كبير من الأسئلة + تصحيح نموذجي مفصّل
+# يستهلك الكثير من tokens، لذلك نُبقي السقف معقولاً.
+MAX_QUESTIONS = 30
+
+# تقدير عدد التوكنات لكلّ سؤال + تصحيح (متوسط بالعربية).
+# يُستعمل لحساب ``max_tokens`` ديناميكياً.
+TOKENS_PER_QUESTION = 350
+MIN_MAX_TOKENS = 2000
+MAX_MAX_TOKENS = 8000
+
+
+def _compute_max_tokens(num_questions: int) -> int:
     """
-    المنطق المشترك لتوليد الاختبار.
+    حساب ``max_tokens`` ديناميكياً بحسب عدد الأسئلة.
 
-    يعيد (full_exam, db_id) عند النجاح، أو ({error...}, status_code) عند الفشل.
+    قيمة ثابتة (4000) كانت تُقطع إجابة الـ LLM عند طلب 20+ سؤالاً مع تصحيح
+    مفصّل، فيُرجَع JSON ناقص ويفشل التحليل.
     """
-    logger = get_logger("app")
-    start_time = time.time()
+    estimated = num_questions * TOKENS_PER_QUESTION + 800  # +هامش للـ metadata
+    return max(MIN_MAX_TOKENS, min(MAX_MAX_TOKENS, estimated))
 
-    subject = (data.get("subject") or "").strip()
-    grade = (data.get("grade") or "").strip()
-    semester = (data.get("semester") or "").strip()
-    exam_type = data.get("examType", "اختبار فصلي")
-    topic = (data.get("topic") or "").strip()
-    difficulty = data.get("difficulty", "متوسط")
 
-    try:
-        num_questions = int(data.get("num_questions", 6))
-    except (TypeError, ValueError):
-        return ({"error": "num_questions يجب أن يكون عدداً صحيحاً"}, 400)
-    num_questions = max(1, min(num_questions, 30))
+def _build_system_prompt(stage: Optional[str], exam_type: str) -> str:
+    """
+    بناء ``system_prompt`` الخاص بالأستاذ/المُولّد وفق المرحلة + نوع الاختبار.
 
-    if not all([subject, grade, topic]):
-        logger.warning(event="incomplete_request", missing_fields=["subject", "grade", "topic"])
-        return ({"error": "الحقول subject, grade, topic مطلوبة"}, 400)
-
-    if groq_client is None:
-        logger.error(event="groq_client_not_configured")
-        return ({
-            "error": "خدمة الذكاء الاصطناعي غير مهيأة على السيرفر",
-            "hint": "يجب ضبط متغير البيئة GROQ_API_KEY في إعدادات Render",
-        }, 503)
-
-    model_name = "llama-3.3-70b-versatile"
-    max_retries = 2
-
-    logger.info(
-        event="exam_generation_started",
-        subject=subject,
-        grade=grade,
-        topic=topic,
-        num_questions=num_questions,
-        difficulty=difficulty,
-    )
-
-    system_prompt = """أنت أستاذ جزائري خبير في تطوير الاختبارات التعليمية وفق المنهاج الجزائري.
-مهمتك إنشاء اختبارات متكاملة عالية الجودة مع الإجابات النموذجية والحلول التفصيلية.
+    تُستعمل المصطلحات الرسمية للمنهاج الجزائري: «الكفاءة الختامية»،
+    «الوضعية الإدماجية»، «السند»، «التعليمات» …
+    """
+    base = """أنت أستاذ جزائري خبير في تطوير الاختبارات التعليمية وفق المناهج الرسمية للمنظومة التربوية الجزائرية.
+مهمتك إنشاء اختبارات متكاملة عالية الجودة تحترم البنية الرسمية مع الإجابات النموذجية والحلول التفصيلية.
 
 قواعد صارمة:
-1. الأسئلة يجب أن تكون واضحة ومباشرة وخالية من الغموض
-2. خيارات MCQ يجب أن تكون متقاربة منطقياً (plausible distractors)
-3. الإجابة النموذجية يجب أن تكون دقيقة ومفصلة
-4. اذكر الأخطاء الشائعة التي يرتكبها التلاميذ
-5. حدد الكفاءة (competence) المستهدفة لكل سؤال
-6. اجعل النقاط منطقية (سؤال MCQ: 1-2 نقطة، مقالي: 3-5 نقاط، تطبيقي: 4-6 نقاط)
-7. نوع الأسئلة يجب أن يكون أحد: mcq, truefalse, essay, application, problem"""
+1. الأسئلة واضحة ومباشرة وخالية من الغموض، وتراعي مستوى التلميذ في السنة المُحدَّدة.
+2. خيارات MCQ يجب أن تكون متقاربة منطقياً ومتميّزة (لا تكرار) — plausible distractors.
+3. الإجابة النموذجية دقيقة ومفصّلة، مع تبرير كل خطوة.
+4. اذكر الأخطاء الشائعة التي يرتكبها التلاميذ في كلّ سؤال.
+5. حدِّد الكفاءة الختامية المستهدفة (competence) لكلّ سؤال وفق المنهاج الجزائري.
+6. اعتمد المصطلحات الرسمية: «الكفاءة الختامية»، «الوضعية الإدماجية»، «السند»، «التعليمات».
+7. أنواع الأسئلة المسموحة: mcq, truefalse, essay, application, problem (لا تستعمل أنواعاً أخرى)."""
 
-    user_prompt = f"""أنشئ اختباراً كاملاً في مادة {subject} للسنة {grade}، الفصل {semester or 'غير محدد'}.
+    if stage == "primary":
+        base += "\n8. سُلّم التنقيط الكلّي: 10 نقاط (المعيار الجزائري للابتدائي)."
+        base += "\n9. ركّز على أنشطة الفهم البسيط ثم التطبيق + إدماج خفيف."
+    elif stage == "middle":
+        base += "\n8. سُلّم التنقيط الكلّي: 20 نقطة (المعيار الجزائري للمتوسط)."
+        base += "\n9. البنية المُوصَى بها: الجزء الأوّل (تمارين ~12ن) + الجزء الثاني (وضعية إدماجية ~8ن)."
+    elif stage == "secondary":
+        base += "\n8. سُلّم التنقيط الكلّي: 20 نقطة (المعيار الجزائري للثانوي)."
+        if "بكالوريا" in (exam_type or ""):
+            base += (
+                "\n9. اعتمد بنية البكالوريا: موضوع واحد كامل من 20 نقطة "
+                "(تستطيع لاحقاً صياغة موضوع ثانٍ مستقل عند الطلب)."
+            )
+        else:
+            base += "\n9. البنية المُوصَى بها: الجزء الأوّل (تمارين ~13ن) + الجزء الثاني (وضعية إدماجية ~7ن)."
 
-الموضوع: {topic}
-نوع الاختبار: {exam_type}
+    return base
+
+
+def _build_user_prompt(
+    *,
+    subject: str,
+    grade: str,
+    semester: str,
+    branch: str,
+    exam_type: str,
+    topic: str,
+    difficulty: str,
+    num_questions: int,
+    structure: Optional[Dict[str, Any]],
+    exam_total: float,
+    coefficient: Optional[int],
+) -> str:
+    """بناء ``user_prompt`` بحقول صريحة + بنية رسمية حسب المنهاج."""
+    structure_hint = ""
+    if structure and structure.get("parts"):
+        parts_desc = "، ".join(
+            f"{p['name']} ({p['points']} نقطة)" for p in structure["parts"]
+        )
+        structure_hint = f"\nبنية الاختبار المطلوبة: {parts_desc}."
+
+    coef_hint = f"\nالمعامل (coefficient): {coefficient}" if coefficient else ""
+    branch_hint = f"\nالشعبة: {branch}" if branch else ""
+
+    return f"""أنشئ اختباراً كاملاً في مادة {subject} للسنة {grade}، الفصل {semester or 'غير محدد'}.
+
+الموضوع/الوحدة التعلّمية: {topic}
+نوع الاختبار: {exam_type}{branch_hint}{coef_hint}
 المستوى: {difficulty}
 عدد الأسئلة: {num_questions}
+المجموع الكلّي للنقاط: {exam_total} (معياري — يجب أن يكون مجموع points مساوياً لهذه القيمة بهامش ±0.5){structure_hint}
 
-يجب أن يحتوي الاختبار على تنوع في أنواع الأسئلة (MCQ، صح/خطأ، مقالي، تطبيقي/مسألة).
+يجب أن يحتوي الاختبار على تنوّع في أنواع الأسئلة (MCQ، صح/خطأ، مقالي، تطبيقي/مسألة)
+مع التدرّج من السهل إلى الصعب.
 
-أعد الرد بتنسيق JSON صارم يتبع هذا الهيكل:
+أعد الرد بتنسيق JSON صارم يتبع هذا الهيكل (كلّ القيم بالعربية إلا أسماء الحقول):
 {{
   "questions": [
     {{
@@ -461,7 +595,7 @@ def _generate_exam_internal(
       "difficulty": 1,
       "text": "نص السؤال بالعربية",
       "points": 1.5,
-      "competence": "اسم الكفاءة",
+      "competence": "اسم الكفاءة الختامية",
       "options": ["خيار أ", "خيار ب", "خيار ج", "خيار د"],
       "answer": "خيار أ"
     }}
@@ -471,9 +605,9 @@ def _generate_exam_internal(
       "question_index": 0,
       "question_text": "نص السؤال",
       "correct_answer": "الإجابة الصحيحة",
-      "detailed_solution": "شرح مفصل للحل",
+      "detailed_solution": "شرح مفصّل للحلّ خطوة بخطوة",
       "justification": "لماذا هذه الإجابة صحيحة",
-      "competence": "اسم الكفاءة",
+      "competence": "اسم الكفاءة الختامية",
       "common_mistakes": ["خطأ شائع 1", "خطأ شائع 2"],
       "points_breakdown": {{"فهم المفهوم": 0.5, "التطبيق": 1.0}}
     }}
@@ -482,6 +616,7 @@ def _generate_exam_internal(
   "metadata": {{
     "subject": "{subject}",
     "grade": "{grade}",
+    "branch": "{branch}",
     "topic": "{topic}",
     "difficulty": "{difficulty}",
     "generated_for": "المنهاج الجزائري",
@@ -489,10 +624,130 @@ def _generate_exam_internal(
   }}
 }}
 
-ملاحظات:
-- total_points يتم حسابه تلقائياً من مجموع points
-- اجعل الأسئلة متدرجة الصعوبة
-- لا تضف أي نص خارج JSON"""
+شروط:
+- ``model_answers`` يجب أن يحتوي على عدد عناصر = عدد الأسئلة بالضبط، مع question_index من 0 إلى {num_questions - 1}.
+- ``total_points`` يُحتسب تلقائياً من مجموع points (لا تتلاعب به).
+- خيارات MCQ متميّزة (لا تكرار) و answer ضمن الخيارات حرفياً.
+- لا تُضف أيّ نص خارج JSON ولا تستعمل ```."""
+
+
+def _generate_exam_internal(
+    data: Dict[str, Any],
+    client_ip: Optional[str] = None,
+):
+    """
+    المنطق المشترك لتوليد الاختبار وفق المنهاج الجزائري.
+
+    Args:
+        data: قاموس يحتوي على ``subject``, ``grade``, ``semester``, ``examType``,
+            ``topic``, ``difficulty``, ``num_questions`` (اختياري — افتراضي 6).
+            يدعم أيضاً ``branch`` (الشعبة) كحقل اختياري.
+        client_ip: عنوان IP للمستخدم (يُحفظ في DB لأغراض التتبع).
+
+    Returns:
+        - عند النجاح: ``(FullGeneratedExam, db_id)``.
+        - عند الفشل: ``({"error": ..., ...}, status_code)``.
+
+    Side effects:
+        يحفظ سجلّاً جديداً في جدول ``generated_exams`` عند نجاح التحقق.
+
+    مثال:
+        >>> data = {
+        ...     "subject": "الرياضيات",
+        ...     "grade": "السنة 3 علوم",
+        ...     "semester": "الفصل الثاني",
+        ...     "examType": "اختبار فصلي",
+        ...     "topic": "الدوال اللوغاريتمية",
+        ...     "difficulty": "متوسط",
+        ...     "num_questions": 6,
+        ... }
+        >>> result = _generate_exam_internal(data, client_ip="127.0.0.1")
+    """
+    logger = get_logger("app")
+    start_time = time.time()
+
+    subject = (data.get("subject") or "").strip()
+    grade = (data.get("grade") or "").strip()
+    semester = (data.get("semester") or "").strip()
+    branch = (data.get("branch") or "").strip()
+    exam_type = (data.get("examType") or "اختبار فصلي").strip()
+    topic = (data.get("topic") or "").strip()
+    difficulty = (data.get("difficulty") or "متوسط").strip()
+
+    try:
+        num_questions = int(data.get("num_questions", 6))
+    except (TypeError, ValueError):
+        return ({"error": "num_questions يجب أن يكون عدداً صحيحاً"}, 400)
+    num_questions = max(1, min(num_questions, MAX_QUESTIONS))
+
+    if not all([subject, grade, topic]):
+        logger.warning(event="incomplete_request", missing_fields=["subject", "grade", "topic"])
+        return ({"error": "الحقول subject, grade, topic مطلوبة"}, 400)
+
+    # --- التحقق من توافق المادة/السنة مع كتالوج المنهاج الجزائري ---
+    curriculum_warnings: List[str] = []
+    stage: Optional[str] = None
+    exam_total = 20.0
+    coefficient: Optional[int] = None
+    structure: Optional[Dict[str, Any]] = None
+    try:
+        catalog = load_curriculum()
+        match: CurriculumMatch = validate_subject_grade(catalog, subject, grade)
+        stage = match.stage
+        exam_total = match.exam_total
+        coefficient = match.coefficient
+        curriculum_warnings = match.warnings
+        # تطبيع اسم المادة إن أمكن (مثلاً "الرياضيات" → "رياضيات")
+        if match.is_exact:
+            subject = match.subject_canonical
+        structure = get_exam_structure(catalog, stage, exam_type)
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        logger.warning(event="curriculum_load_failed", error=str(e))
+        # نواصل بدون التحقق — الكتالوج مساعد لا حاجز
+
+    if curriculum_warnings:
+        logger.info(event="curriculum_warnings", warnings=curriculum_warnings)
+
+    if groq_client is None:
+        logger.error(event="groq_client_not_configured")
+        return ({
+            "error": "خدمة الذكاء الاصطناعي غير مهيأة على السيرفر",
+            "hint": "يجب ضبط متغير البيئة GROQ_API_KEY في إعدادات Render",
+        }, 503)
+
+    model_name = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    max_retries = 2
+
+    logger.info(
+        event="exam_generation_started",
+        subject=subject,
+        grade=grade,
+        stage=stage,
+        topic=topic,
+        num_questions=num_questions,
+        difficulty=difficulty,
+        exam_total=exam_total,
+        coefficient=coefficient,
+    )
+
+    system_prompt = _build_system_prompt(stage, exam_type)
+    user_prompt = _build_user_prompt(
+        subject=subject,
+        grade=grade,
+        semester=semester,
+        branch=branch,
+        exam_type=exam_type,
+        topic=topic,
+        difficulty=difficulty,
+        num_questions=num_questions,
+        structure=structure,
+        exam_total=exam_total,
+        coefficient=coefficient,
+    )
+
+    max_tokens = _compute_max_tokens(num_questions)
+    # درجة حرارة أدنى للبكالوريا/الفروض الرسمية (لتقليل التهلوس)
+    temperature = 0.5 if "بكالوريا" in exam_type or "فرض" in exam_type else 0.7
 
     for attempt in range(max_retries):
         try:
@@ -502,8 +757,8 @@ def _generate_exam_internal(
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
-                temperature=0.7,
-                max_tokens=4000,
+                temperature=temperature,
+                max_tokens=max_tokens,
                 response_format={"type": "json_object"},
             )
             raw_content = response.choices[0].message.content or ""
@@ -536,6 +791,20 @@ def _generate_exam_internal(
                 time.sleep(1.0)
                 continue
 
+            # إثراء الـ metadata بمعلومات الكتالوج لتسهيل الاستعلام لاحقاً
+            enriched_metadata = dict(full_exam.metadata or {})
+            enriched_metadata.setdefault("subject", subject)
+            enriched_metadata.setdefault("grade", grade)
+            enriched_metadata.setdefault("topic", topic)
+            enriched_metadata["stage"] = stage
+            enriched_metadata["branch"] = branch or enriched_metadata.get("branch", "")
+            enriched_metadata["coefficient"] = coefficient
+            enriched_metadata["exam_total_official"] = exam_total
+            enriched_metadata["model"] = model_name
+            if curriculum_warnings:
+                enriched_metadata["curriculum_warnings"] = curriculum_warnings
+            full_exam.metadata = enriched_metadata
+
             new_exam = GeneratedExam(
                 subject=subject,
                 grade=grade,
@@ -554,7 +823,7 @@ def _generate_exam_internal(
                     ensure_ascii=False,
                     default=str,
                 ),
-                metadata_info=json.dumps(full_exam.metadata, ensure_ascii=False),
+                metadata_info=json.dumps(enriched_metadata, ensure_ascii=False),
                 ip_address=client_ip,
             )
             db.session.add(new_exam)
@@ -685,8 +954,11 @@ def get_my_exams():
 def get_exam_by_id(exam_id: int):
     logger = get_logger("app")
 
+    exam = db.session.get(GeneratedExam, exam_id)
+    if exam is None:
+        return jsonify({"error": "لم يتم العثور على الاختبار"}), 404
+
     try:
-        exam = GeneratedExam.query.get_or_404(exam_id)
         response = {
             "id": exam.id,
             "subject": exam.subject,
@@ -708,10 +980,9 @@ def get_exam_by_id(exam_id: int):
         }
         logger.info(event="exam_retrieved", exam_id=exam_id, subject=exam.subject)
         return jsonify(response)
-
-    except Exception as e:
-        logger.error(event="failed_to_retrieve_exam", exam_id=exam_id, error=str(e))
-        return jsonify({"error": "لم يتم العثور على الاختبار"}), 404
+    except (json.JSONDecodeError, ValueError) as e:
+        logger.error(event="failed_to_decode_exam", exam_id=exam_id, error=str(e), exc_info=True)
+        return jsonify({"error": "تعذّر تحليل بيانات الاختبار المحفوظة"}), 500
 
 
 # ====================== تصدير Aiken ======================
@@ -721,11 +992,15 @@ def get_exam_by_id(exam_id: int):
 def export_aiken(exam_id: int):
     logger = get_logger("app")
 
+    exam = db.session.get(GeneratedExam, exam_id)
+    if exam is None:
+        return jsonify({"error": "لم يتم العثور على الاختبار"}), 404
+
     try:
-        exam = GeneratedExam.query.get_or_404(exam_id)
         questions = json.loads(exam.questions) if exam.questions else []
 
         aiken_content: List[str] = []
+        skipped_truefalse = 0
         for q in questions:
             qtype = q.get("type")
             text = (q.get("text") or "").strip()
@@ -747,11 +1022,9 @@ def export_aiken(exam_id: int):
                 aiken_content.append(f"ANSWER: {answer_letter}")
                 aiken_content.append("")
             elif qtype == "truefalse":
-                aiken_content.append(text)
-                aiken_content.append("A. True")
-                aiken_content.append("B. False")
-                aiken_content.append(f"ANSWER: {'A' if q.get('answer') else 'B'}")
-                aiken_content.append("")
+                # صيغة Aiken الرسمية تدعم MCQ فقط.
+                # أسئلة True/False تُصديرها عبر GIFT بدلاً من ذلك.
+                skipped_truefalse += 1
 
         aiken_text = "\n".join(aiken_content)
         filename = f"exam_{exam_id}_aiken.txt"
@@ -760,22 +1033,31 @@ def export_aiken(exam_id: int):
             event="aiken_exported",
             exam_id=exam_id,
             mcq_count=len([q for q in questions if q.get("type") == "mcq"]),
+            skipped_truefalse=skipped_truefalse,
         )
-        return jsonify({
+        response_payload = {
             "success": True,
             "format": "Aiken",
             "filename": filename,
             "content": aiken_text,
             "instructions": "في Moodle: Question Bank → Import → اختر صيغة Aiken Format ثم الصق المحتوى",
-        })
+        }
+        if skipped_truefalse:
+            response_payload["warnings"] = [
+                f"تم تجاوز {skipped_truefalse} سؤال صح/خطأ — صيغة Aiken لا تدعمها رسمياً. "
+                "استعمل GIFT لتصديرها."
+            ]
+        return jsonify(response_payload)
 
-    except Exception as e:
-        logger.error(event="aiken_export_failed", exam_id=exam_id, error=str(e))
-        return jsonify({"error": "فشل في تصدير Aiken"}), 500
+    except (json.JSONDecodeError, ValueError) as e:
+        logger.error(event="aiken_export_failed", exam_id=exam_id, error=str(e), exc_info=True)
+        return jsonify({"error": "تعذّر تحليل أسئلة الاختبار للتصدير"}), 500
 
 
 # ====================== تصدير GIFT ======================
 # https://docs.moodle.org/en/GIFT_format — must escape: ~ = # { } : \
+# ملحوظة: في صيغة GIFT يُهرّب الـ backslash الواحد بـ backslash-backslash (أي \\)،
+# فترجمة ``\\`` إلى ``\\\\`` خاطئة (تطبع أربع فواصل عكسية).
 GIFT_SPECIAL = str.maketrans({
     "~": r"\~",
     "=": r"\=",
@@ -783,7 +1065,7 @@ GIFT_SPECIAL = str.maketrans({
     "{": r"\{",
     "}": r"\}",
     ":": r"\:",
-    "\\": r"\\\\",
+    "\\": r"\\",
 })
 
 
@@ -796,8 +1078,11 @@ def _gift_escape(s: Any) -> str:
 def export_gift(exam_id: int):
     logger = get_logger("app")
 
+    exam = db.session.get(GeneratedExam, exam_id)
+    if exam is None:
+        return jsonify({"error": "لم يتم العثور على الاختبار"}), 404
+
     try:
-        exam = GeneratedExam.query.get_or_404(exam_id)
         questions = json.loads(exam.questions) if exam.questions else []
 
         gift_content: List[str] = []
@@ -830,9 +1115,9 @@ def export_gift(exam_id: int):
             "instructions": "في Moodle: Question Bank → Import → اختر صيغة GIFT ثم ارفع الملف أو الصق المحتوى",
         })
 
-    except Exception as e:
-        logger.error(event="gift_export_failed", exam_id=exam_id, error=str(e))
-        return jsonify({"error": "فشل في تصدير GIFT"}), 500
+    except (json.JSONDecodeError, ValueError) as e:
+        logger.error(event="gift_export_failed", exam_id=exam_id, error=str(e), exc_info=True)
+        return jsonify({"error": "تعذّر تحليل أسئلة الاختبار للتصدير"}), 500
 
 
 # ====================== تصدير PDF (WeasyPrint) ======================
@@ -994,20 +1279,23 @@ def export_pdf(exam_id: int):
     logger = get_logger("app")
     teacher_version = request.args.get("teacher", "false").lower() == "true"
 
+    exam = db.session.get(GeneratedExam, exam_id)
+    if exam is None:
+        return jsonify({"error": "لم يتم العثور على الاختبار"}), 404
+
+    if not _try_import_weasyprint():
+        return jsonify({
+            "error": "تصدير PDF غير متاح على هذا السيرفر",
+            "hint": "استخدم زر 'طباعة / حفظ PDF' في الواجهة (يعمل عبر المتصفّح)",
+        }), 503
+
     try:
-        exam = GeneratedExam.query.get_or_404(exam_id)
         questions = json.loads(exam.questions) if exam.questions else []
         model_answers = (
             json.loads(exam.model_answers)
             if teacher_version and exam.model_answers
             else None
         )
-
-        if not _try_import_weasyprint():
-            return jsonify({
-                "error": "تصدير PDF غير متاح على هذا السيرفر",
-                "hint": "استخدم زر 'طباعة / حفظ PDF' في الواجهة (يعمل عبر المتصفّح)",
-            }), 503
 
         from weasyprint import HTML, CSS  # استيراد كسول
         html_doc = _build_exam_html(exam, questions, model_answers)
@@ -1030,6 +1318,9 @@ def export_pdf(exam_id: int):
             mimetype="application/pdf",
         )
 
+    except (json.JSONDecodeError, ValueError) as e:
+        logger.error(event="pdf_export_decode_failed", exam_id=exam_id, error=str(e), exc_info=True)
+        return jsonify({"error": "تعذّر تحليل بيانات الاختبار للتصدير"}), 500
     except Exception as e:
         logger.error(event="pdf_export_failed", exam_id=exam_id, error=str(e), exc_info=True)
         return jsonify({
