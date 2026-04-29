@@ -114,3 +114,47 @@ def test_user_prompt_describes_index_range():
     )
     # يجب ذكر المدى [0, 4]
     assert "0 إلى 4" in p
+
+
+# --------------------- styles in prompts ---------------------
+
+
+def test_system_prompt_dzexams_style_mentions_situations():
+    p = _build_system_prompt("middle", "اختبار فصلي", style="dzexams")
+    assert "وضعيّ" in p or "وضعية" in p
+    assert "ثلاث" in p or "3" in p
+
+
+def test_system_prompt_bem_style_describes_exam_structure():
+    p = _build_system_prompt("middle", "اختبار", style="bem")
+    assert "شهادة التعليم المتوسط" in p
+    assert "وضعية إدماجية" in p
+
+
+def test_system_prompt_bac_style_describes_two_subjects():
+    p = _build_system_prompt("secondary", "اختبار", style="bac")
+    assert "موضوعان" in p or "موضوع" in p
+    assert "20" in p
+
+
+def test_user_prompt_dzexams_includes_situation_note():
+    p = _build_user_prompt(
+        subject="رياضيات",
+        grade="السنة الرابعة متوسط",
+        semester="الفصل الثاني",
+        branch="",
+        exam_type="اختبار فصلي",
+        topic="الدوال",
+        difficulty="متوسط",
+        num_questions=6,
+        structure={"parts": [
+            {"name": "الوضعية الأولى", "points": 7},
+            {"name": "الوضعية الثانية", "points": 6},
+            {"name": "الوضعية الثالثة", "points": 7},
+        ]},
+        exam_total=20.0,
+        coefficient=4,
+        style="dzexams",
+    )
+    assert "ثلاث وضعيّات" in p or "ثلاث" in p
+    assert "الوضعية الأولى" in p

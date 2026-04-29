@@ -86,3 +86,18 @@ def test_export_unknown_exam_returns_404(client):
     assert r.status_code == 404
     r2 = client.get("/export/gift/999999")
     assert r2.status_code == 404
+
+
+def test_exam_styles_endpoint(client):
+    r = client.get("/exam-styles")
+    assert r.status_code == 200
+    body = r.get_json()
+    styles = body["styles"]
+    assert {"default", "dzexams", "bem", "bac"}.issubset(styles)
+    assert styles["dzexams"]["uses_situations"] is True
+    assert "name_ar" in styles["bem"]
+
+
+def test_export_pdf_unknown_exam_with_style_returns_404(client):
+    r = client.get("/export/pdf/999999?style=dzexams")
+    assert r.status_code == 404
