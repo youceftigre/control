@@ -4,21 +4,18 @@ services:
     env: python
     plan: free
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn app:app"
+    startCommand: "gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120 --workers 2"
     envVars:
       - key: GROQ_API_KEY
-        scope: build
         sync: false
       - key: FLASK_ENV
         value: production
-      - key: PORT
-        value: "5000"
-      - key: DEBUG
-        value: "False"
-    staticPublicPath: /static
+      - key: FLASK_DEBUG
+        value: "0"
+      - key: PYTHON_VERSION
+        value: "3.12.0"
     autoDeploy: true
-    serviceTypeDetails:
-      disk:
-        name: data
-        mountPath: /data
-        sizeGB: 1
+    disk:
+      name: data
+      mountPath: /data
+      sizeGB: 1
