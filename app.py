@@ -20,8 +20,11 @@ from pydantic import BaseModel, Field, ValidationError, field_validator, model_v
 # Algerian curriculum catalog (subjects × grades × stages)
 from curriculum import (
     CurriculumMatch,
+    distribute_points_for_situations,
     get_exam_structure,
+    list_exam_styles,
     load_curriculum,
+    resolve_exam_style,
     validate_subject_grade,
 )
 
@@ -398,6 +401,27 @@ def get_curriculum():
         return jsonify({"error": "ملف كتالوج المنهاج غير صالح JSON"}), 500
 
 
+@app.route("/exam-styles", methods=["GET"])
+@limiter.limit("60 per minute")
+def list_styles():
+    """
+    أعِد قائمة أنماط الاختبار المدعومة (default/dzexams/bem/bac…).
+
+    يستعمله الـ frontend لإظهار خيار اختيار النمط للأستاذ. كل نمط يحتوي:
+    - ``name_ar``: الاسم بالعربية.
+    - ``template_html``: ملف القالب (للتوثيق).
+    - ``uses_situations``: هل النمط يعتمد بنية الوضعيّات.
+    - ``applicable_exam_types`` / ``applicable_grades`` (اختياريّان): قيود.
+    """
+    logger = get_logger("app")
+    try:
+        catalog = load_curriculum()
+        return jsonify({"styles": list_exam_styles(catalog)})
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        logger.warning(event="curriculum_load_failed_for_styles", error=str(e))
+        return jsonify({"styles": {}}), 200
+
+
 @app.route("/curriculum/validate", methods=["POST"])
 @limiter.limit("60 per minute")
 def validate_curriculum_request():
@@ -513,12 +537,23 @@ def _compute_max_tokens(num_questions: int) -> int:
     return max(MIN_MAX_TOKENS, min(MAX_MAX_TOKENS, estimated))
 
 
-def _build_system_prompt(stage: Optional[str], exam_type: str) -> str:
+def _build_system_prompt(
+    stage: Optional[str],
+    exam_type: str,
+    style: str = "default",
+) -> str:
     """
-    بناء ``system_prompt`` الخاص بالأستاذ/المُولّد وفق المرحلة + نوع الاختبار.
+    بناء ``system_prompt`` الخاص بالأستاذ/المُولّد وفق المرحلة + نوع الاختبار + النمط.
 
     تُستعمل المصطلحات الرسمية للمنهاج الجزائري: «الكفاءة الختامية»،
     «الوضعية الإدماجية»، «السند»، «التعليمات» …
+
+    Args:
+        stage: المرحلة (primary/middle/secondary).
+        exam_type: نوع الاختبار (فرض/اختبار/بكالوريا/BEM…).
+        style: نمط البنية: ``"default"`` (الجزء الأول/الثاني)،
+               ``"dzexams"`` (3 وضعيّات)، ``"bem"`` (3 تمارين + إدماج)،
+               ``"bac"`` (موضوعان مخيَّران).
     """
     base = """أنت أستاذ جزائري خبير في تطوير الاختبارات التعليمية وفق المناهج الرسمية للمنظومة التربوية الجزائرية.
 مهمتك إنشاء اختبارات متكاملة عالية الجودة تحترم البنية الرسمية مع الإجابات النموذجية والحلول التفصيلية.
@@ -537,16 +572,38 @@ def _build_system_prompt(stage: Optional[str], exam_type: str) -> str:
         base += "\n9. ركّز على أنشطة الفهم البسيط ثم التطبيق + إدماج خفيف."
     elif stage == "middle":
         base += "\n8. سُلّم التنقيط الكلّي: 20 نقطة (المعيار الجزائري للمتوسط)."
-        base += "\n9. البنية المُوصَى بها: الجزء الأوّل (تمارين ~12ن) + الجزء الثاني (وضعية إدماجية ~8ن)."
-    elif stage == "secondary":
-        base += "\n8. سُلّم التنقيط الكلّي: 20 نقطة (المعيار الجزائري للثانوي)."
-        if "بكالوريا" in (exam_type or ""):
+        if style == "bem":
             base += (
-                "\n9. اعتمد بنية البكالوريا: موضوع واحد كامل من 20 نقطة "
-                "(تستطيع لاحقاً صياغة موضوع ثانٍ مستقل عند الطلب)."
+                "\n9. اعتمد بنية شهادة التعليم المتوسط (BEM): "
+                "ثلاثة تمارين (4 + 4 + 4 نقاط) + وضعية إدماجية (8 نقاط)، المدّة ساعتان."
+            )
+        elif style == "dzexams":
+            base += (
+                "\n9. اعتمد نمط dzexams: ثلاث وضعيّات (الوضعية الأولى/الثانية/الثالثة) "
+                "بتوزيع نقاط متفاوت يُعطى لاحقاً، المجموع 20 نقطة."
             )
         else:
-            base += "\n9. البنية المُوصَى بها: الجزء الأوّل (تمارين ~13ن) + الجزء الثاني (وضعية إدماجية ~7ن)."
+            base += (
+                "\n9. البنية المُوصَى بها: الجزء الأوّل (تمارين ~12ن) "
+                "+ الجزء الثاني (وضعية إدماجية ~8ن)."
+            )
+    elif stage == "secondary":
+        base += "\n8. سُلّم التنقيط الكلّي: 20 نقطة (المعيار الجزائري للثانوي)."
+        if style == "bac" or "بكالوريا" in (exam_type or ""):
+            base += (
+                "\n9. اعتمد بنية البكالوريا: موضوعان مخيَّران كلّ منهما من 20 نقطة "
+                "(يحتوي كلّ موضوع تمرين/تمرينين + مسألة). الزمن 3-4 ساعات حسب المادّة."
+            )
+        elif style == "dzexams":
+            base += (
+                "\n9. اعتمد نمط dzexams: ثلاث وضعيّات (الوضعية الأولى/الثانية/الثالثة) "
+                "بتوزيع نقاط متفاوت يُعطى لاحقاً، المجموع 20 نقطة."
+            )
+        else:
+            base += (
+                "\n9. البنية المُوصَى بها: الجزء الأوّل (تمارين ~13ن) "
+                "+ الجزء الثاني (وضعية إدماجية ~7ن)."
+            )
 
     return base
 
@@ -564,14 +621,37 @@ def _build_user_prompt(
     structure: Optional[Dict[str, Any]],
     exam_total: float,
     coefficient: Optional[int],
+    style: str = "default",
 ) -> str:
-    """بناء ``user_prompt`` بحقول صريحة + بنية رسمية حسب المنهاج."""
+    """
+    بناء ``user_prompt`` بحقول صريحة + بنية رسمية حسب المنهاج والنمط.
+
+    Args:
+        style: ``"default"``, ``"dzexams"``, ``"bem"``, ``"bac"``. يؤثّر على
+               نص ``structure_hint`` والمصطلحات (وضعية مقابل تمرين).
+    """
     structure_hint = ""
     if structure and structure.get("parts"):
         parts_desc = "، ".join(
             f"{p['name']} ({p['points']} نقطة)" for p in structure["parts"]
         )
         structure_hint = f"\nبنية الاختبار المطلوبة: {parts_desc}."
+
+    if style == "dzexams":
+        structure_hint += (
+            "\nملاحظة: وزّع الأسئلة على ثلاث وضعيّات متتالية بحيث يُساوي مجموع نقاط "
+            "الأسئلة في كلّ وضعية النقاط المُحدَّدة لها أعلاه."
+        )
+    elif style == "bem":
+        structure_hint += (
+            "\nملاحظة: 3 تمارين قصيرة (نظرية/تطبيق) ثم وضعية إدماجية مفصّلة "
+            "(سند + تعليمات + معايير التصحيح)."
+        )
+    elif style == "bac":
+        structure_hint += (
+            "\nملاحظة: قدّم موضوعاً واحداً كاملاً (يُكمَّل لاحقاً بموضوع ثانٍ مخيَّر) "
+            "بأسلوب باكالوريا (تمارين + مسألة طويلة)."
+        )
 
     coef_hint = f"\nالمعامل (coefficient): {coefficient}" if coefficient else ""
     branch_hint = f"\nالشعبة: {branch}" if branch else ""
@@ -673,6 +753,7 @@ def _generate_exam_internal(
     exam_type = (data.get("examType") or "اختبار فصلي").strip()
     topic = (data.get("topic") or "").strip()
     difficulty = (data.get("difficulty") or "متوسط").strip()
+    requested_style = (data.get("style") or data.get("examStyle") or "").strip() or None
 
     try:
         num_questions = int(data.get("num_questions", 6))
@@ -690,6 +771,8 @@ def _generate_exam_internal(
     exam_total = 20.0
     coefficient: Optional[int] = None
     structure: Optional[Dict[str, Any]] = None
+    style = "default"
+    parts_distribution: List[Dict[str, Any]] = []
     try:
         catalog = load_curriculum()
         match: CurriculumMatch = validate_subject_grade(catalog, subject, grade)
@@ -700,7 +783,24 @@ def _generate_exam_internal(
         # تطبيع اسم المادة إن أمكن (مثلاً "الرياضيات" → "رياضيات")
         if match.is_exact:
             subject = match.subject_canonical
-        structure = get_exam_structure(catalog, stage, exam_type)
+        # حلّ النمط (default/dzexams/bem/bac) من الطلب أو الاستنتاج
+        style = resolve_exam_style(
+            catalog,
+            requested_style,
+            stage=stage,
+            exam_type=exam_type,
+            grade=grade,
+        )
+        structure = get_exam_structure(catalog, stage, exam_type, style=style)
+        # توزيع نقاط الوضعيّات لـ dzexams (نختار توزيعاً متبدّلاً مع الزمن)
+        if style == "dzexams":
+            rotation = int(time.time()) // 3600  # يتبدّل كلّ ساعة
+            parts_distribution = distribute_points_for_situations(
+                catalog, stage, "dzexams", rotation_index=rotation,
+            )
+            if parts_distribution and structure is not None:
+                structure = dict(structure)
+                structure["parts"] = parts_distribution
     except (FileNotFoundError, json.JSONDecodeError) as e:
         logger.warning(event="curriculum_load_failed", error=str(e))
         # نواصل بدون التحقق — الكتالوج مساعد لا حاجز
@@ -730,7 +830,7 @@ def _generate_exam_internal(
         coefficient=coefficient,
     )
 
-    system_prompt = _build_system_prompt(stage, exam_type)
+    system_prompt = _build_system_prompt(stage, exam_type, style=style)
     user_prompt = _build_user_prompt(
         subject=subject,
         grade=grade,
@@ -743,6 +843,7 @@ def _generate_exam_internal(
         structure=structure,
         exam_total=exam_total,
         coefficient=coefficient,
+        style=style,
     )
 
     max_tokens = _compute_max_tokens(num_questions)
@@ -801,6 +902,11 @@ def _generate_exam_internal(
             enriched_metadata["coefficient"] = coefficient
             enriched_metadata["exam_total_official"] = exam_total
             enriched_metadata["model"] = model_name
+            enriched_metadata["style"] = style
+            if parts_distribution:
+                enriched_metadata["parts_distribution"] = parts_distribution
+            if structure and structure.get("duration_minutes"):
+                enriched_metadata["duration_minutes"] = structure["duration_minutes"]
             if curriculum_warnings:
                 enriched_metadata["curriculum_warnings"] = curriculum_warnings
             full_exam.metadata = enriched_metadata
@@ -1273,6 +1379,311 @@ def _build_exam_html(
 </html>"""
 
 
+# ====================== قالب dzexams (3 وضعيّات) ======================
+
+DZEXAMS_PDF_CSS = """
+@page {
+    size: A4;
+    margin: 1.4cm 1.4cm 1.6cm 1.4cm;
+    @bottom-center { content: "www.example.com"; font-size: 9pt; color: #999; }
+    @bottom-right  { content: "صفحة " counter(page) " / " counter(pages); font-size: 9pt; color: #777; }
+}
+html { direction: rtl; }
+body {
+    font-family: "Amiri", "Noto Naskh Arabic", "Scheherazade New", "DejaVu Sans", serif;
+    font-size: 12pt;
+    line-height: 1.7;
+    color: #1a1a1a;
+    direction: rtl;
+    text-align: right;
+}
+table.dz-header {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1.5pt solid #1a1a1a;
+    margin: 0 0 14pt 0;
+    table-layout: fixed;
+    direction: rtl;
+}
+table.dz-header td {
+    border: 1pt solid #1a1a1a;
+    padding: 6pt 8pt;
+    vertical-align: middle;
+    font-size: 11pt;
+}
+table.dz-header td.col-right { width: 28%; text-align: center; font-weight: bold; }
+table.dz-header td.col-center { width: 44%; text-align: center; }
+table.dz-header td.col-left { width: 28%; text-align: center; }
+.dz-title-block { font-size: 14pt; font-weight: bold; line-height: 1.5; }
+.dz-subtitle { font-size: 11pt; color: #444; margin-top: 2pt; }
+.dz-line { display: block; padding: 1pt 0; }
+.dz-meta { font-size: 10pt; color: #555; }
+
+section.dz-situation {
+    margin-bottom: 14pt;
+    page-break-inside: avoid;
+}
+section.dz-situation h2 {
+    font-size: 14pt;
+    background: #fafafa;
+    border-bottom: 1.5pt solid #1a1a1a;
+    padding: 4pt 8pt;
+    margin: 6pt 0 8pt 0;
+}
+section.dz-situation h2 .points {
+    float: left;
+    color: #b91c1c;
+    font-weight: bold;
+}
+section.dz-situation .question {
+    margin: 4pt 0 8pt 12pt;
+    page-break-inside: avoid;
+}
+section.dz-situation .question .qtext {
+    margin: 4pt 0;
+}
+section.dz-situation .question .points-inline {
+    color: #b91c1c;
+    font-size: 10pt;
+    margin-right: 6pt;
+}
+ol.dz-options { margin: 4pt 25pt 4pt 0; padding: 0; }
+ol.dz-options li { margin-bottom: 3pt; }
+
+.dz-footer {
+    margin-top: 18pt;
+    text-align: center;
+    font-size: 10pt;
+    color: #555;
+}
+.dz-footer .quote { font-style: italic; margin-bottom: 6pt; }
+.dz-footer .good-luck { font-size: 12pt; font-weight: bold; color: #1a1a1a; }
+
+.dz-correction-title {
+    margin-top: 30pt;
+    page-break-before: always;
+    text-align: center;
+    font-size: 16pt;
+    font-weight: bold;
+    border: 1pt solid #1a1a1a;
+    padding: 6pt;
+}
+.dz-answer-box {
+    margin: 6pt 0 8pt 12pt;
+    padding: 6pt 10pt;
+    background: #f7f9fc;
+    border-right: 3pt solid #2c5282;
+    font-size: 11pt;
+}
+.dz-answer-box .label { font-weight: bold; color: #2c5282; }
+"""
+
+
+_DZEXAMS_QUOTES = [
+    "« لا تستسلم، فهناك ناس ينتظرون خبر نجاحك… »",
+    "« الذين يذكرون الله قياماً وقعوداً وعلى جنوبهم… »",
+    "« كلّما قال الناس «أنت لا تستطيع»، عمِلتُها بجدارة »",
+    "« النجاح يبدأ بخطوة، وكلّ خطوة تستحقّ المحاولة »",
+]
+
+
+def _dzexams_quote(seed: int = 0) -> str:
+    """اختر اقتباساً تحفيزياً للتذييل (يدور بين الاختبارات)."""
+    return _DZEXAMS_QUOTES[seed % len(_DZEXAMS_QUOTES)]
+
+
+def _group_questions_into_situations(
+    questions: List[Dict[str, Any]],
+    parts: List[Dict[str, Any]],
+) -> List[List[int]]:
+    """
+    وزّع فهارس الأسئلة على ``parts`` بحيث يقترب مجموع نقاط كلّ مجموعة من
+    ``parts[i]["points"]``. توزيع طمّاع (greedy) كافٍ لأنّ عدد الأسئلة عادةً صغير.
+
+    إذا لم تتوفّر ``parts``، نُرجع مجموعة واحدة تضمّ كلّ الأسئلة.
+    """
+    if not parts:
+        return [list(range(len(questions)))]
+
+    n_groups = len(parts)
+    targets = [float(p.get("points", 0)) for p in parts]
+    sums = [0.0] * n_groups
+    groups: List[List[int]] = [[] for _ in range(n_groups)]
+
+    # نُرتّب فهارس الأسئلة بحسب نقاطها تنازلياً ثم نضع كلّ سؤال في المجموعة
+    # التي تبتعد أكثر عن هدفها (أصغر sum-target).
+    indexed = sorted(
+        enumerate(questions),
+        key=lambda x: float(x[1].get("points", 0) or 0),
+        reverse=True,
+    )
+    for q_idx, q in indexed:
+        deficits = [targets[i] - sums[i] for i in range(n_groups)]
+        # نختار المجموعة الأكثر عجزاً (أكبر deficit موجب)
+        best = max(range(n_groups), key=lambda i: deficits[i])
+        groups[best].append(q_idx)
+        sums[best] += float(q.get("points", 0) or 0)
+
+    # نُحافظ على الترتيب التصاعدي للفهارس داخل كلّ مجموعة (طبيعي للقارئ)
+    for group in groups:
+        group.sort()
+    return groups
+
+
+def _render_situation_html(
+    situation_idx: int,
+    part: Dict[str, Any],
+    question_indices: List[int],
+    questions: List[Dict[str, Any]],
+) -> str:
+    """رندر وضعية واحدة بأسلوب dzexams: عنوان + نقاطها + قائمة الأسئلة."""
+    name = part.get("name") or f"الوضعية {situation_idx + 1}"
+    pts = part.get("points", 0)
+    parts: List[str] = [
+        '<section class="dz-situation">',
+        f'<h2>{_esc(name)} <span class="points">({_esc(pts)} نقاط)</span></h2>',
+    ]
+    for k, q_idx in enumerate(question_indices, start=1):
+        if q_idx >= len(questions):
+            continue
+        q = questions[q_idx]
+        q_pts = q.get("points", 0)
+        parts.append('<div class="question">')
+        parts.append(
+            f'<div class="qtext"><strong>السؤال {k}:</strong> {_esc(q.get("text", ""))} '
+            f'<span class="points-inline">({_esc(q_pts)} ن)</span></div>'
+        )
+        qtype = q.get("type")
+        if qtype == "mcq" and q.get("options"):
+            parts.append('<ol class="dz-options">')
+            for opt in q["options"]:
+                parts.append(f"<li>{_esc(opt)}</li>")
+            parts.append("</ol>")
+        elif qtype == "truefalse":
+            parts.append('<ol class="dz-options"><li>صحيح</li><li>خطأ</li></ol>')
+        parts.append("</div>")
+    parts.append("</section>")
+    return "".join(parts)
+
+
+def _build_exam_html_dzexams(
+    exam: "GeneratedExam",
+    questions: List[Dict[str, Any]],
+    model_answers: Optional[List[Dict[str, Any]]],
+    *,
+    parts: Optional[List[Dict[str, Any]]] = None,
+    duration_minutes: Optional[int] = None,
+    institution_name: str = "وزارة التربية الوطنية",
+    school_year: Optional[str] = None,
+) -> str:
+    """
+    بناء HTML لاختبار بأسلوب dzexams (إطار رأس بثلاث خانات + 3 وضعيّات + تذييل).
+
+    Args:
+        exam: سجلّ الاختبار في DB.
+        questions: قائمة الأسئلة المُحلَّلة.
+        model_answers: قائمة التصحيح النموذجي (إن طُلب).
+        parts: توزيع النقاط على الوضعيّات (مأخوذ من metadata.parts_distribution).
+        duration_minutes: مدّة الاختبار.
+        institution_name: اسم المؤسّسة (افتراض «وزارة التربية الوطنية»).
+        school_year: السنة الدراسية كنصّ (مثلاً «2025-2026»). إن لم تُمرَّر تُحسَب
+                     من تاريخ توليد الاختبار.
+
+    Returns:
+        نصّ HTML كامل صالح للتمرير لـ WeasyPrint.
+    """
+    if parts is None:
+        parts = []
+
+    if school_year is None and exam.generated_at:
+        y = exam.generated_at.year
+        school_year = f"{y - 1}-{y}" if exam.generated_at.month < 9 else f"{y}-{y + 1}"
+    school_year = school_year or ""
+
+    duration_str = ""
+    if duration_minutes:
+        if duration_minutes % 60 == 0:
+            duration_str = f"{duration_minutes // 60} ساعة"
+            if duration_minutes // 60 > 1:
+                duration_str = f"{duration_minutes // 60} ساعات"
+        else:
+            h, m = divmod(duration_minutes, 60)
+            duration_str = f"{h} سا و {m} د" if h else f"{m} دقيقة"
+
+    groups = _group_questions_into_situations(questions, parts) if parts else [list(range(len(questions)))]
+
+    sections_html: List[str] = []
+    if parts:
+        for i, part in enumerate(parts):
+            sections_html.append(_render_situation_html(i, part, groups[i] if i < len(groups) else [], questions))
+    else:
+        # لا يوجد توزيع — نستعمل السؤال-بسؤال
+        for i, q in enumerate(questions):
+            sections_html.append(_render_question_html(i, q))
+
+    # التصحيح النموذجي (نسخة الأستاذ)
+    correction_html = ""
+    if model_answers:
+        correction_parts: List[str] = [
+            '<div class="dz-correction-title">التصحيح النموذجي</div>',
+        ]
+        for i, ans in enumerate(model_answers):
+            if i >= len(questions):
+                break
+            q = questions[i]
+            correction_parts.append(
+                f'<div class="dz-answer-box">'
+                f'<div><span class="label">السؤال {i + 1}:</span> {_esc(q.get("text", ""))[:200]}</div>'
+                f'<div><span class="label">الإجابة:</span> {_esc(ans.get("correct_answer", ""))}</div>'
+            )
+            sol = ans.get("detailed_solution")
+            if sol:
+                correction_parts.append(
+                    f'<div><span class="label">الحلّ:</span> {_esc(sol)}</div>'
+                )
+            correction_parts.append("</div>")
+        correction_html = "".join(correction_parts)
+
+    quote = _dzexams_quote(int(exam.id or 0))
+
+    return f"""<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>{_esc(exam.exam_type)} - {_esc(exam.subject)} - {_esc(exam.grade)}</title>
+</head>
+<body>
+<table class="dz-header">
+<tr>
+<td class="col-right">{_esc(institution_name)}</td>
+<td class="col-center">
+<div class="dz-title-block">
+<span class="dz-line">{_esc(exam.exam_type)}</span>
+<span class="dz-line">في مادّة {_esc(exam.subject)}</span>
+</div>
+<div class="dz-subtitle">{_esc(exam.topic)}</div>
+</td>
+<td class="col-left">
+<div class="dz-meta"><strong>المستوى:</strong> {_esc(exam.grade)}</div>
+{f'<div class="dz-meta"><strong>المدّة:</strong> {_esc(duration_str)}</div>' if duration_str else ''}
+{f'<div class="dz-meta"><strong>السنة الدراسية:</strong> {_esc(school_year)}</div>' if school_year else ''}
+{f'<div class="dz-meta"><strong>الفصل:</strong> {_esc(exam.semester)}</div>' if exam.semester else ''}
+</td>
+</tr>
+</table>
+
+{''.join(sections_html)}
+
+<div class="dz-footer">
+<div class="quote">{_esc(quote)}</div>
+<div class="good-luck">بالتوفيق للجميع</div>
+</div>
+
+{correction_html}
+</body>
+</html>"""
+
+
 @app.route("/export/pdf/<int:exam_id>", methods=["GET"])
 @limiter.limit("20 per minute")
 def export_pdf(exam_id: int):
@@ -1296,18 +1707,47 @@ def export_pdf(exam_id: int):
             if teacher_version and exam.model_answers
             else None
         )
+        meta = json.loads(exam.metadata_info) if exam.metadata_info else {}
+
+        # نمط الاختبار: query param > metadata > default
+        requested_style = (request.args.get("style") or "").strip().lower()
+        style = requested_style or meta.get("style") or "default"
+        institution_name = (
+            request.args.get("institution")
+            or meta.get("institution_name")
+            or "وزارة التربية الوطنية"
+        )
 
         from weasyprint import HTML, CSS  # استيراد كسول
-        html_doc = _build_exam_html(exam, questions, model_answers)
-        pdf_bytes = HTML(string=html_doc).write_pdf(stylesheets=[CSS(string=PDF_CSS)])
+
+        if style in ("dzexams", "bem", "bac"):
+            parts = meta.get("parts_distribution") or []
+            duration = meta.get("duration_minutes")
+            html_doc = _build_exam_html_dzexams(
+                exam,
+                questions,
+                model_answers,
+                parts=parts,
+                duration_minutes=duration,
+                institution_name=institution_name,
+            )
+            css_str = DZEXAMS_PDF_CSS
+        else:
+            html_doc = _build_exam_html(exam, questions, model_answers)
+            css_str = PDF_CSS
+
+        pdf_bytes = HTML(string=html_doc).write_pdf(stylesheets=[CSS(string=css_str)])
 
         version = "مع_التصحيح" if teacher_version else "للتلميذ"
-        filename = f"{exam.subject}_{exam.grade}_{exam.topic}_{version}.pdf".replace(" ", "_")
+        filename = (
+            f"{exam.subject}_{exam.grade}_{exam.topic}_{style}_{version}.pdf"
+        ).replace(" ", "_")
 
         logger.info(
             event="pdf_exported_successfully",
             exam_id=exam_id,
             teacher_version=teacher_version,
+            style=style,
             filename=filename,
             size_bytes=len(pdf_bytes),
         )

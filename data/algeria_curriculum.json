@@ -38,6 +38,31 @@
           {"name": "الجزء الأول: التمارين", "points": 12},
           {"name": "الجزء الثاني: الوضعية الإدماجية", "points": 8}
         ]
+      },
+      "bem_template": {
+        "parts": [
+          {"name": "التمرين الأول", "points": 4},
+          {"name": "التمرين الثاني", "points": 4},
+          {"name": "التمرين الثالث", "points": 4},
+          {"name": "الوضعية الإدماجية", "points": 8}
+        ],
+        "duration_minutes": 120,
+        "note": "بنية شهادة التعليم المتوسط (BEM): 3 تمارين + وضعية إدماجية، 20 نقطة، ساعتان."
+      },
+      "dzexams_template": {
+        "parts": [
+          {"name": "الوضعية الأولى", "points": 7},
+          {"name": "الوضعية الثانية", "points": 6},
+          {"name": "الوضعية الثالثة", "points": 7}
+        ],
+        "duration_minutes": 120,
+        "alternative_distributions": [
+          [4, 8, 8],
+          [6, 7, 7],
+          [5, 7, 8],
+          [4, 6, 10]
+        ],
+        "note": "نمط dzexams: 3 وضعيّات بتوزيع متفاوت ≈ 20 نقطة."
       }
     },
     "secondary": {
@@ -62,7 +87,34 @@
           {"name": "الموضوع الأول (مخيَّر)", "points": 20},
           {"name": "الموضوع الثاني (مخيَّر)", "points": 20}
         ],
-        "note": "في البكالوريا التجريبية يُختار موضوع واحد فقط"
+        "note": "في البكالوريا التجريبية يُختار موضوع واحد فقط",
+        "duration_minutes_default": 240,
+        "duration_by_subject": {
+          "رياضيات": 240,
+          "الفيزياء والكيمياء": 240,
+          "علوم الطبيعية والحياة": 210,
+          "اللغة العربية": 240,
+          "اللغة الفرنسية": 180,
+          "اللغة الإنجليزية": 180,
+          "الفلسفة": 240,
+          "التاريخ والجغرافيا": 180,
+          "التربية الإسلامية": 120
+        }
+      },
+      "dzexams_template": {
+        "parts": [
+          {"name": "الوضعية الأولى", "points": 6},
+          {"name": "الوضعية الثانية", "points": 7},
+          {"name": "الوضعية الثالثة", "points": 7}
+        ],
+        "duration_minutes": 180,
+        "alternative_distributions": [
+          [4, 8, 8],
+          [5, 7, 8],
+          [6, 6, 8],
+          [4, 6, 10]
+        ],
+        "note": "نمط dzexams للثانوي: 3 وضعيّات بتوزيع متفاوت = 20 نقطة."
       }
     }
   },
@@ -221,6 +273,33 @@
     "شهادة التعليم المتوسط تجريبية",
     "بكالوريا تجريبية"
   ],
+  "exam_styles": {
+    "default": {
+      "name_ar": "النمط الافتراضي",
+      "template_html": "exam_paper.html",
+      "uses_situations": false
+    },
+    "dzexams": {
+      "name_ar": "نمط dzexams (3 وضعيّات)",
+      "template_html": "exam_dzexams.html",
+      "uses_situations": true,
+      "applicable_exam_types": ["فرض محروس", "اختبار فصلي", "اختبار شهري"]
+    },
+    "bem": {
+      "name_ar": "بنية شهادة التعليم المتوسط",
+      "template_html": "exam_dzexams.html",
+      "uses_situations": false,
+      "applicable_exam_types": ["شهادة التعليم المتوسط تجريبية"],
+      "applicable_grades": ["السنة الرابعة متوسط"]
+    },
+    "bac": {
+      "name_ar": "بنية البكالوريا (موضوعان مخيّران)",
+      "template_html": "exam_dzexams.html",
+      "uses_situations": false,
+      "applicable_exam_types": ["بكالوريا تجريبية"],
+      "applicable_grades": ["السنة 3 علوم", "السنة 3 آداب"]
+    }
+  },
   "semesters": ["الفصل الأول", "الفصل الثاني", "الفصل الثالث"],
   "difficulties": ["سهل", "متوسط", "صعب"],
   "competence_areas": {

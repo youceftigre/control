@@ -199,19 +199,123 @@ def get_exam_structure(
     catalog: Dict[str, Any],
     stage: Optional[str],
     exam_type: str = "اختبار فصلي",
+    style: str = "default",
 ) -> Optional[Dict[str, Any]]:
     """
-    أعِد بنية الاختبار المعيارية حسب المرحلة ونوع الاختبار.
+    أعِد بنية الاختبار المعيارية حسب المرحلة ونوع الاختبار والنمط.
 
-    - في الثانوي + ``بكالوريا تجريبية`` → موضوعان مُخيَّران.
-    - في باقي الحالات → بنية الجزء الأوّل/الجزء الثاني (الوضعية الإدماجية).
+    Args:
+        catalog: كتالوج المنهاج (نتيجة ``load_curriculum``).
+        stage: المرحلة (``"primary"``/``"middle"``/``"secondary"``).
+        exam_type: نوع الاختبار (يستعمل عند ``style="default"`` لتحديد بكالوريا/BEM).
+        style: نمط الاختبار: ``"default"``, ``"dzexams"``, ``"bem"``, ``"bac"``.
+
+    Returns:
+        بنية الاختبار (dict مع ``parts`` ومعلومات إضافية)، أو ``None`` إن لم تتوفّر.
+
+    قواعد الاختيار:
+    - ``style="bem"`` (متوسط): ``bem_template`` (3 تمارين + وضعية إدماجية).
+    - ``style="bac"`` (ثانوي): ``bac_template`` (موضوعان مخيَّران).
+    - ``style="dzexams"``: ``dzexams_template`` (3 وضعيّات بتوزيع متفاوت).
+    - ``style="default"``: استدلال تلقائي من ``exam_type``.
     """
     if not stage:
         return None
     stage_doc = catalog.get("stages", {}).get(stage, {})
-    if stage == "secondary" and "بكالوريا" in (exam_type or ""):
+    if not stage_doc:
+        return None
+
+    if style == "bem" and stage == "middle":
+        return stage_doc.get("bem_template") or stage_doc.get("structure_template")
+    if style == "bac" and stage == "secondary":
         return stage_doc.get("bac_template")
+    if style == "dzexams":
+        return stage_doc.get("dzexams_template") or stage_doc.get("structure_template")
+
+    # default: استدلال من exam_type
+    et = exam_type or ""
+    if stage == "secondary" and "بكالوريا" in et:
+        return stage_doc.get("bac_template")
+    if stage == "middle" and "شهادة التعليم المتوسط" in et:
+        return stage_doc.get("bem_template") or stage_doc.get("structure_template")
     return stage_doc.get("structure_template")
+
+
+def list_exam_styles(catalog: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
+    """أنماط الاختبار المدعومة (default/dzexams/bem/bac…)."""
+    return dict(catalog.get("exam_styles", {}))
+
+
+def resolve_exam_style(
+    catalog: Dict[str, Any],
+    requested_style: Optional[str],
+    *,
+    stage: Optional[str] = None,
+    exam_type: Optional[str] = None,
+    grade: Optional[str] = None,
+) -> str:
+    """
+    اختر نمط الاختبار المناسب.
+
+    - إن طُلب نمط صريح (``requested_style``) ووُجد في الكتالوج → نُعيده.
+    - وإلا نستدلّ من ``exam_type`` و ``stage``:
+      * ``"بكالوريا"`` + ثانوي → ``"bac"``
+      * ``"شهادة التعليم المتوسط"`` + متوسط → ``"bem"``
+      * غير ذلك → ``"default"``.
+
+    لا نُفشل إن لم يتطابق النمط المطلوب — نُسجّل تحذيراً ضمنياً ونُرجع ``"default"``.
+    """
+    styles = list_exam_styles(catalog)
+    if requested_style:
+        rs = requested_style.strip().lower()
+        if rs in styles:
+            return rs
+
+    et = exam_type or ""
+    if stage == "secondary" and "بكالوريا" in et:
+        return "bac"
+    if stage == "middle" and "شهادة التعليم المتوسط" in et:
+        return "bem"
+    return "default"
+
+
+def distribute_points_for_situations(
+    catalog: Dict[str, Any],
+    stage: Optional[str],
+    style: str = "dzexams",
+    *,
+    rotation_index: int = 0,
+) -> List[Dict[str, Any]]:
+    """
+    أعِد توزيع النقاط لـ 3 وضعيّات بأسلوب dzexams.
+
+    الكتالوج يُعرّف ``parts`` (التوزيع الافتراضي) و ``alternative_distributions``
+    (قائمة بدائل). نستعمل ``rotation_index`` للدوران بين البدائل لإحداث التنوّع
+    من اختبار لآخر (يتم تمريره مثلاً من id الاختبار أو طابع زمني).
+    """
+    if not stage:
+        return []
+    stage_doc = catalog.get("stages", {}).get(stage, {})
+    template = stage_doc.get(f"{style}_template") if style else None
+    if not template:
+        return []
+
+    parts = list(template.get("parts", []))
+    alternatives = template.get("alternative_distributions") or []
+
+    if alternatives and rotation_index >= 0:
+        # نختار توزيعاً من alternatives بناء على rotation_index
+        all_distributions: List[List[int]] = [[int(p["points"]) for p in parts]]
+        for alt in alternatives:
+            if isinstance(alt, list) and len(alt) == len(parts):
+                all_distributions.append([int(x) for x in alt])
+        chosen = all_distributions[rotation_index % len(all_distributions)]
+        return [
+            {"name": parts[i]["name"], "points": chosen[i]}
+            for i in range(len(parts))
+        ]
+
+    return parts
 
 
 def list_supported_exam_types(catalog: Dict[str, Any]) -> List[str]:
