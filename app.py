@@ -15,7 +15,18 @@ from flask_limiter.util import get_remote_address
 from flask_sqlalchemy import SQLAlchemy
 
 # Pydantic for Data Validation
-from pydantic import BaseModel, Field, ValidationError, model_validator
+from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
+
+# Algerian curriculum catalog (subjects × grades × stages)
+from curriculum import (
+    CurriculumMatch,
+    distribute_points_for_situations,
+    get_exam_structure,
+    list_exam_styles,
+    load_curriculum,
+    resolve_exam_style,
+    validate_subject_grade,
+)
 
 # Logging
 import structlog
@@ -85,6 +96,17 @@ class MCQQuestion(BaseQuestion):
     options: List[str] = Field(..., min_length=2)
     answer: str
 
+    @field_validator("options")
+    @classmethod
+    def options_must_be_unique(cls, v: List[str]) -> List[str]:
+        """خيارات MCQ يجب أن تكون متميّزة بعد حذف الفراغات المحيطة."""
+        cleaned = [opt.strip() for opt in v]
+        if len(set(cleaned)) != len(cleaned):
+            raise ValueError("خيارات MCQ يجب أن تكون متميّزة دون تكرار")
+        if any(not c for c in cleaned):
+            raise ValueError("خيارات MCQ لا يجوز أن تحوي على خيار فارغ")
+        return cleaned
+
     @model_validator(mode="after")
     def answer_in_options(self):
         if self.answer not in self.options:
@@ -142,9 +164,36 @@ class FullGeneratedExam(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
     @model_validator(mode="after")
-    def calculate_total(self):
-        # Always recompute from the actual question points to avoid trusting the LLM.
+    def validate_consistency(self):
+        """
+        تحقّقات عبر-حقليّة:
+
+        1. إعادة حساب ``total_points`` من مجموع نقاط الأسئلة فعلياً
+           (لا نثق في رقم الـ LLM).
+        2. عدد عناصر ``model_answers`` يجب أن يساوي عدد الأسئلة.
+        3. ``question_index`` داخل كلّ تصحيح يجب أن يكون فريداً وضمن النطاق.
+        """
         self.total_points = round(sum(q.points for q in self.questions), 2)
+
+        if len(self.model_answers) != len(self.questions):
+            raise ValueError(
+                f"عدد التصحيحات ({len(self.model_answers)}) يجب أن يساوي عدد الأسئلة "
+                f"({len(self.questions)})"
+            )
+
+        seen_indices: set[int] = set()
+        n = len(self.questions)
+        for ans in self.model_answers:
+            if ans.question_index < 0 or ans.question_index >= n:
+                raise ValueError(
+                    f"question_index={ans.question_index} خارج النطاق [0, {n - 1}]"
+                )
+            if ans.question_index in seen_indices:
+                raise ValueError(
+                    f"question_index={ans.question_index} مكرّر في model_answers"
+                )
+            seen_indices.add(ans.question_index)
+
         return self
 
 
@@ -329,6 +378,84 @@ def get_questions_bank():
         return jsonify({})
 
 
+# ====================== كتالوج المنهاج الجزائري ======================
+
+@app.route("/curriculum", methods=["GET"])
+@limiter.limit("60 per minute")
+def get_curriculum():
+    """
+    أعِد كتالوج المنهاج الجزائري (المراحل، الشُّعب، المواد، أنواع الاختبارات…).
+
+    يستعمله الـ frontend لتعبئة قوائم الاختيار وضمان عدم إرسال توليفات غير
+    صالحة. الكتالوج مُخزَّن في ``data/algeria_curriculum.json``.
+    """
+    logger = get_logger("app")
+    try:
+        catalog = load_curriculum()
+        return jsonify(catalog)
+    except FileNotFoundError:
+        logger.warning(event="curriculum_file_missing")
+        return jsonify({"error": "ملف كتالوج المنهاج غير موجود"}), 503
+    except json.JSONDecodeError as e:
+        logger.error(event="curriculum_invalid_json", error=str(e))
+        return jsonify({"error": "ملف كتالوج المنهاج غير صالح JSON"}), 500
+
+
+@app.route("/exam-styles", methods=["GET"])
+@limiter.limit("60 per minute")
+def list_styles():
+    """
+    أعِد قائمة أنماط الاختبار المدعومة (default/dzexams/bem/bac…).
+
+    يستعمله الـ frontend لإظهار خيار اختيار النمط للأستاذ. كل نمط يحتوي:
+    - ``name_ar``: الاسم بالعربية.
+    - ``template_html``: ملف القالب (للتوثيق).
+    - ``uses_situations``: هل النمط يعتمد بنية الوضعيّات.
+    - ``applicable_exam_types`` / ``applicable_grades`` (اختياريّان): قيود.
+    """
+    logger = get_logger("app")
+    try:
+        catalog = load_curriculum()
+        return jsonify({"styles": list_exam_styles(catalog)})
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        logger.warning(event="curriculum_load_failed_for_styles", error=str(e))
+        return jsonify({"styles": {}}), 200
+
+
+@app.route("/curriculum/validate", methods=["POST"])
+@limiter.limit("60 per minute")
+def validate_curriculum_request():
+    """
+    تحقّق سريعاً من توافق توليفة (subject, grade) مع الكتالوج دون توليد اختبار.
+
+    Body: ``{"subject": "...", "grade": "..."}``.
+
+    Returns:
+        ``{"is_exact": bool, "stage": str|null, "exam_total": float,
+            "coefficient": int|null, "subject_canonical": str,
+            "warnings": [str]}``
+    """
+    payload = request.get_json(silent=True) or {}
+    subject = (payload.get("subject") or "").strip()
+    grade = (payload.get("grade") or "").strip()
+    if not subject or not grade:
+        return jsonify({"error": "subject و grade مطلوبان"}), 400
+    try:
+        catalog = load_curriculum()
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        return jsonify({"error": f"تعذّر تحميل الكتالوج: {e}"}), 503
+
+    match = validate_subject_grade(catalog, subject, grade)
+    return jsonify({
+        "is_exact": match.is_exact,
+        "stage": match.stage,
+        "exam_total": match.exam_total,
+        "coefficient": match.coefficient,
+        "subject_canonical": match.subject_canonical,
+        "warnings": match.warnings,
+    })
+
+
 # ====================== التوليد المختصر للواجهة ======================
 # الواجهة تستدعي `POST /generate` وتتوقع {questions: [...]}.
 # هذا الـ endpoint غلاف رفيع حول /generate_full_exam: يحفظ في الـ DB و يعيد
@@ -351,6 +478,7 @@ def generate_for_ui():
         "subject": data.get("subject", ""),
         "grade": data.get("grade", ""),
         "semester": data.get("semester", ""),
+        "branch": data.get("branch", ""),
         "examType": data.get("examType", "اختبار فصلي"),
         "topic": (data.get("topic") or "").strip() or data.get("subject", ""),
         "difficulty": data.get("difficulty", "متوسط"),
@@ -363,97 +491,183 @@ def generate_for_ui():
             "error": "يرجى ملء الحقول الإلزامية: المادة، السنة، الفصل",
         }), 400
 
-    # نعيد استخدام نفس المنطق عبر test_request_context (أبسط من refactor كبير)
-    # لكن لأن الدوال في Flask تعتمد على request الحالي، سنستدعي الدالة بالطريقة المباشرة:
-    # نحفظ الجسم الأصلي للـ request ثم نستدعي دالة التوليد الداخلية.
     result = _generate_exam_internal(payload, client_ip=request.remote_addr)
-    if isinstance(result[0], dict):  # حالة الخطأ: (error_dict, status_code)
+    # حالة الخطأ: ``result`` يكون (error_dict, status_code)
+    if isinstance(result[0], dict):
         return jsonify(result[0]), result[1]
 
     full_exam, db_id = result
     questions_only = [q.model_dump(mode="json") for q in full_exam.questions]
 
     logger.info(event="ui_generate_completed", db_id=db_id, count=len(questions_only))
-    return jsonify({
+    response_body = {
         "success": True,
         "questions": questions_only,
         "db_id": db_id,
         "total_points": full_exam.total_points,
-    })
+        "metadata": full_exam.metadata,
+    }
+    warnings = (full_exam.metadata or {}).get("curriculum_warnings")
+    if warnings:
+        response_body["warnings"] = warnings
+    return jsonify(response_body)
 
 
 # ====================== الدالة الرئيسية (مع Retry) ======================
 
-def _generate_exam_internal(
-    data: Dict[str, Any],
-    client_ip: Optional[str] = None,
-):
+# الحدّ الأعلى لـ ``num_questions``. عدد كبير من الأسئلة + تصحيح نموذجي مفصّل
+# يستهلك الكثير من tokens، لذلك نُبقي السقف معقولاً.
+MAX_QUESTIONS = 30
+
+# تقدير عدد التوكنات لكلّ سؤال + تصحيح (متوسط بالعربية).
+# يُستعمل لحساب ``max_tokens`` ديناميكياً.
+TOKENS_PER_QUESTION = 350
+MIN_MAX_TOKENS = 2000
+MAX_MAX_TOKENS = 8000
+
+
+def _compute_max_tokens(num_questions: int) -> int:
     """
-    المنطق المشترك لتوليد الاختبار.
+    حساب ``max_tokens`` ديناميكياً بحسب عدد الأسئلة.
 
-    يعيد (full_exam, db_id) عند النجاح، أو ({error...}, status_code) عند الفشل.
+    قيمة ثابتة (4000) كانت تُقطع إجابة الـ LLM عند طلب 20+ سؤالاً مع تصحيح
+    مفصّل، فيُرجَع JSON ناقص ويفشل التحليل.
     """
-    logger = get_logger("app")
-    start_time = time.time()
+    estimated = num_questions * TOKENS_PER_QUESTION + 800  # +هامش للـ metadata
+    return max(MIN_MAX_TOKENS, min(MAX_MAX_TOKENS, estimated))
 
-    subject = (data.get("subject") or "").strip()
-    grade = (data.get("grade") or "").strip()
-    semester = (data.get("semester") or "").strip()
-    exam_type = data.get("examType", "اختبار فصلي")
-    topic = (data.get("topic") or "").strip()
-    difficulty = data.get("difficulty", "متوسط")
 
-    try:
-        num_questions = int(data.get("num_questions", 6))
-    except (TypeError, ValueError):
-        return ({"error": "num_questions يجب أن يكون عدداً صحيحاً"}, 400)
-    num_questions = max(1, min(num_questions, 30))
+def _build_system_prompt(
+    stage: Optional[str],
+    exam_type: str,
+    style: str = "default",
+) -> str:
+    """
+    بناء ``system_prompt`` الخاص بالأستاذ/المُولّد وفق المرحلة + نوع الاختبار + النمط.
 
-    if not all([subject, grade, topic]):
-        logger.warning(event="incomplete_request", missing_fields=["subject", "grade", "topic"])
-        return ({"error": "الحقول subject, grade, topic مطلوبة"}, 400)
+    تُستعمل المصطلحات الرسمية للمنهاج الجزائري: «الكفاءة الختامية»،
+    «الوضعية الإدماجية»، «السند»، «التعليمات» …
 
-    if groq_client is None:
-        logger.error(event="groq_client_not_configured")
-        return ({
-            "error": "خدمة الذكاء الاصطناعي غير مهيأة على السيرفر",
-            "hint": "يجب ضبط متغير البيئة GROQ_API_KEY في إعدادات Render",
-        }, 503)
-
-    model_name = "llama-3.3-70b-versatile"
-    max_retries = 2
-
-    logger.info(
-        event="exam_generation_started",
-        subject=subject,
-        grade=grade,
-        topic=topic,
-        num_questions=num_questions,
-        difficulty=difficulty,
-    )
-
-    system_prompt = """أنت أستاذ جزائري خبير في تطوير الاختبارات التعليمية وفق المنهاج الجزائري.
-مهمتك إنشاء اختبارات متكاملة عالية الجودة مع الإجابات النموذجية والحلول التفصيلية.
+    Args:
+        stage: المرحلة (primary/middle/secondary).
+        exam_type: نوع الاختبار (فرض/اختبار/بكالوريا/BEM…).
+        style: نمط البنية: ``"default"`` (الجزء الأول/الثاني)،
+               ``"dzexams"`` (3 وضعيّات)، ``"bem"`` (3 تمارين + إدماج)،
+               ``"bac"`` (موضوعان مخيَّران).
+    """
+    base = """أنت أستاذ جزائري خبير في تطوير الاختبارات التعليمية وفق المناهج الرسمية للمنظومة التربوية الجزائرية.
+مهمتك إنشاء اختبارات متكاملة عالية الجودة تحترم البنية الرسمية مع الإجابات النموذجية والحلول التفصيلية.
 
 قواعد صارمة:
-1. الأسئلة يجب أن تكون واضحة ومباشرة وخالية من الغموض
-2. خيارات MCQ يجب أن تكون متقاربة منطقياً (plausible distractors)
-3. الإجابة النموذجية يجب أن تكون دقيقة ومفصلة
-4. اذكر الأخطاء الشائعة التي يرتكبها التلاميذ
-5. حدد الكفاءة (competence) المستهدفة لكل سؤال
-6. اجعل النقاط منطقية (سؤال MCQ: 1-2 نقطة، مقالي: 3-5 نقاط، تطبيقي: 4-6 نقاط)
-7. نوع الأسئلة يجب أن يكون أحد: mcq, truefalse, essay, application, problem"""
+1. الأسئلة واضحة ومباشرة وخالية من الغموض، وتراعي مستوى التلميذ في السنة المُحدَّدة.
+2. خيارات MCQ يجب أن تكون متقاربة منطقياً ومتميّزة (لا تكرار) — plausible distractors.
+3. الإجابة النموذجية دقيقة ومفصّلة، مع تبرير كل خطوة.
+4. اذكر الأخطاء الشائعة التي يرتكبها التلاميذ في كلّ سؤال.
+5. حدِّد الكفاءة الختامية المستهدفة (competence) لكلّ سؤال وفق المنهاج الجزائري.
+6. اعتمد المصطلحات الرسمية: «الكفاءة الختامية»، «الوضعية الإدماجية»، «السند»، «التعليمات».
+7. أنواع الأسئلة المسموحة: mcq, truefalse, essay, application, problem (لا تستعمل أنواعاً أخرى)."""
 
-    user_prompt = f"""أنشئ اختباراً كاملاً في مادة {subject} للسنة {grade}، الفصل {semester or 'غير محدد'}.
+    if stage == "primary":
+        base += "\n8. سُلّم التنقيط الكلّي: 10 نقاط (المعيار الجزائري للابتدائي)."
+        base += "\n9. ركّز على أنشطة الفهم البسيط ثم التطبيق + إدماج خفيف."
+    elif stage == "middle":
+        base += "\n8. سُلّم التنقيط الكلّي: 20 نقطة (المعيار الجزائري للمتوسط)."
+        if style == "bem":
+            base += (
+                "\n9. اعتمد بنية شهادة التعليم المتوسط (BEM): "
+                "ثلاثة تمارين (4 + 4 + 4 نقاط) + وضعية إدماجية (8 نقاط)، المدّة ساعتان."
+            )
+        elif style == "dzexams":
+            base += (
+                "\n9. اعتمد نمط dzexams: ثلاث وضعيّات (الوضعية الأولى/الثانية/الثالثة) "
+                "بتوزيع نقاط متفاوت يُعطى لاحقاً، المجموع 20 نقطة."
+            )
+        else:
+            base += (
+                "\n9. البنية المُوصَى بها: الجزء الأوّل (تمارين ~12ن) "
+                "+ الجزء الثاني (وضعية إدماجية ~8ن)."
+            )
+    elif stage == "secondary":
+        base += "\n8. سُلّم التنقيط الكلّي: 20 نقطة (المعيار الجزائري للثانوي)."
+        if style == "bac" or "بكالوريا" in (exam_type or ""):
+            base += (
+                "\n9. اعتمد بنية البكالوريا: موضوعان مخيَّران كلّ منهما من 20 نقطة "
+                "(يحتوي كلّ موضوع تمرين/تمرينين + مسألة). الزمن 3-4 ساعات حسب المادّة."
+            )
+        elif style == "dzexams":
+            base += (
+                "\n9. اعتمد نمط dzexams: ثلاث وضعيّات (الوضعية الأولى/الثانية/الثالثة) "
+                "بتوزيع نقاط متفاوت يُعطى لاحقاً، المجموع 20 نقطة."
+            )
+        else:
+            base += (
+                "\n9. البنية المُوصَى بها: الجزء الأوّل (تمارين ~13ن) "
+                "+ الجزء الثاني (وضعية إدماجية ~7ن)."
+            )
 
-الموضوع: {topic}
-نوع الاختبار: {exam_type}
+    return base
+
+
+def _build_user_prompt(
+    *,
+    subject: str,
+    grade: str,
+    semester: str,
+    branch: str,
+    exam_type: str,
+    topic: str,
+    difficulty: str,
+    num_questions: int,
+    structure: Optional[Dict[str, Any]],
+    exam_total: float,
+    coefficient: Optional[int],
+    style: str = "default",
+) -> str:
+    """
+    بناء ``user_prompt`` بحقول صريحة + بنية رسمية حسب المنهاج والنمط.
+
+    Args:
+        style: ``"default"``, ``"dzexams"``, ``"bem"``, ``"bac"``. يؤثّر على
+               نص ``structure_hint`` والمصطلحات (وضعية مقابل تمرين).
+    """
+    structure_hint = ""
+    if structure and structure.get("parts"):
+        parts_desc = "، ".join(
+            f"{p['name']} ({p['points']} نقطة)" for p in structure["parts"]
+        )
+        structure_hint = f"\nبنية الاختبار المطلوبة: {parts_desc}."
+
+    if style == "dzexams":
+        structure_hint += (
+            "\nملاحظة: وزّع الأسئلة على ثلاث وضعيّات متتالية بحيث يُساوي مجموع نقاط "
+            "الأسئلة في كلّ وضعية النقاط المُحدَّدة لها أعلاه."
+        )
+    elif style == "bem":
+        structure_hint += (
+            "\nملاحظة: 3 تمارين قصيرة (نظرية/تطبيق) ثم وضعية إدماجية مفصّلة "
+            "(سند + تعليمات + معايير التصحيح)."
+        )
+    elif style == "bac":
+        structure_hint += (
+            "\nملاحظة: قدّم موضوعاً واحداً كاملاً (يُكمَّل لاحقاً بموضوع ثانٍ مخيَّر) "
+            "بأسلوب باكالوريا (تمارين + مسألة طويلة)."
+        )
+
+    coef_hint = f"\nالمعامل (coefficient): {coefficient}" if coefficient else ""
+    branch_hint = f"\nالشعبة: {branch}" if branch else ""
+
+    return f"""أنشئ اختباراً كاملاً في مادة {subject} للسنة {grade}، الفصل {semester or 'غير محدد'}.
+
+الموضوع/الوحدة التعلّمية: {topic}
+نوع الاختبار: {exam_type}{branch_hint}{coef_hint}
 المستوى: {difficulty}
 عدد الأسئلة: {num_questions}
+المجموع الكلّي للنقاط: {exam_total} (معياري — يجب أن يكون مجموع points مساوياً لهذه القيمة بهامش ±0.5){structure_hint}
 
-يجب أن يحتوي الاختبار على تنوع في أنواع الأسئلة (MCQ، صح/خطأ، مقالي، تطبيقي/مسألة).
+يجب أن يحتوي الاختبار على تنوّع في أنواع الأسئلة (MCQ، صح/خطأ، مقالي، تطبيقي/مسألة)
+مع التدرّج من السهل إلى الصعب.
 
-أعد الرد بتنسيق JSON صارم يتبع هذا الهيكل:
+أعد الرد بتنسيق JSON صارم يتبع هذا الهيكل (كلّ القيم بالعربية إلا أسماء الحقول):
 {{
   "questions": [
     {{
@@ -461,7 +675,7 @@ def _generate_exam_internal(
       "difficulty": 1,
       "text": "نص السؤال بالعربية",
       "points": 1.5,
-      "competence": "اسم الكفاءة",
+      "competence": "اسم الكفاءة الختامية",
       "options": ["خيار أ", "خيار ب", "خيار ج", "خيار د"],
       "answer": "خيار أ"
     }}
@@ -471,9 +685,9 @@ def _generate_exam_internal(
       "question_index": 0,
       "question_text": "نص السؤال",
       "correct_answer": "الإجابة الصحيحة",
-      "detailed_solution": "شرح مفصل للحل",
+      "detailed_solution": "شرح مفصّل للحلّ خطوة بخطوة",
       "justification": "لماذا هذه الإجابة صحيحة",
-      "competence": "اسم الكفاءة",
+      "competence": "اسم الكفاءة الختامية",
       "common_mistakes": ["خطأ شائع 1", "خطأ شائع 2"],
       "points_breakdown": {{"فهم المفهوم": 0.5, "التطبيق": 1.0}}
     }}
@@ -482,6 +696,7 @@ def _generate_exam_internal(
   "metadata": {{
     "subject": "{subject}",
     "grade": "{grade}",
+    "branch": "{branch}",
     "topic": "{topic}",
     "difficulty": "{difficulty}",
     "generated_for": "المنهاج الجزائري",
@@ -489,10 +704,151 @@ def _generate_exam_internal(
   }}
 }}
 
-ملاحظات:
-- total_points يتم حسابه تلقائياً من مجموع points
-- اجعل الأسئلة متدرجة الصعوبة
-- لا تضف أي نص خارج JSON"""
+شروط:
+- ``model_answers`` يجب أن يحتوي على عدد عناصر = عدد الأسئلة بالضبط، مع question_index من 0 إلى {num_questions - 1}.
+- ``total_points`` يُحتسب تلقائياً من مجموع points (لا تتلاعب به).
+- خيارات MCQ متميّزة (لا تكرار) و answer ضمن الخيارات حرفياً.
+- لا تُضف أيّ نص خارج JSON ولا تستعمل ```."""
+
+
+def _generate_exam_internal(
+    data: Dict[str, Any],
+    client_ip: Optional[str] = None,
+):
+    """
+    المنطق المشترك لتوليد الاختبار وفق المنهاج الجزائري.
+
+    Args:
+        data: قاموس يحتوي على ``subject``, ``grade``, ``semester``, ``examType``,
+            ``topic``, ``difficulty``, ``num_questions`` (اختياري — افتراضي 6).
+            يدعم أيضاً ``branch`` (الشعبة) كحقل اختياري.
+        client_ip: عنوان IP للمستخدم (يُحفظ في DB لأغراض التتبع).
+
+    Returns:
+        - عند النجاح: ``(FullGeneratedExam, db_id)``.
+        - عند الفشل: ``({"error": ..., ...}, status_code)``.
+
+    Side effects:
+        يحفظ سجلّاً جديداً في جدول ``generated_exams`` عند نجاح التحقق.
+
+    مثال:
+        >>> data = {
+        ...     "subject": "الرياضيات",
+        ...     "grade": "السنة 3 علوم",
+        ...     "semester": "الفصل الثاني",
+        ...     "examType": "اختبار فصلي",
+        ...     "topic": "الدوال اللوغاريتمية",
+        ...     "difficulty": "متوسط",
+        ...     "num_questions": 6,
+        ... }
+        >>> result = _generate_exam_internal(data, client_ip="127.0.0.1")
+    """
+    logger = get_logger("app")
+    start_time = time.time()
+
+    subject = (data.get("subject") or "").strip()
+    grade = (data.get("grade") or "").strip()
+    semester = (data.get("semester") or "").strip()
+    branch = (data.get("branch") or "").strip()
+    exam_type = (data.get("examType") or "اختبار فصلي").strip()
+    topic = (data.get("topic") or "").strip()
+    difficulty = (data.get("difficulty") or "متوسط").strip()
+    requested_style = (data.get("style") or data.get("examStyle") or "").strip() or None
+
+    try:
+        num_questions = int(data.get("num_questions", 6))
+    except (TypeError, ValueError):
+        return ({"error": "num_questions يجب أن يكون عدداً صحيحاً"}, 400)
+    num_questions = max(1, min(num_questions, MAX_QUESTIONS))
+
+    if not all([subject, grade, topic]):
+        logger.warning(event="incomplete_request", missing_fields=["subject", "grade", "topic"])
+        return ({"error": "الحقول subject, grade, topic مطلوبة"}, 400)
+
+    # --- التحقق من توافق المادة/السنة مع كتالوج المنهاج الجزائري ---
+    curriculum_warnings: List[str] = []
+    stage: Optional[str] = None
+    exam_total = 20.0
+    coefficient: Optional[int] = None
+    structure: Optional[Dict[str, Any]] = None
+    style = "default"
+    parts_distribution: List[Dict[str, Any]] = []
+    try:
+        catalog = load_curriculum()
+        match: CurriculumMatch = validate_subject_grade(catalog, subject, grade)
+        stage = match.stage
+        exam_total = match.exam_total
+        coefficient = match.coefficient
+        curriculum_warnings = match.warnings
+        # تطبيع اسم المادة إن أمكن (مثلاً "الرياضيات" → "رياضيات")
+        if match.is_exact:
+            subject = match.subject_canonical
+        # حلّ النمط (default/dzexams/bem/bac) من الطلب أو الاستنتاج
+        style = resolve_exam_style(
+            catalog,
+            requested_style,
+            stage=stage,
+            exam_type=exam_type,
+            grade=grade,
+        )
+        structure = get_exam_structure(catalog, stage, exam_type, style=style)
+        # توزيع نقاط الوضعيّات لـ dzexams (نختار توزيعاً متبدّلاً مع الزمن)
+        if style == "dzexams":
+            rotation = int(time.time()) // 3600  # يتبدّل كلّ ساعة
+            parts_distribution = distribute_points_for_situations(
+                catalog, stage, "dzexams", rotation_index=rotation,
+            )
+            if parts_distribution and structure is not None:
+                structure = dict(structure)
+                structure["parts"] = parts_distribution
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        logger.warning(event="curriculum_load_failed", error=str(e))
+        # نواصل بدون التحقق — الكتالوج مساعد لا حاجز
+
+    if curriculum_warnings:
+        logger.info(event="curriculum_warnings", warnings=curriculum_warnings)
+
+    if groq_client is None:
+        logger.error(event="groq_client_not_configured")
+        return ({
+            "error": "خدمة الذكاء الاصطناعي غير مهيأة على السيرفر",
+            "hint": "يجب ضبط متغير البيئة GROQ_API_KEY في إعدادات Render",
+        }, 503)
+
+    model_name = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    max_retries = 2
+
+    logger.info(
+        event="exam_generation_started",
+        subject=subject,
+        grade=grade,
+        stage=stage,
+        topic=topic,
+        num_questions=num_questions,
+        difficulty=difficulty,
+        exam_total=exam_total,
+        coefficient=coefficient,
+    )
+
+    system_prompt = _build_system_prompt(stage, exam_type, style=style)
+    user_prompt = _build_user_prompt(
+        subject=subject,
+        grade=grade,
+        semester=semester,
+        branch=branch,
+        exam_type=exam_type,
+        topic=topic,
+        difficulty=difficulty,
+        num_questions=num_questions,
+        structure=structure,
+        exam_total=exam_total,
+        coefficient=coefficient,
+        style=style,
+    )
+
+    max_tokens = _compute_max_tokens(num_questions)
+    # درجة حرارة أدنى للبكالوريا/الفروض الرسمية (لتقليل التهلوس)
+    temperature = 0.5 if "بكالوريا" in exam_type or "فرض" in exam_type else 0.7
 
     for attempt in range(max_retries):
         try:
@@ -502,8 +858,8 @@ def _generate_exam_internal(
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
-                temperature=0.7,
-                max_tokens=4000,
+                temperature=temperature,
+                max_tokens=max_tokens,
                 response_format={"type": "json_object"},
             )
             raw_content = response.choices[0].message.content or ""
@@ -536,6 +892,25 @@ def _generate_exam_internal(
                 time.sleep(1.0)
                 continue
 
+            # إثراء الـ metadata بمعلومات الكتالوج لتسهيل الاستعلام لاحقاً
+            enriched_metadata = dict(full_exam.metadata or {})
+            enriched_metadata.setdefault("subject", subject)
+            enriched_metadata.setdefault("grade", grade)
+            enriched_metadata.setdefault("topic", topic)
+            enriched_metadata["stage"] = stage
+            enriched_metadata["branch"] = branch or enriched_metadata.get("branch", "")
+            enriched_metadata["coefficient"] = coefficient
+            enriched_metadata["exam_total_official"] = exam_total
+            enriched_metadata["model"] = model_name
+            enriched_metadata["style"] = style
+            if parts_distribution:
+                enriched_metadata["parts_distribution"] = parts_distribution
+            if structure and structure.get("duration_minutes"):
+                enriched_metadata["duration_minutes"] = structure["duration_minutes"]
+            if curriculum_warnings:
+                enriched_metadata["curriculum_warnings"] = curriculum_warnings
+            full_exam.metadata = enriched_metadata
+
             new_exam = GeneratedExam(
                 subject=subject,
                 grade=grade,
@@ -554,7 +929,7 @@ def _generate_exam_internal(
                     ensure_ascii=False,
                     default=str,
                 ),
-                metadata_info=json.dumps(full_exam.metadata, ensure_ascii=False),
+                metadata_info=json.dumps(enriched_metadata, ensure_ascii=False),
                 ip_address=client_ip,
             )
             db.session.add(new_exam)
@@ -685,8 +1060,11 @@ def get_my_exams():
 def get_exam_by_id(exam_id: int):
     logger = get_logger("app")
 
+    exam = db.session.get(GeneratedExam, exam_id)
+    if exam is None:
+        return jsonify({"error": "لم يتم العثور على الاختبار"}), 404
+
     try:
-        exam = GeneratedExam.query.get_or_404(exam_id)
         response = {
             "id": exam.id,
             "subject": exam.subject,
@@ -708,10 +1086,9 @@ def get_exam_by_id(exam_id: int):
         }
         logger.info(event="exam_retrieved", exam_id=exam_id, subject=exam.subject)
         return jsonify(response)
-
-    except Exception as e:
-        logger.error(event="failed_to_retrieve_exam", exam_id=exam_id, error=str(e))
-        return jsonify({"error": "لم يتم العثور على الاختبار"}), 404
+    except (json.JSONDecodeError, ValueError) as e:
+        logger.error(event="failed_to_decode_exam", exam_id=exam_id, error=str(e), exc_info=True)
+        return jsonify({"error": "تعذّر تحليل بيانات الاختبار المحفوظة"}), 500
 
 
 # ====================== تصدير Aiken ======================
@@ -721,11 +1098,15 @@ def get_exam_by_id(exam_id: int):
 def export_aiken(exam_id: int):
     logger = get_logger("app")
 
+    exam = db.session.get(GeneratedExam, exam_id)
+    if exam is None:
+        return jsonify({"error": "لم يتم العثور على الاختبار"}), 404
+
     try:
-        exam = GeneratedExam.query.get_or_404(exam_id)
         questions = json.loads(exam.questions) if exam.questions else []
 
         aiken_content: List[str] = []
+        skipped_truefalse = 0
         for q in questions:
             qtype = q.get("type")
             text = (q.get("text") or "").strip()
@@ -747,11 +1128,9 @@ def export_aiken(exam_id: int):
                 aiken_content.append(f"ANSWER: {answer_letter}")
                 aiken_content.append("")
             elif qtype == "truefalse":
-                aiken_content.append(text)
-                aiken_content.append("A. True")
-                aiken_content.append("B. False")
-                aiken_content.append(f"ANSWER: {'A' if q.get('answer') else 'B'}")
-                aiken_content.append("")
+                # صيغة Aiken الرسمية تدعم MCQ فقط.
+                # أسئلة True/False تُصديرها عبر GIFT بدلاً من ذلك.
+                skipped_truefalse += 1
 
         aiken_text = "\n".join(aiken_content)
         filename = f"exam_{exam_id}_aiken.txt"
@@ -760,22 +1139,31 @@ def export_aiken(exam_id: int):
             event="aiken_exported",
             exam_id=exam_id,
             mcq_count=len([q for q in questions if q.get("type") == "mcq"]),
+            skipped_truefalse=skipped_truefalse,
         )
-        return jsonify({
+        response_payload = {
             "success": True,
             "format": "Aiken",
             "filename": filename,
             "content": aiken_text,
             "instructions": "في Moodle: Question Bank → Import → اختر صيغة Aiken Format ثم الصق المحتوى",
-        })
+        }
+        if skipped_truefalse:
+            response_payload["warnings"] = [
+                f"تم تجاوز {skipped_truefalse} سؤال صح/خطأ — صيغة Aiken لا تدعمها رسمياً. "
+                "استعمل GIFT لتصديرها."
+            ]
+        return jsonify(response_payload)
 
-    except Exception as e:
-        logger.error(event="aiken_export_failed", exam_id=exam_id, error=str(e))
-        return jsonify({"error": "فشل في تصدير Aiken"}), 500
+    except (json.JSONDecodeError, ValueError) as e:
+        logger.error(event="aiken_export_failed", exam_id=exam_id, error=str(e), exc_info=True)
+        return jsonify({"error": "تعذّر تحليل أسئلة الاختبار للتصدير"}), 500
 
 
 # ====================== تصدير GIFT ======================
 # https://docs.moodle.org/en/GIFT_format — must escape: ~ = # { } : \
+# ملحوظة: في صيغة GIFT يُهرّب الـ backslash الواحد بـ backslash-backslash (أي \\)،
+# فترجمة ``\\`` إلى ``\\\\`` خاطئة (تطبع أربع فواصل عكسية).
 GIFT_SPECIAL = str.maketrans({
     "~": r"\~",
     "=": r"\=",
@@ -783,7 +1171,7 @@ GIFT_SPECIAL = str.maketrans({
     "{": r"\{",
     "}": r"\}",
     ":": r"\:",
-    "\\": r"\\\\",
+    "\\": r"\\",
 })
 
 
@@ -796,8 +1184,11 @@ def _gift_escape(s: Any) -> str:
 def export_gift(exam_id: int):
     logger = get_logger("app")
 
+    exam = db.session.get(GeneratedExam, exam_id)
+    if exam is None:
+        return jsonify({"error": "لم يتم العثور على الاختبار"}), 404
+
     try:
-        exam = GeneratedExam.query.get_or_404(exam_id)
         questions = json.loads(exam.questions) if exam.questions else []
 
         gift_content: List[str] = []
@@ -830,9 +1221,9 @@ def export_gift(exam_id: int):
             "instructions": "في Moodle: Question Bank → Import → اختر صيغة GIFT ثم ارفع الملف أو الصق المحتوى",
         })
 
-    except Exception as e:
-        logger.error(event="gift_export_failed", exam_id=exam_id, error=str(e))
-        return jsonify({"error": "فشل في تصدير GIFT"}), 500
+    except (json.JSONDecodeError, ValueError) as e:
+        logger.error(event="gift_export_failed", exam_id=exam_id, error=str(e), exc_info=True)
+        return jsonify({"error": "تعذّر تحليل أسئلة الاختبار للتصدير"}), 500
 
 
 # ====================== تصدير PDF (WeasyPrint) ======================
@@ -988,38 +1379,375 @@ def _build_exam_html(
 </html>"""
 
 
+# ====================== قالب dzexams (3 وضعيّات) ======================
+
+DZEXAMS_PDF_CSS = """
+@page {
+    size: A4;
+    margin: 1.4cm 1.4cm 1.6cm 1.4cm;
+    @bottom-center { content: "www.example.com"; font-size: 9pt; color: #999; }
+    @bottom-right  { content: "صفحة " counter(page) " / " counter(pages); font-size: 9pt; color: #777; }
+}
+html { direction: rtl; }
+body {
+    font-family: "Amiri", "Noto Naskh Arabic", "Scheherazade New", "DejaVu Sans", serif;
+    font-size: 12pt;
+    line-height: 1.7;
+    color: #1a1a1a;
+    direction: rtl;
+    text-align: right;
+}
+table.dz-header {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1.5pt solid #1a1a1a;
+    margin: 0 0 14pt 0;
+    table-layout: fixed;
+    direction: rtl;
+}
+table.dz-header td {
+    border: 1pt solid #1a1a1a;
+    padding: 6pt 8pt;
+    vertical-align: middle;
+    font-size: 11pt;
+}
+table.dz-header td.col-right { width: 28%; text-align: center; font-weight: bold; }
+table.dz-header td.col-center { width: 44%; text-align: center; }
+table.dz-header td.col-left { width: 28%; text-align: center; }
+.dz-title-block { font-size: 14pt; font-weight: bold; line-height: 1.5; }
+.dz-subtitle { font-size: 11pt; color: #444; margin-top: 2pt; }
+.dz-line { display: block; padding: 1pt 0; }
+.dz-meta { font-size: 10pt; color: #555; }
+
+section.dz-situation {
+    margin-bottom: 14pt;
+    page-break-inside: avoid;
+}
+section.dz-situation h2 {
+    font-size: 14pt;
+    background: #fafafa;
+    border-bottom: 1.5pt solid #1a1a1a;
+    padding: 4pt 8pt;
+    margin: 6pt 0 8pt 0;
+}
+section.dz-situation h2 .points {
+    float: left;
+    color: #b91c1c;
+    font-weight: bold;
+}
+section.dz-situation .question {
+    margin: 4pt 0 8pt 12pt;
+    page-break-inside: avoid;
+}
+section.dz-situation .question .qtext {
+    margin: 4pt 0;
+}
+section.dz-situation .question .points-inline {
+    color: #b91c1c;
+    font-size: 10pt;
+    margin-right: 6pt;
+}
+ol.dz-options { margin: 4pt 25pt 4pt 0; padding: 0; }
+ol.dz-options li { margin-bottom: 3pt; }
+
+.dz-footer {
+    margin-top: 18pt;
+    text-align: center;
+    font-size: 10pt;
+    color: #555;
+}
+.dz-footer .quote { font-style: italic; margin-bottom: 6pt; }
+.dz-footer .good-luck { font-size: 12pt; font-weight: bold; color: #1a1a1a; }
+
+.dz-correction-title {
+    margin-top: 30pt;
+    page-break-before: always;
+    text-align: center;
+    font-size: 16pt;
+    font-weight: bold;
+    border: 1pt solid #1a1a1a;
+    padding: 6pt;
+}
+.dz-answer-box {
+    margin: 6pt 0 8pt 12pt;
+    padding: 6pt 10pt;
+    background: #f7f9fc;
+    border-right: 3pt solid #2c5282;
+    font-size: 11pt;
+}
+.dz-answer-box .label { font-weight: bold; color: #2c5282; }
+"""
+
+
+_DZEXAMS_QUOTES = [
+    "« لا تستسلم، فهناك ناس ينتظرون خبر نجاحك… »",
+    "« الذين يذكرون الله قياماً وقعوداً وعلى جنوبهم… »",
+    "« كلّما قال الناس «أنت لا تستطيع»، عمِلتُها بجدارة »",
+    "« النجاح يبدأ بخطوة، وكلّ خطوة تستحقّ المحاولة »",
+]
+
+
+def _dzexams_quote(seed: int = 0) -> str:
+    """اختر اقتباساً تحفيزياً للتذييل (يدور بين الاختبارات)."""
+    return _DZEXAMS_QUOTES[seed % len(_DZEXAMS_QUOTES)]
+
+
+def _group_questions_into_situations(
+    questions: List[Dict[str, Any]],
+    parts: List[Dict[str, Any]],
+) -> List[List[int]]:
+    """
+    وزّع فهارس الأسئلة على ``parts`` بحيث يقترب مجموع نقاط كلّ مجموعة من
+    ``parts[i]["points"]``. توزيع طمّاع (greedy) كافٍ لأنّ عدد الأسئلة عادةً صغير.
+
+    إذا لم تتوفّر ``parts``، نُرجع مجموعة واحدة تضمّ كلّ الأسئلة.
+    """
+    if not parts:
+        return [list(range(len(questions)))]
+
+    n_groups = len(parts)
+    targets = [float(p.get("points", 0)) for p in parts]
+    sums = [0.0] * n_groups
+    groups: List[List[int]] = [[] for _ in range(n_groups)]
+
+    # نُرتّب فهارس الأسئلة بحسب نقاطها تنازلياً ثم نضع كلّ سؤال في المجموعة
+    # التي تبتعد أكثر عن هدفها (أصغر sum-target).
+    indexed = sorted(
+        enumerate(questions),
+        key=lambda x: float(x[1].get("points", 0) or 0),
+        reverse=True,
+    )
+    for q_idx, q in indexed:
+        deficits = [targets[i] - sums[i] for i in range(n_groups)]
+        # نختار المجموعة الأكثر عجزاً (أكبر deficit موجب)
+        best = max(range(n_groups), key=lambda i: deficits[i])
+        groups[best].append(q_idx)
+        sums[best] += float(q.get("points", 0) or 0)
+
+    # نُحافظ على الترتيب التصاعدي للفهارس داخل كلّ مجموعة (طبيعي للقارئ)
+    for group in groups:
+        group.sort()
+    return groups
+
+
+def _render_situation_html(
+    situation_idx: int,
+    part: Dict[str, Any],
+    question_indices: List[int],
+    questions: List[Dict[str, Any]],
+) -> str:
+    """رندر وضعية واحدة بأسلوب dzexams: عنوان + نقاطها + قائمة الأسئلة."""
+    name = part.get("name") or f"الوضعية {situation_idx + 1}"
+    pts = part.get("points", 0)
+    parts: List[str] = [
+        '<section class="dz-situation">',
+        f'<h2>{_esc(name)} <span class="points">({_esc(pts)} نقاط)</span></h2>',
+    ]
+    for k, q_idx in enumerate(question_indices, start=1):
+        if q_idx >= len(questions):
+            continue
+        q = questions[q_idx]
+        q_pts = q.get("points", 0)
+        parts.append('<div class="question">')
+        parts.append(
+            f'<div class="qtext"><strong>السؤال {k}:</strong> {_esc(q.get("text", ""))} '
+            f'<span class="points-inline">({_esc(q_pts)} ن)</span></div>'
+        )
+        qtype = q.get("type")
+        if qtype == "mcq" and q.get("options"):
+            parts.append('<ol class="dz-options">')
+            for opt in q["options"]:
+                parts.append(f"<li>{_esc(opt)}</li>")
+            parts.append("</ol>")
+        elif qtype == "truefalse":
+            parts.append('<ol class="dz-options"><li>صحيح</li><li>خطأ</li></ol>')
+        parts.append("</div>")
+    parts.append("</section>")
+    return "".join(parts)
+
+
+def _build_exam_html_dzexams(
+    exam: "GeneratedExam",
+    questions: List[Dict[str, Any]],
+    model_answers: Optional[List[Dict[str, Any]]],
+    *,
+    parts: Optional[List[Dict[str, Any]]] = None,
+    duration_minutes: Optional[int] = None,
+    institution_name: str = "وزارة التربية الوطنية",
+    school_year: Optional[str] = None,
+) -> str:
+    """
+    بناء HTML لاختبار بأسلوب dzexams (إطار رأس بثلاث خانات + 3 وضعيّات + تذييل).
+
+    Args:
+        exam: سجلّ الاختبار في DB.
+        questions: قائمة الأسئلة المُحلَّلة.
+        model_answers: قائمة التصحيح النموذجي (إن طُلب).
+        parts: توزيع النقاط على الوضعيّات (مأخوذ من metadata.parts_distribution).
+        duration_minutes: مدّة الاختبار.
+        institution_name: اسم المؤسّسة (افتراض «وزارة التربية الوطنية»).
+        school_year: السنة الدراسية كنصّ (مثلاً «2025-2026»). إن لم تُمرَّر تُحسَب
+                     من تاريخ توليد الاختبار.
+
+    Returns:
+        نصّ HTML كامل صالح للتمرير لـ WeasyPrint.
+    """
+    if parts is None:
+        parts = []
+
+    if school_year is None and exam.generated_at:
+        y = exam.generated_at.year
+        school_year = f"{y - 1}-{y}" if exam.generated_at.month < 9 else f"{y}-{y + 1}"
+    school_year = school_year or ""
+
+    duration_str = ""
+    if duration_minutes:
+        if duration_minutes % 60 == 0:
+            duration_str = f"{duration_minutes // 60} ساعة"
+            if duration_minutes // 60 > 1:
+                duration_str = f"{duration_minutes // 60} ساعات"
+        else:
+            h, m = divmod(duration_minutes, 60)
+            duration_str = f"{h} سا و {m} د" if h else f"{m} دقيقة"
+
+    groups = _group_questions_into_situations(questions, parts) if parts else [list(range(len(questions)))]
+
+    sections_html: List[str] = []
+    if parts:
+        for i, part in enumerate(parts):
+            sections_html.append(_render_situation_html(i, part, groups[i] if i < len(groups) else [], questions))
+    else:
+        # لا يوجد توزيع — نستعمل السؤال-بسؤال
+        for i, q in enumerate(questions):
+            sections_html.append(_render_question_html(i, q))
+
+    # التصحيح النموذجي (نسخة الأستاذ)
+    correction_html = ""
+    if model_answers:
+        correction_parts: List[str] = [
+            '<div class="dz-correction-title">التصحيح النموذجي</div>',
+        ]
+        for i, ans in enumerate(model_answers):
+            if i >= len(questions):
+                break
+            q = questions[i]
+            correction_parts.append(
+                f'<div class="dz-answer-box">'
+                f'<div><span class="label">السؤال {i + 1}:</span> {_esc(q.get("text", ""))[:200]}</div>'
+                f'<div><span class="label">الإجابة:</span> {_esc(ans.get("correct_answer", ""))}</div>'
+            )
+            sol = ans.get("detailed_solution")
+            if sol:
+                correction_parts.append(
+                    f'<div><span class="label">الحلّ:</span> {_esc(sol)}</div>'
+                )
+            correction_parts.append("</div>")
+        correction_html = "".join(correction_parts)
+
+    quote = _dzexams_quote(int(exam.id or 0))
+
+    return f"""<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>{_esc(exam.exam_type)} - {_esc(exam.subject)} - {_esc(exam.grade)}</title>
+</head>
+<body>
+<table class="dz-header">
+<tr>
+<td class="col-right">{_esc(institution_name)}</td>
+<td class="col-center">
+<div class="dz-title-block">
+<span class="dz-line">{_esc(exam.exam_type)}</span>
+<span class="dz-line">في مادّة {_esc(exam.subject)}</span>
+</div>
+<div class="dz-subtitle">{_esc(exam.topic)}</div>
+</td>
+<td class="col-left">
+<div class="dz-meta"><strong>المستوى:</strong> {_esc(exam.grade)}</div>
+{f'<div class="dz-meta"><strong>المدّة:</strong> {_esc(duration_str)}</div>' if duration_str else ''}
+{f'<div class="dz-meta"><strong>السنة الدراسية:</strong> {_esc(school_year)}</div>' if school_year else ''}
+{f'<div class="dz-meta"><strong>الفصل:</strong> {_esc(exam.semester)}</div>' if exam.semester else ''}
+</td>
+</tr>
+</table>
+
+{''.join(sections_html)}
+
+<div class="dz-footer">
+<div class="quote">{_esc(quote)}</div>
+<div class="good-luck">بالتوفيق للجميع</div>
+</div>
+
+{correction_html}
+</body>
+</html>"""
+
+
 @app.route("/export/pdf/<int:exam_id>", methods=["GET"])
 @limiter.limit("20 per minute")
 def export_pdf(exam_id: int):
     logger = get_logger("app")
     teacher_version = request.args.get("teacher", "false").lower() == "true"
 
+    exam = db.session.get(GeneratedExam, exam_id)
+    if exam is None:
+        return jsonify({"error": "لم يتم العثور على الاختبار"}), 404
+
+    if not _try_import_weasyprint():
+        return jsonify({
+            "error": "تصدير PDF غير متاح على هذا السيرفر",
+            "hint": "استخدم زر 'طباعة / حفظ PDF' في الواجهة (يعمل عبر المتصفّح)",
+        }), 503
+
     try:
-        exam = GeneratedExam.query.get_or_404(exam_id)
         questions = json.loads(exam.questions) if exam.questions else []
         model_answers = (
             json.loads(exam.model_answers)
             if teacher_version and exam.model_answers
             else None
         )
+        meta = json.loads(exam.metadata_info) if exam.metadata_info else {}
 
-        if not _try_import_weasyprint():
-            return jsonify({
-                "error": "تصدير PDF غير متاح على هذا السيرفر",
-                "hint": "استخدم زر 'طباعة / حفظ PDF' في الواجهة (يعمل عبر المتصفّح)",
-            }), 503
+        # نمط الاختبار: query param > metadata > default
+        requested_style = (request.args.get("style") or "").strip().lower()
+        style = requested_style or meta.get("style") or "default"
+        institution_name = (
+            request.args.get("institution")
+            or meta.get("institution_name")
+            or "وزارة التربية الوطنية"
+        )
 
         from weasyprint import HTML, CSS  # استيراد كسول
-        html_doc = _build_exam_html(exam, questions, model_answers)
-        pdf_bytes = HTML(string=html_doc).write_pdf(stylesheets=[CSS(string=PDF_CSS)])
+
+        if style in ("dzexams", "bem", "bac"):
+            parts = meta.get("parts_distribution") or []
+            duration = meta.get("duration_minutes")
+            html_doc = _build_exam_html_dzexams(
+                exam,
+                questions,
+                model_answers,
+                parts=parts,
+                duration_minutes=duration,
+                institution_name=institution_name,
+            )
+            css_str = DZEXAMS_PDF_CSS
+        else:
+            html_doc = _build_exam_html(exam, questions, model_answers)
+            css_str = PDF_CSS
+
+        pdf_bytes = HTML(string=html_doc).write_pdf(stylesheets=[CSS(string=css_str)])
 
         version = "مع_التصحيح" if teacher_version else "للتلميذ"
-        filename = f"{exam.subject}_{exam.grade}_{exam.topic}_{version}.pdf".replace(" ", "_")
+        filename = (
+            f"{exam.subject}_{exam.grade}_{exam.topic}_{style}_{version}.pdf"
+        ).replace(" ", "_")
 
         logger.info(
             event="pdf_exported_successfully",
             exam_id=exam_id,
             teacher_version=teacher_version,
+            style=style,
             filename=filename,
             size_bytes=len(pdf_bytes),
         )
@@ -1030,6 +1758,9 @@ def export_pdf(exam_id: int):
             mimetype="application/pdf",
         )
 
+    except (json.JSONDecodeError, ValueError) as e:
+        logger.error(event="pdf_export_decode_failed", exam_id=exam_id, error=str(e), exc_info=True)
+        return jsonify({"error": "تعذّر تحليل بيانات الاختبار للتصدير"}), 500
     except Exception as e:
         logger.error(event="pdf_export_failed", exam_id=exam_id, error=str(e), exc_info=True)
         return jsonify({
