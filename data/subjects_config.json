@@ -1,0 +1,62 @@
+[
+  {
+    "name": "رياضيات",
+    "icon": "📐",
+    "color": "#3498db",
+    "levels": ["primary", "middle", "secondary"]
+  },
+  {
+    "name": "علوم الطبيعية والحياة",
+    "icon": "🔬",
+    "color": "#2ecc71",
+    "levels": ["primary", "middle", "secondary"]
+  },
+  {
+    "name": "اللغة العربية",
+    "icon": "📖",
+    "color": "#e74c3c",
+    "levels": ["primary", "middle", "secondary"]
+  },
+  {
+    "name": "الفيزياء والكيمياء",
+    "icon": "⚡",
+    "color": "#9b59b6",
+    "levels": ["middle", "secondary"]
+  },
+  {
+    "name": "التاريخ والجغرافيا",
+    "icon": "🌍",
+    "color": "#f39c12",
+    "levels": ["primary", "middle", "secondary"]
+  },
+  {
+    "name": "اللغة الفرنسية",
+    "icon": "🇫🇷",
+    "color": "#1abc9c",
+    "levels": ["primary", "middle", "secondary"]
+  },
+  {
+    "name": "اللغة الإنجليزية",
+    "icon": "🇬🇧",
+    "color": "#e67e22",
+    "levels": ["primary", "middle", "secondary"]
+  },
+  {
+    "name": "التربية الإسلامية",
+    "icon": "🕌",
+    "color": "#27ae60",
+    "levels": ["primary", "middle", "secondary"]
+  },
+  {
+    "name": "التربية المدنية",
+    "icon": "🏛️",
+    "color": "#34495e",
+    "levels": ["primary"]
+  },
+  {
+    "name": "الفلسفة",
+    "icon": "🤔",
+    "color": "#8e44ad",
+    "levels": ["secondary"]
+  }
+]
