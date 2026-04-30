@@ -28,12 +28,6 @@ from curriculum import (
     validate_subject_grade,
 )
 
-# Subject-specific prompt guidance (prevents mixing Arabic exam with math situation etc.)
-from subject_prompts import (
-    canonicalize_subject,
-    get_subject_guidance,
-)
-
 # Logging
 import structlog
 from structlog import get_logger
@@ -550,7 +544,6 @@ def _build_system_prompt(
     stage: Optional[str],
     exam_type: str,
     style: str = "default",
-    subject: Optional[str] = None,
 ) -> str:
     """
     بناء ``system_prompt`` الخاص بالأستاذ/المُولد وفق المرحلة + نوع الاختبار + النمط.
@@ -658,69 +651,7 @@ def _build_system_prompt(
                 "+ الجزء الثاني (وضعية إدماجية ~7ن)."
             )
 
-    # توجيهات مخصصة للمادة (تمنع خلط مواضيع الرياضيات في اختبارات اللغة العربية إلخ)
-    subject_guidance = get_subject_guidance(subject or "")
-    if subject_guidance:
-        base += "\n" + subject_guidance
-
     return base
-
-
-_SITUATION_REMINDERS: Dict[str, str] = {
-    "arabic": (
-        "⚠ **خاص باللغة العربية**: الوضعية الإدماجية هي **إنتاج كتابي** (مقال/فقرة/رسالة/خطاب) "
-        "حول موضوع اجتماعي/أخلاقي/ثقافي — وليست مسألة رياضيات. "
-        "التعليمات: مقدمة/عرض/خاتمة + توظيف ظاهرة لغوية + علامات ترقيم. "
-        "ممنوع منعاً باتاً أن تحوي الوضعية أرقاماً وحسابات ومسائل كمية."
-    ),
-    "french": (
-        "⚠ **Spécifique au français**: la situation d'intégration est une **production écrite** "
-        "(rédaction, lettre, récit) sur un thème social/moral — **pas un problème de mathématiques**. "
-        "Consignes: plan (intro/développement/conclusion) + emploi d'un point de langue + ponctuation."
-    ),
-    "english": (
-        "⚠ **English-specific**: the integration situation is a **guided writing task** "
-        "(paragraph, letter, short essay) on a social/personal topic — **not a math problem**. "
-        "Provide explicit writing guidelines (plan, connectors, tense)."
-    ),
-    "history": (
-        "⚠ **خاص بالتاريخ والجغرافيا**: الوضعية الإدماجية **مقال تاريخي/جغرافي** يعتمد على وثيقة، "
-        "ليست مسألة حسابية. التعليمات: مقدمة + عرض بشواهد من الوثيقة + خاتمة."
-    ),
-    "islamic": (
-        "⚠ **خاص بالتربية الإسلامية**: الوضعية الإدماجية **موقف قيمي/أخلاقي** مع سند شرعي "
-        "(آية أو حديث) يُطلب استنباط الحكم أو كتابة فقرة تُوظِف السند. ليست حسابية."
-    ),
-    "civic": (
-        "⚠ **خاص بالتربية المدنية**: الوضعية الإدماجية **تحليل مدني** حول حقوق/واجبات/مواطنة "
-        "مع سند (مادة قانونية/دستورية). ليست حسابية."
-    ),
-    "philosophy": (
-        "⚠ **خاص بالفلسفة**: الوضعية الإدماجية **مقالة فلسفية** (طرح الإشكال + أطروحة + نقد + تركيب). "
-        "ليست حسابية."
-    ),
-    "science": (
-        "⚠ **خاص بالعلوم الطبيعية**: الوضعية الإدماجية **سياق علمي-بيئي-صحي** "
-        "(تغذية، وباء، تلوث، نظام بيئي…) مع سند علمي (جدول/منحنى). "
-        "يُطلب تحليل ثم استنتاج ثم اقتراح حل."
-    ),
-    "physics": (
-        "⚠ **خاص بالفيزياء والكيمياء**: الوضعية الإدماجية **سياق تقني/صناعي/يومي** "
-        "(دائرة كهربائية، تفاعل كيميائي، حركة) مع سند رقمي (قيم، وحدات)."
-    ),
-    "math": (
-        "⚠ **خاص بالرياضيات**: الوضعية الإدماجية **مسألة حسابية/هندسية/إحصائية** بسياق واقعي "
-        "(تجارة، مساحات، حركة، احتمالات) تستدعي عدة كفاءات حسابية."
-    ),
-}
-
-
-def _subject_situation_reminder(subj_key: str, subject: str) -> str:
-    """تذكير إلزامي بطبيعة الوضعية الإدماجية حسب المادة (يمنع الخلط بين المواد)."""
-    reminder = _SITUATION_REMINDERS.get(subj_key, "")
-    if reminder:
-        return reminder
-    return f"⚠ الوضعية الإدماجية يجب أن تكون في صميم مادة «{subject}» ولا تخلط مع مواد أخرى."
 
 
 def _build_user_prompt(
@@ -771,10 +702,6 @@ def _build_user_prompt(
     coef_hint = f"\nالمعامل (coefficient): {coefficient}" if coefficient else ""
     branch_hint = f"\nالشعبة: {branch}" if branch else ""
 
-    # تخصيص الوضعية الإدماجية حسب المادة (يمنع خلط رياضيات بلغة عربية مثلاً)
-    subj_key = canonicalize_subject(subject)
-    situation_hint = _subject_situation_reminder(subj_key, subject)
-
     return f"""أنشئ اختباراً كاملاً في مادة {subject} للسنة {grade}، الفصل {semester or 'غير محدد'}.
 
 الموضوع/الوحدة التعلمية: {topic}
@@ -791,8 +718,6 @@ def _build_user_prompt(
 - **السند**: المعطيات والأرقام الضرورية.
 - **التعليمات**: 3-4 تعليمات مرقمة بنقاط فرعية.
 نقاطها: 7-8ن (متوسط) أو 6-8ن (ثانوي). لا تُسقط هذه الوضعية إطلاقاً.
-
-{situation_hint}
 
 ⚠ **مجموع النقاط** يجب أن يكون **{exam_total} بالضبط** (المعيار الجزائري — على 20 للمتوسط/الثانوي و10 للابتدائي).
 
@@ -959,7 +884,7 @@ def _generate_exam_internal(
         coefficient=coefficient,
     )
 
-    system_prompt = _build_system_prompt(stage, exam_type, style=style, subject=subject)
+    system_prompt = _build_system_prompt(stage, exam_type, style=style)
     user_prompt = _build_user_prompt(
         subject=subject,
         grade=grade,
