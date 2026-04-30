@@ -1,5 +1,24 @@
 # منصة الامتحانات الجزائرية - نسخة Render (الإنتاج)
 
+تطبيق Flask لتوليد اختبارات وفق المنهاج الجزائري الرسمي عبر LLM (Groq) مع دعم
+بنية الاختبار الجزائرية، الكفاءات الختامية، الوضعية الإدماجية، وتصدير إلى
+Aiken/GIFT/PDF لاستيراد مباشر في Moodle.
+
+## المميزات الرئيسية
+
+- **محاذاة كاملة مع المنهاج الجزائري**: كتالوج مُسجَّل في
+  `data/algeria_curriculum.json` يصف الأطوار الثلاثة (ابتدائي/متوسط/ثانوي)،
+  المواد، الشُّعب (علوم/آداب)، المعاملات، أنواع الاختبارات الرسمية.
+- **بنية اختبار رسمية**: الجزء الأول (تمارين) + الجزء الثاني (وضعية إدماجية)
+  للمتوسط والثانوي، مع نمط البكالوريا التجريبية.
+- **سُلّم تنقيط معياري**: 20 نقطة للمتوسط/الثانوي، 10 نقاط للابتدائي.
+- **تحقق صارم من إخراج LLM**: تطابق `model_answers` مع `questions`، تفرّد
+  خيارات MCQ، إعادة حساب `total_points` تلقائياً.
+- **تصدير Moodle**: Aiken (للـ MCQ) + GIFT (للـ MCQ و True/False) + PDF عربي
+  RTL عبر WeasyPrint.
+
+## النشر على Render
+
 نشر التطبيق على Render.com مجاناً.
 
 ## النشر السريع
@@ -99,3 +118,132 @@ Free Plan له قيود:
 - لا يمكن تخصيص نطاق محلي
 
 للإنتاج الجدي: قم بترقية إلى Starter ($7/شهر) لإلغاء النوم.
+
+## واجهات API
+
+### `GET /curriculum`
+أعِد كتالوج المنهاج الكامل. يستعمله الـ frontend لتعبئة قوائم الاختيار.
+
+```bash
+curl https://control-yc3p.onrender.com/curriculum | jq '.stages | keys'
+# ["middle","primary","secondary"]
+```
+
+### `POST /curriculum/validate`
+تحقّق سريع من توليفة (subject, grade) قبل التوليد.
+
+```bash
+curl -X POST https://control-yc3p.onrender.com/curriculum/validate \
+     -H "Content-Type: application/json" \
+     -d '{"subject":"الرياضيات","grade":"السنة 3 علوم"}'
+# {"is_exact": true, "stage": "secondary", "exam_total": 20.0,
+#  "coefficient": 5, "subject_canonical": "رياضيات", "warnings": []}
+```
+
+### `POST /generate`
+ينشئ اختباراً جديداً ويحفظه في DB. مثال للسنة الثالثة ثانوي علوم تجريبية:
+
+```bash
+curl -X POST https://control-yc3p.onrender.com/generate \
+     -H "Content-Type: application/json" \
+     -d '{
+       "subject": "الرياضيات",
+       "grade": "السنة 3 علوم",
+       "branch": "علوم تجريبية",
+       "semester": "الفصل الثاني",
+       "examType": "اختبار فصلي",
+       "topic": "الدوال اللوغاريتمية",
+       "difficulty": "متوسط",
+       "num_questions": 6
+     }'
+```
+
+الاستجابة:
+```json
+{
+  "success": true,
+  "db_id": 42,
+  "questions": [...],
+  "total_points": 20.0,
+  "metadata": {
+    "stage": "secondary",
+    "coefficient": 5,
+    "exam_total_official": 20.0,
+    ...
+  }
+}
+```
+
+### `POST /generate_full_exam`
+نفس `/generate` لكن يُرجع التصحيح النموذجي و الحلول المفصّلة كذلك.
+
+### `GET /exam/<id>`
+يجلب اختباراً محفوظاً مع الأسئلة والتصحيح والـ metadata.
+
+### `GET /export/aiken/<id>` / `GET /export/gift/<id>`
+يُصدّر الاختبار بصيغة Aiken (MCQ فقط) أو GIFT (يدعم MCQ + True/False) لاستيراده
+مباشرة في بنك أسئلة Moodle.
+
+### `GET /export/pdf/<id>?teacher=true&style=dzexams`
+يُنتج PDF عربياً RTL. الباراميترات:
+- `teacher=true`: يُضمَّن التصحيح النموذجي.
+- `style=default|dzexams|bem|bac`: يختار نمط القالب البصري.
+  - `default`: القالب التقليدي (الجزء الأوّل/الثاني).
+  - `dzexams`: قالب dzexams.com (إطار رأس بثلاث خانات + 3 وضعيّات + تذييل).
+  - `bem`: بنية شهادة التعليم المتوسط (3 تمارين + وضعية إدماجية).
+  - `bac`: بنية البكالوريا (موضوعان مخيَّران).
+
+  إن لم يُمرَّر `style`، نستعمل النمط المُحفوظ في metadata (الذي اختير وقت التوليد)
+  أو `default`.
+
+- `institution`: تجاوز اسم المؤسّسة في رأس القالب (افتراض: «وزارة التربية الوطنية»).
+
+### `GET /exam-styles`
+يُرجع قائمة الأنماط المدعومة وقواعدها (المراحل/الأنواع المُطبَّقة).
+
+### تخصيص النمط في `/generate`
+```jsonc
+POST /generate
+{
+  "subject": "رياضيات",
+  "grade": "السنة الرابعة متوسط",
+  "topic": "الدوال",
+  "examType": "اختبار فصلي",
+  "style": "dzexams"   // ← اختياري — يُمرَّر إلى prompt builder + يُحفظ في metadata
+}
+```
+
+عند اختيار `style="dzexams"`، يولّد التطبيق توزيع نقاط متفاوت تلقائياً (مثلاً
+7+6+7 أو 4+8+8) ويختار التوزيع بصورة متبدّلة كل ساعة لإحداث التنوّع بين الاختبارات.
+
+## التطوير المحلي
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+export GROQ_API_KEY=gsk_xxx
+python app.py
+# يستمع على http://localhost:5000
+```
+
+### تشغيل الاختبارات
+```bash
+pip install pytest ruff
+pytest tests/ -v
+ruff check .
+```
+
+## بنية المشروع
+
+```
+.
+├── app.py                          # خادم Flask (التوليد + التصدير + DB)
+├── curriculum.py                   # كتالوج المنهاج + validators
+├── data/
+│   ├── algeria_curriculum.json     # الكتالوج الرسمي (مراحل، شُعب، مواد، معاملات)
+│   ├── questions_full_bank.json    # بنك أسئلة جاهز
+│   └── subjects_config.json
+├── templates/index.html
+├── tests/                          # 54 اختبار وحدة + تكامل
+└── render.yaml
+```
