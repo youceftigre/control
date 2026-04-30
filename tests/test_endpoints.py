@@ -101,3 +101,69 @@ def test_exam_styles_endpoint(client):
 def test_export_pdf_unknown_exam_with_style_returns_404(client):
     r = client.get("/export/pdf/999999?style=dzexams")
     assert r.status_code == 404
+
+
+def test_generate_returns_model_answers_field(client, monkeypatch):
+    """تحقق أن /generate يعيد model_answers (مهم للواجهة لرسم التصحيح النموذجي)."""
+    from app import (
+        FullGeneratedExam,
+        MCQQuestion,
+        ProblemQuestion,
+        ModelAnswer,
+        QuestionType,
+    )
+
+    def mock_generate(data, client_ip=None):
+        exam = FullGeneratedExam(
+            questions=[
+                MCQQuestion(
+                    type=QuestionType.MCQ,
+                    difficulty=1,
+                    text="اختر الإجابة الصحيحة لـ 2+2",
+                    points=2.0,
+                    options=["3", "4", "5"],
+                    answer="4",
+                ),
+                ProblemQuestion(
+                    type=QuestionType.PROBLEM,
+                    difficulty=3,
+                    text="السياق: مزرعة. السند: 100 شجرة. التعليمات: 1. احسب...",
+                    points=8.0,
+                ),
+            ],
+            model_answers=[
+                ModelAnswer(
+                    question_index=0,
+                    question_text="اختر الإجابة الصحيحة لـ 2+2",
+                    correct_answer="4",
+                    detailed_solution="2+2=4 مباشرة.",
+                    competence="عمليات حسابية",
+                    common_mistakes=["الخلط مع 5"],
+                ),
+                ModelAnswer(
+                    question_index=1,
+                    question_text="السياق: مزرعة...",
+                    correct_answer="نتيجة المسألة",
+                    detailed_solution="1. ... 2. ...",
+                    competence="حل وضعية",
+                    points_breakdown={"تطبيق القاعدة": 4.0, "الحساب": 4.0},
+                ),
+            ],
+            total_points=10.0,
+            metadata={"subject": "الرياضيات", "grade": "السنة 4 متوسط"},
+        )
+        return exam, 1
+
+    monkeypatch.setattr("app._generate_exam_internal", mock_generate)
+    resp = client.post("/generate", json={
+        "subject": "الرياضيات",
+        "grade": "السنة 4 متوسط",
+        "semester": "الفصل الثاني",
+        "topic": "الجبر",
+    })
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert "model_answers" in data
+    assert len(data["model_answers"]) == 2
+    assert data["model_answers"][0]["correct_answer"] == "4"
+    assert "points_breakdown" in data["model_answers"][1]

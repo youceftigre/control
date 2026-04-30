@@ -168,3 +168,67 @@ def test_user_prompt_dzexams_includes_situation_note():
     )
     assert "ثلاث وضعيّات" in p or "ثلاث" in p
     assert "الوضعية الأولى" in p
+
+
+def test_system_prompt_requires_integration_situation_structure():
+    """يجب أن يفرض النظام بنية الوضعية الإدماجية الثلاثية (السياق/السند/التعليمات)."""
+    p = _build_system_prompt("middle", "اختبار فصلي")
+    assert "السياق" in p
+    assert "السند" in p
+    assert "التعليمات" in p
+
+
+def test_system_prompt_requires_model_answers_breakdown():
+    """يجب أن يطلب التصحيح النموذجي مع توزيع نقاط (points_breakdown)."""
+    p = _build_system_prompt("middle", "اختبار فصلي")
+    assert "model_answers" in p
+    assert "points_breakdown" in p
+    assert "common_mistakes" in p
+    assert "detailed_solution" in p
+
+
+def test_system_prompt_uses_algerian_phrasing_verbs():
+    """يجب أن يحتوي النظام على أفعال الصياغة الجزائرية الرسمية."""
+    p = _build_system_prompt("middle", "اختبار فصلي")
+    verbs = ["أحسب", "أوجد", "بين", "استنتج", "أنجز", "حل"]
+    found = sum(1 for v in verbs if v in p)
+    assert found >= 4, f"وُجد فقط {found} أفعال جزائرية، نحتاج ≥4"
+
+
+def test_user_prompt_enforces_integration_situation_as_last_question():
+    """user_prompt يجب أن يطلب آخر سؤال = وضعية إدماجية."""
+    up = _build_user_prompt(
+        subject="الرياضيات",
+        grade="السنة 4 متوسط",
+        semester="الفصل الثاني",
+        branch="",
+        exam_type="اختبار فصلي",
+        topic="الدوال",
+        difficulty="متوسط",
+        num_questions=4,
+        structure=None,
+        exam_total=20.0,
+        coefficient=4,
+        style="default",
+    )
+    assert "وضعية إدماجية" in up or "الوضعية الإدماجية" in up
+    assert "آخر سؤال" in up or "آخر تمرين" in up
+
+
+def test_user_prompt_specifies_total_20_for_middle():
+    """user_prompt يجب أن يفرض المجموع = 20 للمتوسط."""
+    up = _build_user_prompt(
+        subject="الرياضيات",
+        grade="السنة 4 متوسط",
+        semester="الفصل الثاني",
+        branch="",
+        exam_type="اختبار فصلي",
+        topic="الجبر",
+        difficulty="متوسط",
+        num_questions=4,
+        structure=None,
+        exam_total=20.0,
+        coefficient=4,
+        style="default",
+    )
+    assert "20" in up
