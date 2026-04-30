@@ -858,6 +858,11 @@ function ordinalArabic(num) {
   const ordinals = ["", "الأول", "الثاني", "الثالث", "الرابع", "الخامس", "السادس", "السابع", "الثامن", "التاسع", "العاشر"];
   return ordinals[num] || num;
 }
+// نسخة مؤنّثة: تُستعمل مع كلمة «الوضعية» (مؤنّثة) في نمطَي dzexams و bem.
+function ordinalArabicFem(num) {
+  const ordinals = ["", "الأولى", "الثانية", "الثالثة", "الرابعة", "الخامسة", "السادسة", "السابعة", "الثامنة", "التاسعة", "العاشرة"];
+  return ordinals[num] || num;
+}
 
 // ========== BUILD A4 (مطابق تماماً لـ a4.html - بدون خطوط إجابة) ==========
 function buildExamHTML(subject, grade, semester, questions, mode) {
@@ -899,7 +904,7 @@ function buildExamHTML(subject, grade, semester, questions, mode) {
     if (q.type === 'situation') {
       exerciseTitle = `الوضعية الإدماجية`;
     } else if (_useSituation) {
-      exerciseTitle = `الوضعية ${ordinalArabic(idx+1)}`;
+      exerciseTitle = `الوضعية ${ordinalArabicFem(idx+1)}`;
     } else {
       exerciseTitle = `التمرين ${ordinalArabic(idx+1)}`;
     }
