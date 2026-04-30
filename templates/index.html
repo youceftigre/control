@@ -8,6 +8,27 @@
   <title>منصة الامتحانات الجزائرية | الجيل الثاني</title>
 
   <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script>
+    // إعداد MathJax: ندعم \(...\) و \[...\] و $...$ ($$...$$ block)
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)'], ['$', '$']],
+        displayMath: [['\\[', '\\]'], ['$$', '$$']],
+        processEscapes: true,
+        processEnvironments: true,
+        packages: {'[+]': ['ams', 'noerrors', 'mhchem']}
+      },
+      loader: {load: ['[tex]/ams', '[tex]/noerrors', '[tex]/mhchem']},
+      options: {
+        renderActions: {
+          // إعادة الرندر بعد كلّ تحديث للـ DOM (للأسئلة المُولَّدة دينامياً)
+          addMenu: [],
+        },
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+      },
+      svg: { fontCache: 'global' }
+    };
+  </script>
   <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -476,7 +497,16 @@
           <div>
             <label for="examType">نوع الاختبار</label>
             <select id="examType">
-              <option>اختبار فصلي</option><option>فرض محروس</option><option>نموذج شهادة</option><option>اختبار تأهيلي</option>
+              <option>اختبار فصلي</option><option>فرض محروس</option><option>نموذج شهادة</option><option>اختبار تأهيلي</option><option>شهادة التعليم المتوسط</option><option>بكالوريا تجريبية</option>
+            </select>
+          </div>
+          <div>
+            <label for="examStyle">نمط القالب</label>
+            <select id="examStyle">
+              <option value="default">افتراضي (الجزء الأوّل/الثاني)</option>
+              <option value="dzexams">dzexams (3 وضعيّات)</option>
+              <option value="bem">BEM (شهادة التعليم المتوسط)</option>
+              <option value="bac">باكالوريا (موضوعان مخيَّران)</option>
             </select>
           </div>
           <div>
@@ -736,6 +766,8 @@ async function generateExam(mode) {
   let questions;
   try {
     if (mode === 'ai') {
+      const styleEl = document.getElementById('examStyle');
+      const examStyle = styleEl ? styleEl.value : 'default';
       const resp = await fetch('/generate', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -745,12 +777,16 @@ async function generateExam(mode) {
           semester: semester,
           examType: document.getElementById('examType').value,
           topic: document.getElementById('topic').value,
-          difficulty: document.getElementById('difficulty').value
+          difficulty: document.getElementById('difficulty').value,
+          style: examStyle
         })
       });
       const data = await resp.json();
       if (data.error) { showAlert('errorBox', '❌ ' + data.error); document.getElementById('loadingScreen').style.display = 'none'; return; }
       questions = data.questions;
+      // نخزّن id الاختبار + النمط لتمكين تصدير PDF بنفس النمط
+      window.lastExamId = data.id || data.exam_id || null;
+      window.lastExamStyle = examStyle;
     } else {
       questions = selectFromBank(selectedSubject, grade, document.getElementById('topic').value);
       if (questions.length === 0) {
@@ -764,7 +800,7 @@ async function generateExam(mode) {
     document.getElementById('resultContent').innerHTML = examHTML;
     document.getElementById('loadingScreen').style.display = 'none';
     document.getElementById('resultSection').style.display = 'block';
-    if (window.MathJax) MathJax.typesetPromise();
+    typesetMath();
     showAlert('successBox', `✅ تم توليد الاختبار بنجاح! (${questions.length} أسئلة)`);
     
     if (window.isEditingActive) toggleExamEditing();
@@ -804,6 +840,19 @@ function selectFromBank(subject, grade, topic) {
   return selected.slice(0, 5);
 }
 
+// ========== MathJax retry helper ==========
+// MathJax يحمَّل بشكل غير متزامن. نُعيد المحاولة حتى يصبح جاهزاً
+// كي لا تظهر الكسور كنصّ "\(\frac{...}{...}\)" خاماً.
+function typesetMath(target, retries) {
+  if (retries === undefined) retries = 20;
+  if (window.MathJax && window.MathJax.typesetPromise) {
+    const el = target ? [target] : undefined;
+    window.MathJax.typesetPromise(el).catch(function(err){ console.warn('MathJax error', err); });
+  } else if (retries > 0) {
+    setTimeout(function(){ typesetMath(target, retries - 1); }, 200);
+  }
+}
+
 // ========== ORDINAL ARABIC FUNCTION ==========
 function ordinalArabic(num) {
   const ordinals = ["", "الأول", "الثاني", "الثالث", "الرابع", "الخامس", "السادس", "السابع", "الثامن", "التاسع", "العاشر"];
@@ -840,8 +889,20 @@ function buildExamHTML(subject, grade, semester, questions, mode) {
       <h1>${examType}</h1>
     </div>`;
 
+  // اختيار التسمية وفق النمط المختار: dzexams/bem يستعملان "الوضعية"
+  const styleEl2 = document.getElementById('examStyle');
+  const _style = styleEl2 ? styleEl2.value : 'default';
+  const _useSituation = (_style === 'dzexams' || _style === 'bem');
+
   questions.forEach((q, idx) => {
-    let exerciseTitle = (q.type === 'situation') ? `الوضعية الإدماجية` : `التمرين ${ordinalArabic(idx+1)}`;
+    let exerciseTitle;
+    if (q.type === 'situation') {
+      exerciseTitle = `الوضعية الإدماجية`;
+    } else if (_useSituation) {
+      exerciseTitle = `الوضعية ${ordinalArabic(idx+1)}`;
+    } else {
+      exerciseTitle = `التمرين ${ordinalArabic(idx+1)}`;
+    }
     let pointsFormatted = q.points || 2;
     let pointsWord = (pointsFormatted === 1) ? 'نقطة' : 'نقاط';
     
