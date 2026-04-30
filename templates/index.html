@@ -8,6 +8,27 @@
   <title>منصة الامتحانات الجزائرية | الجيل الثاني</title>
 
   <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script>
+    // إعداد MathJax: ندعم \(...\) و \[...\] و $...$ ($$...$$ block)
+    window.MathJax = {
+      tex: {
+        inlineMath: [['\\(', '\\)'], ['$', '$']],
+        displayMath: [['\\[', '\\]'], ['$$', '$$']],
+        processEscapes: true,
+        processEnvironments: true,
+        packages: {'[+]': ['ams', 'noerrors', 'mhchem']}
+      },
+      loader: {load: ['[tex]/ams', '[tex]/noerrors', '[tex]/mhchem']},
+      options: {
+        renderActions: {
+          // إعادة الرندر بعد كل تحديث للـ DOM (للأسئلة المُولَدة دينامياً)
+          addMenu: [],
+        },
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+      },
+      svg: { fontCache: 'global' }
+    };
+  </script>
   <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -328,6 +349,53 @@
       vertical-align: middle;
     }
 
+    /* الوضعية الإدماجية: تنسيق بارز */
+    .a4-exam .question-block.dz-integration {
+      background: #fffbe6;
+      border-right: 5px solid #b38711;
+      border-top: 1px dashed #b38711;
+    }
+    .a4-exam .dz-sit-label {
+      font-weight: 800;
+      color: #1a5276;
+      margin: 8px 0 4px 0;
+      padding-right: 6px;
+      border-right: 3px solid #1a5276;
+      font-size: 15px;
+    }
+    /* page-break بين الاختبار والتصحيح */
+    .a4-exam .page-break {
+      page-break-before: always;
+      break-before: page;
+      height: 0;
+      margin-top: 30px;
+      border-top: 2px dashed #999;
+    }
+    /* صفحة التصحيح النموذجي */
+    .a4-exam .answer-block {
+      margin: 0 0 16px 0;
+      padding: 10px 14px;
+      background: #f0f7ff;
+      border-right: 4px solid #2874a6;
+      page-break-inside: avoid;
+    }
+    .a4-exam .ans-head {
+      display: flex; justify-content: space-between; align-items: baseline;
+      font-weight: 800; color: #1a5276; font-size: 17px;
+      border-bottom: 1px dashed #aac;
+      padding-bottom: 5px; margin-bottom: 8px;
+    }
+    .a4-exam .ans-head .ans-points { color: #b38711; font-size: 14px; }
+    .a4-exam .ans-competence { font-size: 13px; color: #555; margin: 4px 0; font-style: italic; }
+    .a4-exam .ans-correct { font-size: 15px; margin: 6px 0; }
+    .a4-exam .ans-solution { font-size: 14px; line-height: 1.7; margin: 6px 0; }
+    .a4-exam .ans-justify { font-size: 13px; color: #444; margin: 4px 0; }
+    .a4-exam .ans-breakdown ul, .a4-exam .ans-mistakes ul {
+      margin: 4px 22px 4px 0; padding: 0; font-size: 13px;
+    }
+    .a4-exam .ans-breakdown li, .a4-exam .ans-mistakes li { margin: 2px 0; }
+    .a4-exam .ans-mistakes { color: #922b21; }
+
     @media print {
       body { background: white; }
       header, .stats-bar, .btn-generate, .result-toolbar, .card, .nav-tab, .alert, #loadingScreen, .stage-selector { display: none !important; }
@@ -335,6 +403,7 @@
       .a4-exam { padding: 0.75cm; max-width: 100%; box-shadow: none; border-radius: 0; }
       #resultSection { display: block !important; }
       main { padding: 0; max-width: 100%; }
+      .a4-exam .page-break { border: 0; margin: 0; }
     }
 
     /* Bank Page */
@@ -476,7 +545,16 @@
           <div>
             <label for="examType">نوع الاختبار</label>
             <select id="examType">
-              <option>اختبار فصلي</option><option>فرض محروس</option><option>نموذج شهادة</option><option>اختبار تأهيلي</option>
+              <option>اختبار فصلي</option><option>فرض محروس</option><option>نموذج شهادة</option><option>اختبار تأهيلي</option><option>شهادة التعليم المتوسط</option><option>بكالوريا تجريبية</option>
+            </select>
+          </div>
+          <div>
+            <label for="examStyle">نمط القالب</label>
+            <select id="examStyle">
+              <option value="default">افتراضي (الجزء الأول/الثاني)</option>
+              <option value="dzexams">dzexams (3 وضعيات)</option>
+              <option value="bem">BEM (شهادة التعليم المتوسط)</option>
+              <option value="bac">باكالوريا (موضوعان مخيَران)</option>
             </select>
           </div>
           <div>
@@ -736,6 +814,8 @@ async function generateExam(mode) {
   let questions;
   try {
     if (mode === 'ai') {
+      const styleEl = document.getElementById('examStyle');
+      const examStyle = styleEl ? styleEl.value : 'default';
       const resp = await fetch('/generate', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -745,16 +825,21 @@ async function generateExam(mode) {
           semester: semester,
           examType: document.getElementById('examType').value,
           topic: document.getElementById('topic').value,
-          difficulty: document.getElementById('difficulty').value
+          difficulty: document.getElementById('difficulty').value,
+          style: examStyle
         })
       });
       const data = await resp.json();
       if (data.error) { showAlert('errorBox', '❌ ' + data.error); document.getElementById('loadingScreen').style.display = 'none'; return; }
       questions = data.questions;
+      // نخزن id الاختبار + النمط + التصحيح النموذجي لتمكين تصدير PDF بنفس النمط
+      window.lastExamId = data.id || data.exam_id || null;
+      window.lastExamStyle = examStyle;
+      window.lastModelAnswers = data.model_answers || [];
     } else {
       questions = selectFromBank(selectedSubject, grade, document.getElementById('topic').value);
       if (questions.length === 0) {
-        showAlert('errorBox', '⚠️ لا توجد أسئلة متاحة في البنك لهذه المعايير. جرب الذكاء الاصطناعي أو غيّر الموضوع.');
+        showAlert('errorBox', '⚠️ لا توجد أسئلة متاحة في البنك لهذه المعايير. جرب الذكاء الاصطناعي أو غير الموضوع.');
         document.getElementById('loadingScreen').style.display = 'none';
         return;
       }
@@ -764,7 +849,7 @@ async function generateExam(mode) {
     document.getElementById('resultContent').innerHTML = examHTML;
     document.getElementById('loadingScreen').style.display = 'none';
     document.getElementById('resultSection').style.display = 'block';
-    if (window.MathJax) MathJax.typesetPromise();
+    typesetMath();
     showAlert('successBox', `✅ تم توليد الاختبار بنجاح! (${questions.length} أسئلة)`);
     
     if (window.isEditingActive) toggleExamEditing();
@@ -804,9 +889,27 @@ function selectFromBank(subject, grade, topic) {
   return selected.slice(0, 5);
 }
 
+// ========== MathJax retry helper ==========
+// MathJax يحمَل بشكل غير متزامن. نُعيد المحاولة حتى يصبح جاهزاً
+// كي لا تظهر الكسور كنص "\(\frac{...}{...}\)" خاماً.
+function typesetMath(target, retries) {
+  if (retries === undefined) retries = 20;
+  if (window.MathJax && window.MathJax.typesetPromise) {
+    const el = target ? [target] : undefined;
+    window.MathJax.typesetPromise(el).catch(function(err){ console.warn('MathJax error', err); });
+  } else if (retries > 0) {
+    setTimeout(function(){ typesetMath(target, retries - 1); }, 200);
+  }
+}
+
 // ========== ORDINAL ARABIC FUNCTION ==========
 function ordinalArabic(num) {
   const ordinals = ["", "الأول", "الثاني", "الثالث", "الرابع", "الخامس", "السادس", "السابع", "الثامن", "التاسع", "العاشر"];
+  return ordinals[num] || num;
+}
+// نسخة مؤنثة: تُستعمل مع كلمة «الوضعية» (مؤنثة) في نمطَي dzexams و bem.
+function ordinalArabicFem(num) {
+  const ordinals = ["", "الأولى", "الثانية", "الثالثة", "الرابعة", "الخامسة", "السادسة", "السابعة", "الثامنة", "التاسعة", "العاشرة"];
   return ordinals[num] || num;
 }
 
@@ -840,17 +943,40 @@ function buildExamHTML(subject, grade, semester, questions, mode) {
       <h1>${examType}</h1>
     </div>`;
 
+  // اختيار التسمية وفق النمط المختار: dzexams/bem يستعملان "الوضعية"
+  const styleEl2 = document.getElementById('examStyle');
+  const _style = styleEl2 ? styleEl2.value : 'default';
+  const _useSituation = (_style === 'dzexams' || _style === 'bem');
+
+  // كشف الوضعية الإدماجية: نَعتبرها وضعية إدماجية إن وُسِم بـ situation
+  // أو إن كان نصها يحتوي على «السياق» و «التعليمات» (بنية رسمية).
+  const isIntegrationSituation = (q) => {
+    if (!q) return false;
+    if (q.type === 'situation') return true;
+    const t = (q.text || '').replace(/\s+/g, ' ');
+    return t.includes('السياق') && (t.includes('التعليمات') || t.includes('السند'));
+  };
+
   questions.forEach((q, idx) => {
-    let exerciseTitle = (q.type === 'situation') ? `الوضعية الإدماجية` : `التمرين ${ordinalArabic(idx+1)}`;
+    const isSit = isIntegrationSituation(q);
+    let exerciseTitle;
+    if (isSit) {
+      exerciseTitle = `الوضعية الإدماجية`;
+    } else if (_useSituation) {
+      exerciseTitle = `الوضعية ${ordinalArabicFem(idx+1)}`;
+    } else {
+      exerciseTitle = `التمرين ${ordinalArabic(idx+1)}`;
+    }
     let pointsFormatted = q.points || 2;
     let pointsWord = (pointsFormatted === 1) ? 'نقطة' : 'نقاط';
-    
-    html += `<div class="question-block">
+    const blockCls = isSit ? 'question-block dz-integration' : 'question-block';
+
+    html += `<div class="${blockCls}">
       <div class="q-header">
         <span class="q-num">${exerciseTitle} (${pointsFormatted} ${pointsWord})</span>
       </div>
-      <div class="q-text">${q.text}</div>`;
-    
+      <div class="q-text">${formatSituationText(q.text || '')}</div>`;
+
     if (q.type === 'mcq' && q.options) {
       html += `<div class="q-options">`;
       q.options.forEach((opt, optIdx) => {
@@ -864,15 +990,88 @@ function buildExamHTML(subject, grade, semester, questions, mode) {
         <span style="border:1px solid #333; padding:6px 24px; border-radius:5px; font-size:14px;">خطأ</span>
       </div>`;
     }
-    // تم إزالة answer-space ليطابق a4.html
-    
+
     html += `</div>`;
   });
-  
+
   html += `<div style="margin-top:30px; padding-top:15px; border-top:1px solid #ccc; font-size:11px; color:#666; text-align:center;">
     بالتوفيق والنجاح | يُمنع استخدام الهاتف النقال أثناء الاختبار
   </div></div>`;
+
+  // ============== التصحيح النموذجي (صفحة منفصلة) ==============
+  const answers = window.lastModelAnswers || [];
+  if (answers.length) {
+    html += buildAnswerKeyHTML(subject, grade, semester, questions, answers, _useSituation);
+  }
   return html;
+}
+
+// تنسيق نص الوضعية: تحويل المؤشرات الرسمية إلى عناوين فرعية بارزة + احترام أسطر الترقيم.
+function formatSituationText(raw) {
+  if (!raw) return '';
+  let t = raw;
+  // عناوين بارزة
+  t = t.replace(/\*\*(السياق|السند|السندات|التعليمات|المطلوب)\*\*\s*[:：]?/g,
+    '<div class="dz-sit-label">$1:</div>');
+  t = t.replace(/(^|\n)\s*(السياق|السند|السندات|التعليمات|المطلوب)\s*[:：]/g,
+    '$1<div class="dz-sit-label">$2:</div>');
+  // حواجز أسطر
+  t = t.replace(/\n{2,}/g, '<br><br>').replace(/\n/g, '<br>');
+  return t;
+}
+
+// تصحيح نموذجي مفصل (صفحة منفصلة بـ page-break قبلها).
+function buildAnswerKeyHTML(subject, grade, semester, questions, answers, useSituation) {
+  let h = '<div class="page-break"></div>';
+  h += '<div class="exam-page" id="answerKeyPage">';
+  h += '<div class="exam-header" style="margin-top:10px;"><h1>التصحيح النموذجي</h1>';
+  h += `<div style="font-size:12px;color:#444;">${subject} — ${grade} — ${semester || ''}</div></div>`;
+
+  answers.sort((a, b) => (a.question_index || 0) - (b.question_index || 0));
+  answers.forEach((ans) => {
+    const idx = ans.question_index || 0;
+    const q = questions[idx] || {};
+    const isSit = (q.type === 'situation') ||
+      ((q.text || '').includes('السياق') && (q.text || '').includes('التعليمات'));
+    let title;
+    if (isSit) title = 'تصحيح الوضعية الإدماجية';
+    else if (useSituation) title = `تصحيح الوضعية ${ordinalArabicFem(idx+1)}`;
+    else title = `تصحيح التمرين ${ordinalArabic(idx+1)}`;
+    const points = q.points != null ? q.points : '';
+
+    h += '<div class="answer-block">';
+    h += `<div class="ans-head"><span>${title}</span>`;
+    if (points !== '') h += `<span class="ans-points">(${points} ن)</span>`;
+    h += '</div>';
+    if (ans.competence) h += `<div class="ans-competence">الكفاءة المستهدفة: ${ans.competence}</div>`;
+    if (ans.correct_answer != null && ans.correct_answer !== '') {
+      const ca = (typeof ans.correct_answer === 'object')
+        ? JSON.stringify(ans.correct_answer)
+        : String(ans.correct_answer);
+      h += `<div class="ans-correct"><strong>الإجابة:</strong> ${ca}</div>`;
+    }
+    if (ans.detailed_solution) {
+      h += `<div class="ans-solution"><strong>الحل المفصل:</strong><br>${formatSituationText(ans.detailed_solution)}</div>`;
+    }
+    if (ans.justification) {
+      h += `<div class="ans-justify"><strong>التبرير:</strong> ${ans.justification}</div>`;
+    }
+    if (ans.points_breakdown && Object.keys(ans.points_breakdown).length) {
+      h += '<div class="ans-breakdown"><strong>سُلَم التنقيط:</strong><ul>';
+      for (const k of Object.keys(ans.points_breakdown)) {
+        h += `<li>${k} — ${ans.points_breakdown[k]} ن</li>`;
+      }
+      h += '</ul></div>';
+    }
+    if (ans.common_mistakes && ans.common_mistakes.length) {
+      h += '<div class="ans-mistakes"><strong>أخطاء شائعة:</strong><ul>';
+      ans.common_mistakes.forEach((m) => { h += `<li>${m}</li>`; });
+      h += '</ul></div>';
+    }
+    h += '</div>';
+  });
+  h += '</div>';
+  return h;
 }
 
 // ========== EDITING & FONT SIZE CONTROLS ==========
