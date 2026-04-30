@@ -396,6 +396,81 @@
     .a4-exam .ans-breakdown li, .a4-exam .ans-mistakes li { margin: 2px 0; }
     .a4-exam .ans-mistakes { color: #922b21; }
 
+    /* ====== نمط dzexams الرسمي: ترويسة جدولية + خانات الاسم + صندوق الحاسبة ====== */
+    .a4-exam.dz-official { padding: 1cm 1cm 1.2cm; }
+    .a4-exam .dz-official-header {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 0;
+      font-size: 14px;
+    }
+    .a4-exam .dz-official-header td {
+      border: 1px solid #333;
+      padding: 4px 10px;
+      vertical-align: middle;
+    }
+    .a4-exam .dz-official-header .dz-h-right { width: 55%; }
+    .a4-exam .dz-official-header .dz-h-left { width: 45%; text-align: left; direction: ltr; }
+    .a4-exam .dz-official-header .dz-h-row div { margin: 2px 0; }
+    .a4-exam .dz-name-row {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: -1px;
+      font-size: 14px;
+    }
+    .a4-exam .dz-name-row td {
+      border: 1px solid #333;
+      padding: 8px 10px;
+      white-space: nowrap;
+    }
+    .a4-exam .dz-name-row td.dz-name-cell {
+      min-width: 30%;
+    }
+    .a4-exam .dz-calc-warning {
+      display: inline-block;
+      border: 1px solid #333;
+      padding: 4px 14px;
+      font-size: 13px;
+      margin: 10px 0 6px;
+      background: #fff;
+    }
+    .a4-exam .dz-exam-title-box {
+      text-align: center;
+      margin: 14px 0 12px;
+      padding: 6px 10px;
+      border-top: 1px solid #1a5276;
+      border-bottom: 1px solid #1a5276;
+      font-weight: bold;
+      font-size: 18px;
+      color: #1a2332;
+    }
+    .a4-exam .dz-part-label {
+      font-weight: bold;
+      font-size: 16px;
+      color: #1a5276;
+      margin: 14px 0 6px;
+      text-decoration: underline;
+    }
+    .a4-exam .dz-official-footer {
+      margin-top: 24px;
+      border-top: 1px solid #999;
+      padding-top: 6px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #555;
+    }
+    .a4-exam .dz-official-footer .dz-brand { color: #c0392b; font-weight: bold; }
+
+    @media print {
+      .a4-exam.dz-official .dz-part-label { page-break-after: avoid; break-after: avoid; }
+      /* ترقيم الصفحات في نمط dzexams الرسمي */
+      @page { margin: 1.2cm; }
+      .a4-exam .dz-official-footer .dz-page-num::after {
+        content: "الصفحة " counter(page) " من " counter(pages);
+      }
+    }
+
     /* ====== شريط التنقل التفاعلي (تبويبات الاختبار/التصحيح/الكل) ====== */
     .exam-tabs {
       display: flex;
@@ -631,6 +706,7 @@
             <label for="examStyle">نمط القالب</label>
             <select id="examStyle">
               <option value="default">افتراضي (الجزء الأول/الثاني)</option>
+              <option value="dzexams_official">dzexams الرسمي (ترويسة جدولية)</option>
               <option value="dzexams">dzexams (3 وضعيات)</option>
               <option value="bem">BEM (شهادة التعليم المتوسط)</option>
               <option value="bac">باكالوريا (موضوعان مخيَران)</option>
@@ -1015,31 +1091,58 @@ function buildExamHTML(subject, grade, semester, questions, mode) {
       <button type="button" class="tab-btn" data-mode="both" onclick="switchExamTab('both')">📖 عرض الكل</button>
     </div>`;
   }
-  html += `<div class="a4-exam" id="printableExam">
-    <div class="official-header">
-      <div class="republic">الجمهورية الجزائرية الديمقراطية الشعبية</div>
-      <div class="ministry">وزارة التربية الوطنية</div>
-    </div>
-    <div class="info-row">
-      <div class="right-info">
-        <div><strong>المديرية:</strong> ${directorate}</div>
-        <div><strong>المستوى:</strong> ${level}</div>
-        <div><strong>المادة:</strong> ${subject}</div>
-      </div>
-      <div class="left-info">
-        <div><strong>المؤسسة:</strong> ${school}</div>
-        <div><strong>السنة الدراسية:</strong> ${academicYear}</div>
-        <div><strong>المدة:</strong> ${duration}</div>
-      </div>
-    </div>
-    <div class="exam-header">
-      <h1>${examType}</h1>
-    </div>`;
-
   // اختيار التسمية وفق النمط المختار: dzexams/bem يستعملان "الوضعية"
   const styleEl2 = document.getElementById('examStyle');
   const _style = styleEl2 ? styleEl2.value : 'default';
   const _useSituation = (_style === 'dzexams' || _style === 'bem');
+  const _isOfficial = (_style === 'dzexams_official');
+
+  // دباجة الاختبار: رسمي (جدولي) أو افتراضي
+  if (_isOfficial) {
+    const needsCalcWarning = /رياضيات|علوم|فيزياء/.test(subject || '');
+    const titleLine = `${examType} في مادة ${subject}`;
+    html += `<div class="a4-exam dz-official" id="printableExam">
+      <table class="dz-official-header"><tr>
+        <td class="dz-h-right">
+          <div><strong>المديرية:</strong> ${escapeHtml(directorate)}</div>
+          <div><strong>المؤسسة:</strong> ${escapeHtml(school)}</div>
+          <div><strong>المستوى:</strong> ${escapeHtml(level)}</div>
+        </td>
+        <td class="dz-h-left">
+          <div><strong>السنة الدراسية:</strong> ${escapeHtml(academicYear)}</div>
+          <div><strong>المادة:</strong> ${escapeHtml(subject)}</div>
+          <div><strong>المدة:</strong> ${escapeHtml(duration)}</div>
+        </td>
+      </tr></table>
+      <table class="dz-name-row"><tr>
+        <td class="dz-name-cell"><strong>الاسم:</strong> .........................</td>
+        <td class="dz-name-cell"><strong>اللقب:</strong> .........................</td>
+        <td class="dz-name-cell"><strong>القسم:</strong> .........................</td>
+      </tr></table>
+      ${needsCalcWarning ? '<div class="dz-calc-warning">يمنع استعمال الآلة الحاسبة</div>' : ''}
+      <div class="dz-exam-title-box">${escapeHtml(titleLine)}</div>`;
+  } else {
+    html += `<div class="a4-exam" id="printableExam">
+      <div class="official-header">
+        <div class="republic">الجمهورية الجزائرية الديمقراطية الشعبية</div>
+        <div class="ministry">وزارة التربية الوطنية</div>
+      </div>
+      <div class="info-row">
+        <div class="right-info">
+          <div><strong>المديرية:</strong> ${directorate}</div>
+          <div><strong>المستوى:</strong> ${level}</div>
+          <div><strong>المادة:</strong> ${subject}</div>
+        </div>
+        <div class="left-info">
+          <div><strong>المؤسسة:</strong> ${school}</div>
+          <div><strong>السنة الدراسية:</strong> ${academicYear}</div>
+          <div><strong>المدة:</strong> ${duration}</div>
+        </div>
+      </div>
+      <div class="exam-header">
+        <h1>${examType}</h1>
+      </div>`;
+  }
 
   // كشف الوضعية الإدماجية: نَعتبرها وضعية إدماجية إن وُسِم بـ situation
   // أو إن كان نصها يحتوي على «السياق» و «التعليمات» (بنية رسمية).
@@ -1054,8 +1157,27 @@ function buildExamHTML(subject, grade, semester, questions, mode) {
   const answersByIdx = {};
   (window.lastModelAnswers || []).forEach((a) => { answersByIdx[a.question_index || 0] = a; });
 
+  // في النمط الرسمي نحسب مجموع نقاط التمارين (الجزء الأول) والوضعية (الجزء الثاني)
+  let _officialPart1Emitted = false, _officialPart2Emitted = false;
+  const _officialPart1Total = _isOfficial
+    ? questions.filter((qq) => !isIntegrationSituation(qq)).reduce((s, qq) => s + (qq.points || 0), 0)
+    : 0;
+  const _officialPart2Total = _isOfficial
+    ? questions.filter((qq) => isIntegrationSituation(qq)).reduce((s, qq) => s + (qq.points || 0), 0)
+    : 0;
+
   questions.forEach((q, idx) => {
     const isSit = isIntegrationSituation(q);
+    // عناوين «الجزء الأول / الثاني» في النمط الرسمي
+    if (_isOfficial) {
+      if (!isSit && !_officialPart1Emitted) {
+        html += `<div class="dz-part-label">الجزء الأول: (${_officialPart1Total} نقطة)</div>`;
+        _officialPart1Emitted = true;
+      } else if (isSit && !_officialPart2Emitted) {
+        html += `<div class="dz-part-label">الجزء الثاني: (${_officialPart2Total} نقاط)</div>`;
+        _officialPart2Emitted = true;
+      }
+    }
     let exerciseTitle;
     if (isSit) {
       exerciseTitle = `الوضعية الإدماجية`;
@@ -1098,9 +1220,17 @@ function buildExamHTML(subject, grade, semester, questions, mode) {
     html += `</div>`;
   });
 
-  html += `<div style="margin-top:30px; padding-top:15px; border-top:1px solid #ccc; font-size:11px; color:#666; text-align:center;">
-    بالتوفيق والنجاح | يُمنع استخدام الهاتف النقال أثناء الاختبار
-  </div></div>`;
+  if (_isOfficial) {
+    html += `<div class="dz-official-footer">
+      <span class="dz-page-num"></span>
+      <span>بالتوفيق للجميع</span>
+      <span class="dz-brand">www.dzexams.com</span>
+    </div></div>`;
+  } else {
+    html += `<div style="margin-top:30px; padding-top:15px; border-top:1px solid #ccc; font-size:11px; color:#666; text-align:center;">
+      بالتوفيق والنجاح | يُمنع استخدام الهاتف النقال أثناء الاختبار
+    </div></div>`;
+  }
 
   // ============== التصحيح النموذجي (صفحة منفصلة) ==============
   const answers = window.lastModelAnswers || [];

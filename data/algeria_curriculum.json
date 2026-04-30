@@ -298,6 +298,12 @@
       "uses_situations": false,
       "applicable_exam_types": ["بكالوريا تجريبية"],
       "applicable_grades": ["السنة 3 علوم", "السنة 3 آداب"]
+    },
+    "dzexams_official": {
+      "name_ar": "نمط dzexams الرسمي (ترويسة جدولية + خانات الاسم)",
+      "template_html": "exam_paper.html",
+      "uses_situations": false,
+      "applicable_exam_types": ["فرض محروس", "اختبار فصلي", "تقييم مستمر"]
     }
   },
   "semesters": ["الفصل الأول", "الفصل الثاني", "الفصل الثالث"],
