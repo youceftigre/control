@@ -396,14 +396,93 @@
     .a4-exam .ans-breakdown li, .a4-exam .ans-mistakes li { margin: 2px 0; }
     .a4-exam .ans-mistakes { color: #922b21; }
 
+    /* ====== شريط التنقل التفاعلي (تبويبات الاختبار/التصحيح/الكل) ====== */
+    .exam-tabs {
+      display: flex;
+      gap: 6px;
+      margin: 0 0 14px 0;
+      padding: 6px;
+      background: #eef4fb;
+      border-radius: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .exam-tabs .tab-btn {
+      flex: 1 1 auto;
+      min-width: 120px;
+      padding: 10px 16px;
+      border: 0;
+      border-radius: 8px;
+      background: transparent;
+      color: #1a5276;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 700;
+      transition: background 0.15s, color 0.15s, transform 0.1s;
+    }
+    .exam-tabs .tab-btn:hover { background: #d9e7f5; }
+    .exam-tabs .tab-btn.active {
+      background: linear-gradient(135deg, #1a5276, #2874a6);
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(26,82,118,0.3);
+    }
+    .exam-tabs .tab-btn:active { transform: translateY(1px); }
+    /* حالات إظهار الأقسام (الفئة على #resultFrame؛ #answerKeyPage و #printableExam إخوة داخل #resultContent) */
+    .mode-exam #answerKeyPage,
+    .mode-exam .page-break { display: none !important; }
+    .mode-correction #printableExam { display: none !important; }
+    .mode-correction .page-break { display: none !important; }
+
+    /* ====== زرّ "عرض الحلّ" لكل سؤال ====== */
+    .a4-exam .show-sol-btn {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 6px 14px;
+      border: 1px dashed #2874a6;
+      border-radius: 20px;
+      background: #fff;
+      color: #1a5276;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: background 0.15s, color 0.15s;
+    }
+    .a4-exam .show-sol-btn:hover { background: #2874a6; color: #fff; }
+    .a4-exam .show-sol-btn.active { background: #b38711; border-color: #b38711; color: #fff; }
+    .a4-exam .inline-answer {
+      display: none;
+      margin-top: 10px;
+      padding: 10px 14px;
+      background: #f0f7ff;
+      border-right: 3px solid #2874a6;
+      border-radius: 4px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .a4-exam .inline-answer.open { display: block; animation: slideIn 0.2s ease-out; }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .a4-exam .inline-answer .ia-label {
+      font-weight: 800; color: #2874a6; margin-bottom: 4px; font-size: 13px;
+    }
+    .a4-exam .inline-answer .ia-section { margin: 6px 0; }
+    .a4-exam .inline-answer ul { margin: 4px 22px 4px 0; padding: 0; }
+
     @media print {
       body { background: white; }
-      header, .stats-bar, .btn-generate, .result-toolbar, .card, .nav-tab, .alert, #loadingScreen, .stage-selector { display: none !important; }
+      header, .stats-bar, .btn-generate, .result-toolbar, .card, .nav-tab, .alert, #loadingScreen, .stage-selector, .exam-tabs, .show-sol-btn { display: none !important; }
       .result-frame { box-shadow: none; background: white; padding: 0; border-radius: 0; }
       .a4-exam { padding: 0.75cm; max-width: 100%; box-shadow: none; border-radius: 0; }
       #resultSection { display: block !important; }
       main { padding: 0; max-width: 100%; }
-      .a4-exam .page-break { border: 0; margin: 0; }
+      .page-break { border: 0; margin: 0; page-break-before: always; break-before: page; display: block !important; }
+      /* عند الطباعة أظهر الكل بصرف النظر عن التبويب المختار */
+      .mode-exam #answerKeyPage,
+      .mode-exam .page-break,
+      .mode-correction #printableExam { display: block !important; }
+      .a4-exam .inline-answer { display: none !important; } /* نحافظ على فصل صفحة التصحيح */
     }
 
     /* Bank Page */
@@ -849,6 +928,10 @@ async function generateExam(mode) {
     document.getElementById('resultContent').innerHTML = examHTML;
     document.getElementById('loadingScreen').style.display = 'none';
     document.getElementById('resultSection').style.display = 'block';
+    // الوضع الافتراضي: عرض الاختبار (إخفاء صفحة التصحيح) إذا كان لدينا تصحيح نموذجي
+    if (window.lastModelAnswers && window.lastModelAnswers.length) {
+      switchExamTab('exam');
+    }
     typesetMath();
     showAlert('successBox', `✅ تم توليد الاختبار بنجاح! (${questions.length} أسئلة)`);
     
@@ -921,8 +1004,18 @@ function buildExamHTML(subject, grade, semester, questions, mode) {
   const level = grade;
   const school = "المؤسسة";
   const academicYear = "2024/2025";
-  
-  let html = `<div class="a4-exam" id="printableExam">
+  const hasAnswers = !!(window.lastModelAnswers && window.lastModelAnswers.length);
+
+  let html = '';
+  // شريط التبويبات التفاعلي (لا يُطبع) — يظهر فقط إذا كان لدينا تصحيح نموذجي
+  if (hasAnswers) {
+    html += `<div class="exam-tabs" role="tablist">
+      <button type="button" class="tab-btn active" data-mode="exam" onclick="switchExamTab('exam')">📝 الاختبار</button>
+      <button type="button" class="tab-btn" data-mode="correction" onclick="switchExamTab('correction')">✅ التصحيح النموذجي</button>
+      <button type="button" class="tab-btn" data-mode="both" onclick="switchExamTab('both')">📖 عرض الكل</button>
+    </div>`;
+  }
+  html += `<div class="a4-exam" id="printableExam">
     <div class="official-header">
       <div class="republic">الجمهورية الجزائرية الديمقراطية الشعبية</div>
       <div class="ministry">وزارة التربية الوطنية</div>
@@ -956,6 +1049,10 @@ function buildExamHTML(subject, grade, semester, questions, mode) {
     const t = (q.text || '').replace(/\s+/g, ' ');
     return t.includes('السياق') && (t.includes('التعليمات') || t.includes('السند'));
   };
+
+  // نبني خريطة answer-by-index لبناء البطاقات inline
+  const answersByIdx = {};
+  (window.lastModelAnswers || []).forEach((a) => { answersByIdx[a.question_index || 0] = a; });
 
   questions.forEach((q, idx) => {
     const isSit = isIntegrationSituation(q);
@@ -991,6 +1088,13 @@ function buildExamHTML(subject, grade, semester, questions, mode) {
       </div>`;
     }
 
+    // بطاقة "عرض الحل" التفاعلية — تظهر فقط إن كان للسؤال إجابة نموذجية
+    const ans = answersByIdx[idx];
+    if (ans) {
+      html += `<button type="button" class="show-sol-btn" id="solBtn_${idx}" onclick="toggleInlineAnswer(${idx})">💡 عرض الحلّ</button>`;
+      html += `<div class="inline-answer" id="inlineAns_${idx}">${renderInlineAnswerBody(ans)}</div>`;
+    }
+
     html += `</div>`;
   });
 
@@ -1018,6 +1122,77 @@ function formatSituationText(raw) {
   // حواجز أسطر
   t = t.replace(/\n{2,}/g, '<br><br>').replace(/\n/g, '<br>');
   return t;
+}
+
+// ====== بناء محتوى بطاقة الإجابة المضمَنَة (inline answer) ======
+function renderInlineAnswerBody(ans) {
+  let h = '';
+  h += '<div class="ia-label">✅ التصحيح النموذجي</div>';
+  if (ans.competence) {
+    h += `<div class="ia-section"><strong>الكفاءة:</strong> ${escapeHtml(ans.competence)}</div>`;
+  }
+  if (ans.correct_answer != null && ans.correct_answer !== '') {
+    const ca = (typeof ans.correct_answer === 'object')
+      ? JSON.stringify(ans.correct_answer)
+      : String(ans.correct_answer);
+    h += `<div class="ia-section"><strong>الإجابة:</strong> ${escapeHtml(ca)}</div>`;
+  }
+  if (ans.detailed_solution) {
+    h += `<div class="ia-section"><strong>الحل المفصل:</strong><br>${formatSituationText(escapeHtml(ans.detailed_solution))}</div>`;
+  }
+  if (ans.justification) {
+    h += `<div class="ia-section"><strong>التبرير:</strong> ${escapeHtml(ans.justification)}</div>`;
+  }
+  if (ans.points_breakdown && Object.keys(ans.points_breakdown).length) {
+    h += '<div class="ia-section"><strong>سُلَم التنقيط:</strong><ul>';
+    for (const k of Object.keys(ans.points_breakdown)) {
+      h += `<li>${escapeHtml(k)} — ${ans.points_breakdown[k]} ن</li>`;
+    }
+    h += '</ul></div>';
+  }
+  if (ans.common_mistakes && ans.common_mistakes.length) {
+    h += '<div class="ia-section"><strong>أخطاء شائعة:</strong><ul>';
+    ans.common_mistakes.forEach((m) => { h += `<li>${escapeHtml(m)}</li>`; });
+    h += '</ul></div>';
+  }
+  return h;
+}
+
+function escapeHtml(s) {
+  if (s == null) return '';
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// فتح/إغلاق بطاقة الإجابة تحت السؤال
+function toggleInlineAnswer(idx) {
+  const card = document.getElementById('inlineAns_' + idx);
+  const btn = document.getElementById('solBtn_' + idx);
+  if (!card || !btn) return;
+  const isOpen = card.classList.toggle('open');
+  btn.classList.toggle('active', isOpen);
+  btn.innerHTML = isOpen ? '🔼 إخفاء الحلّ' : '💡 عرض الحلّ';
+  if (isOpen) typesetMath(card);
+}
+
+// تبديل بين وضع الاختبار / التصحيح / الكل
+function switchExamTab(mode) {
+  const frame = document.getElementById('resultFrame') || document.getElementById('resultContent');
+  if (!frame) return;
+  frame.classList.remove('mode-exam', 'mode-correction', 'mode-both');
+  if (mode === 'exam') frame.classList.add('mode-exam');
+  else if (mode === 'correction') frame.classList.add('mode-correction');
+  else frame.classList.add('mode-both');
+  // تحديث حالة الأزرار
+  const btns = document.querySelectorAll('.exam-tabs .tab-btn');
+  btns.forEach((b) => {
+    b.classList.toggle('active', b.getAttribute('data-mode') === mode);
+  });
+  // عند الانتقال إلى "التصحيح" نضمن أنّ MathJax قد رندَر الصفحة المخفية
+  if (mode !== 'exam') typesetMath();
 }
 
 // تصحيح نموذجي مفصل (صفحة منفصلة بـ page-break قبلها).
